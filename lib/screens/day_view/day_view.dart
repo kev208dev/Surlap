@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../providers/events_provider.dart';
 import '../../providers/themes_provider.dart';
@@ -62,7 +63,7 @@ class _DayViewState extends ConsumerState<DayView> {
       children: [
         // 날짜 헤더
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+          padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xs),
           child: Row(
             children: [
               GestureDetector(
@@ -71,11 +72,10 @@ class _DayViewState extends ConsumerState<DayView> {
                 child: Icon(Icons.arrow_back_ios_rounded,
                     size: 16, color: sh.inkSoft),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Gap.sm),
               Text(
                 '${date.month}월 ${date.day}일 (${_dowName(date.weekday)})',
-                style: TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w700, color: sh.ink),
+                style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink),
               ),
               const Spacer(),
               GestureDetector(
@@ -215,7 +215,7 @@ class _DayViewState extends ConsumerState<DayView> {
                 dateKey: widget.dateKey, editIndex: idx);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: Gap.xs),
             decoration: BoxDecoration(
               color: thColor.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(6),
@@ -232,10 +232,8 @@ class _DayViewState extends ConsumerState<DayView> {
                 Expanded(
                   child: Text(
                     e.t,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: sh.ink,
-                        fontWeight: FontWeight.w500),
+                    style: AppType.caption.copyWith(
+                        fontWeight: FontWeight.w500, color: sh.ink),
                     maxLines: height > _rowH ? 3 : 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -263,11 +261,11 @@ class _AllDayBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      margin: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.xs),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.sm + 2, vertical: Gap.xs),
       decoration: BoxDecoration(
         color: sh.card2,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Radii.small),
         border: Border.all(color: sh.border, width: 0.5),
       ),
       child: Column(
@@ -283,7 +281,7 @@ class _AllDayBar extends StatelessWidget {
           ...items.map((e) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 1),
                 child: Text(e.t,
-                    style: TextStyle(fontSize: 13, color: sh.ink)),
+                    style: AppType.body.copyWith(color: sh.ink)),
               )),
         ],
       ),
