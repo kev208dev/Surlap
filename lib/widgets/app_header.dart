@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../core/constants/color_presets.dart';
 import '../providers/color_preset_provider.dart';
 import '../widgets/sidebar_drawer.dart';
@@ -16,7 +17,7 @@ class AppHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sh = context.sh;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, 0),
       color: sh.bg,
       child: Row(
         children: [
@@ -26,8 +27,7 @@ class AppHeader extends ConsumerWidget {
               _SpaceHourLogo(color: sh.ink),
               const SizedBox(width: 6),
               Text('spaceHour',
-                  style: TextStyle(
-                      fontSize: 16,
+                  style: AppType.section.copyWith(
                       fontWeight: FontWeight.w700,
                       color: sh.ink,
                       letterSpacing: -0.3)),
@@ -172,19 +172,18 @@ class _PaletteSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final sh = context.sh;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(Gap.lg),
       color: sh.card,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('색상 테마',
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w700, color: sh.inkSoft)),
-          const SizedBox(height: 14),
+              style: AppType.caption.copyWith(fontWeight: FontWeight.w700, color: sh.inkSoft)),
+          const SizedBox(height: Gap.md),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: Gap.md,
+            runSpacing: Gap.md,
             children: kColorPresets.map((p) {
               final selected = p.id == currentId;
               return GestureDetector(
@@ -240,7 +239,7 @@ class _HeaderBtn extends StatelessWidget {
             Icon(icon, size: 15, color: color),
             const SizedBox(width: 4),
             Text(label,
-                style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+                style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: color)),
           ],
         ),
       ),

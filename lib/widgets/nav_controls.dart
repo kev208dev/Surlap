@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../providers/view_provider.dart';
 
 class NavControls extends ConsumerStatefulWidget {
@@ -28,16 +29,12 @@ class _NavControlsState extends ConsumerState<NavControls> {
     // reference(calendar.html)와 동일하게 월 네비 대신 "시간표" 라벨만 표시.
     if (view.mode == ViewMode.timetable) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
         color: sh.bg,
         alignment: Alignment.center,
         child: Text(
           '시간표',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: sh.ink,
-          ),
+          style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink),
         ),
       );
     }
@@ -49,7 +46,7 @@ class _NavControlsState extends ConsumerState<NavControls> {
         : '${view.viewYear}년 ${_monthNames[view.viewMonth - 1]}';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
       color: sh.bg,
       child: Column(
         children: [
@@ -58,26 +55,22 @@ class _NavControlsState extends ConsumerState<NavControls> {
             children: [
               if (!isYear) _NavBtn('≪', () => notifier.prevYear(), sh),
               _NavBtn('＜', () => isYear ? notifier.prevYear() : notifier.prevMonth(), sh),
-              const SizedBox(width: 4),
+              const SizedBox(width: Gap.xs),
               // 월 레이블 — 탭하면 날짜 피커 팝업
               GestureDetector(
                 onTap: () => setState(() => _pickerOpen = !_pickerOpen),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: Gap.xs),
                   child: Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: sh.ink,
-                    ),
+                    style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink),
                   ),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: Gap.xs),
               _NavBtn('＞', () => isYear ? notifier.nextYear() : notifier.nextMonth(), sh),
               if (!isYear) _NavBtn('≫', () => notifier.nextYear(), sh),
-              const SizedBox(width: 8),
+              const SizedBox(width: Gap.sm),
               // 오늘 버튼
               _TodayBtn(onTap: () {
                 notifier.goToToday();
@@ -118,7 +111,7 @@ class _NavBtn extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         child: Text(label,
-            style: TextStyle(fontSize: 14, color: sh.inkSoft, fontWeight: FontWeight.w500)),
+            style: AppType.body.copyWith(fontWeight: FontWeight.w500, color: sh.inkSoft)),
       ),
     );
   }
@@ -133,16 +126,15 @@ class _TodayBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(Radii.small),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: Gap.sm + 2, vertical: Gap.xs),
         decoration: BoxDecoration(
           border: Border.all(color: sh.border),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(Radii.small),
         ),
         child: Text('오늘',
-            style: TextStyle(
-                fontSize: 12, color: sh.inkSoft, fontWeight: FontWeight.w500)),
+            style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: sh.inkSoft)),
       ),
     );
   }
@@ -177,11 +169,11 @@ class _DatePickerPopupState extends State<_DatePickerPopup> {
   Widget build(BuildContext context) {
     final sh = widget.sh;
     return Container(
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(top: Gap.xs),
+      padding: const EdgeInsets.all(Gap.md),
       decoration: BoxDecoration(
         color: sh.card,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: sh.border),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.08),
@@ -198,7 +190,7 @@ class _DatePickerPopupState extends State<_DatePickerPopup> {
             onChanged: (i) => setState(() => _year = _year - 5 + i),
             sh: sh,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: Gap.sm),
           // 월 컬럼
           _PickerCol(
             items: List.generate(12, (i) => '${i + 1}월'),
@@ -240,12 +232,11 @@ class _PickerCol extends StatelessWidget {
               decoration: sel
                   ? BoxDecoration(
                       color: sh.accentBg,
-                      borderRadius: BorderRadius.circular(8))
+                      borderRadius: BorderRadius.circular(Radii.small))
                   : null,
               child: Center(
                 child: Text(items[i],
-                    style: TextStyle(
-                        fontSize: 13,
+                    style: AppType.body.copyWith(
                         fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
                         color: sel ? sh.accentInk : sh.inkSoft)),
               ),

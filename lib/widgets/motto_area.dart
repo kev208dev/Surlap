@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../providers/settings_provider.dart';
 
 class MottoArea extends ConsumerStatefulWidget {
@@ -33,20 +34,20 @@ class _MottoAreaState extends ConsumerState<MottoArea> {
     if (!_editing && _ctrl.text != motto) _ctrl.text = motto;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
+      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, 0),
       color: sh.bg,
       child: Row(
         children: [
-          Text('"', style: TextStyle(fontSize: 18, color: sh.accentInk,
-              fontWeight: FontWeight.w700, height: 1)),
+          Text('"', style: AppType.section.copyWith(
+              fontWeight: FontWeight.w700, color: sh.accentInk, height: 1)),
           Expanded(
             child: TextField(
               controller: _ctrl,
-              style: TextStyle(fontSize: 13, color: sh.inkSoft,
+              style: AppType.body.copyWith(color: sh.inkSoft,
                   fontStyle: FontStyle.italic),
               decoration: InputDecoration(
                 hintText: '이달의 교훈 / 나의 모토 — 클릭해서 적어보세요',
-                hintStyle: TextStyle(color: sh.inkFaint, fontSize: 13,
+                hintStyle: AppType.body.copyWith(color: sh.inkFaint,
                     fontStyle: FontStyle.italic),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -68,8 +69,8 @@ class _MottoAreaState extends ConsumerState<MottoArea> {
               },
             ),
           ),
-          Text('"', style: TextStyle(fontSize: 18, color: sh.accentInk,
-              fontWeight: FontWeight.w700, height: 1)),
+          Text('"', style: AppType.section.copyWith(
+              fontWeight: FontWeight.w700, color: sh.accentInk, height: 1)),
         ],
       ),
     );
