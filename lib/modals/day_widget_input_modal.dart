@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../core/utils/date_utils.dart' as du;
 import '../models/day_template.dart';
 import '../providers/day_widget_provider.dart';
@@ -35,7 +36,7 @@ class DayWidgetInputModal extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 18, 12, 10),
               child: Row(children: [
                 Text('📊 ${date.month}월 ${date.day}일 기록',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: sh.ink)),
+                    style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                 const Spacer(),
                 IconButton(
                   icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
@@ -51,8 +52,8 @@ class DayWidgetInputModal extends ConsumerWidget {
                         Icon(Icons.widgets_outlined, size: 48, color: sh.inkFaint),
                         const SizedBox(height: 12),
                         Text('이 날짜에 적용된 위젯 템플릿이 없어요',
-                            style: TextStyle(color: sh.inkFaint, fontSize: 14)),
-                        const SizedBox(height: 16),
+                            style: AppType.body.copyWith(color: sh.inkFaint)),
+                        const SizedBox(height: Gap.lg),
                         FilledButton(
                           onPressed: () => Navigator.pop(context),
                           child: const Text('닫기'),
@@ -90,13 +91,13 @@ class _TemplateSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Text(template.name,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+              style: AppType.body.copyWith(fontWeight: FontWeight.w700,
                   color: sh.inkSoft)),
         ),
         ...template.fields.map((field) {
           final value = values[dateKey]?[template.id]?[field.id];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: Gap.lg),
             child: WidgetCellRenderer(
               field: field,
               value: value,

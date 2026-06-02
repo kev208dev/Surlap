@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
 import '../../providers/view_provider.dart';
@@ -102,10 +103,9 @@ class MonthView extends ConsumerWidget {
         final sh = context.sh;
         return AlertDialog(
           backgroundColor: sh.card,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card)),
           title: Text('메모',
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w700, color: sh.ink)),
+              style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
           content: TextField(
             controller: ctrl,
             autofocus: true,
@@ -162,7 +162,7 @@ class _DayActionSheet extends StatelessWidget {
     final sh = context.sh;
     return Container(
       color: sh.card,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.lg, Gap.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,12 +174,11 @@ class _DayActionSheet extends StatelessWidget {
               type: MaterialType.transparency,
               child: Text(
                 '${date.month}월 ${date.day}일',
-                style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700, color: sh.ink),
+                style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: sh.ink),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: Gap.md),
           _ActionTile(
             icon: Icons.add_rounded,
             label: '일정 추가',
@@ -257,18 +256,16 @@ class _DayActionSheet extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text('이 날의 일정 (${items.length})',
-            style: TextStyle(
-                fontSize: 11,
+            style: AppType.label.copyWith(
                 fontWeight: FontWeight.w700,
-                color: sh.inkSoft,
-                letterSpacing: 0.4)),
+                color: sh.inkSoft)),
       ),
       ...items.asMap().entries.map((e) => ListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
             leading: Icon(Icons.circle, size: 8, color: sh.accent),
             title: Text(e.value.t,
-                style: TextStyle(fontSize: 13, color: sh.ink),
+                style: AppType.body.copyWith(color: sh.ink),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
             trailing: Icon(Icons.edit_outlined, size: 16, color: sh.inkFaint),
@@ -302,7 +299,7 @@ class _ActionTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: color, size: 20),
-      title: Text(label, style: TextStyle(fontSize: 14, color: color)),
+      title: Text(label, style: AppType.body.copyWith(color: color)),
       onTap: onTap,
     );
   }

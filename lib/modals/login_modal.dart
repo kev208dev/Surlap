@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../supabase/auth_service.dart';
 
 Future<void> showLoginModal(BuildContext context) => showModalBottomSheet(
@@ -36,10 +37,10 @@ class _LoginModalState extends ConsumerState<LoginModal> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('🕐 spaceHour',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: sh.ink)),
-            const SizedBox(height: 8),
+                style: AppType.title.copyWith(fontWeight: FontWeight.w800, color: sh.ink)),
+            const SizedBox(height: Gap.sm),
             Text('사용 방식을 선택해주세요',
-                style: TextStyle(fontSize: 14, color: sh.inkSoft)),
+                style: AppType.body.copyWith(color: sh.inkSoft)),
             const SizedBox(height: 28),
             if (!_showForm) ...[
               // ── Google 로그인 ──
@@ -52,7 +53,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                     side: BorderSide(color: sh.border),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(Radii.card)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -70,9 +71,9 @@ class _LoginModalState extends ConsumerState<LoginModal> {
               Row(children: [
                 Expanded(child: Divider(color: sh.border)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: Gap.md),
                   child: Text('또는',
-                      style: TextStyle(fontSize: 12, color: sh.inkFaint)),
+                      style: AppType.caption.copyWith(color: sh.inkFaint)),
                 ),
                 Expanded(child: Divider(color: sh.border)),
               ]),
@@ -97,12 +98,12 @@ class _LoginModalState extends ConsumerState<LoginModal> {
               if (_error != null)
                 Container(
                   width: double.infinity, padding: const EdgeInsets.all(10),
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: Gap.md),
                   decoration: BoxDecoration(
                     color: sh.danger.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(Radii.small)),
                   child: Text(_error!,
-                      style: TextStyle(color: sh.danger, fontSize: 13)),
+                      style: AppType.body.copyWith(color: sh.danger)),
                 ),
               TextField(
                 controller: _idCtrl,
@@ -112,7 +113,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                     hintStyle: TextStyle(color: sh.inkFaint)),
                 autofillHints: const [AutofillHints.username],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: Gap.md),
               TextField(
                 controller: _pwCtrl,
                 obscureText: true,
