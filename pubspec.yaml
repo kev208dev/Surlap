@@ -38,6 +38,7 @@ dependencies:
 
   # SVG 아이콘
   flutter_svg: ^2.0.17
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:

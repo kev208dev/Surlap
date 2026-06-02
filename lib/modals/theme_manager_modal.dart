@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import '../core/theme/app_theme.dart';
 import '../models/calendar_theme.dart';
@@ -289,10 +290,10 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
               onEditingComplete: () => _saveName(_nameCtrl.text),
             ),
           ),
-          // 공유 코드 배지 (탭하면 복사)
+          // 공유 코드 배지 (탭하면 링크 공유)
           if (widget.shareCode != null)
             GestureDetector(
-              onTap: () => _copyCode(context),
+              onTap: () => _shareLink(widget.theme.name, widget.shareCode!),
               child: Container(
                 margin: const EdgeInsets.only(left: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -409,24 +410,12 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     ref.read(themesProvider.notifier).delete(widget.theme.id);
   }
 
-  void _copyCode(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: widget.shareCode!));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('코드 복사됨: ${widget.shareCode}')),
-    );
-  }
-
   Future<void> _shareTheme(BuildContext context) async {
     try {
       final code = await ThemeShareService.shareTheme(widget.theme);
       ref.read(themesProvider.notifier).update(
           widget.theme.copyWith(shareCode: code, shareRole: 'owner'));
-      if (context.mounted) {
-        Clipboard.setData(ClipboardData(text: code));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('공유 코드: $code (클립보드에 복사됨)')),
-        );
-      }
+      if (context.mounted) _shareLink(widget.theme.name, code);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -434,5 +423,15 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
         );
       }
     }
+  }
+
+  // 공유 코드 + 딥링크를 시스템 공유 시트로 내보낸다(코드는 클립보드에도 복사).
+  void _shareLink(String name, String code) {
+    final link = ThemeShareService.linkForCode(code);
+    Clipboard.setData(ClipboardData(text: link));
+    Share.share(
+      '"$name" 테마를 공유했어요.\n링크로 열기: $link\n또는 코드 입력: $code',
+      subject: 'spaceHour 테마 공유',
+    );
   }
 }

@@ -6,6 +6,10 @@ import 'supabase_client.dart';
 /// 테마 공유 — Supabase `theme_shares` 테이블 사용.
 /// 스키마(웹 앱과 동일): code(text, 공유코드), payload(jsonb), created_by(uuid).
 class ThemeShareService {
+  // 딥링크 스킴 — spacehour://theme/<code>
+  static const scheme = 'spacehour';
+  static String linkForCode(String code) => '$scheme://theme/$code';
+
   // 8자리 대문자+숫자 공유 코드 생성
   static String _generateCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
