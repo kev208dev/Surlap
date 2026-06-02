@@ -17,8 +17,7 @@ class _MottoAreaState extends ConsumerState<MottoArea> {
   @override
   void initState() {
     super.initState();
-    final s = ref.read(settingsProvider);
-    _ctrl = TextEditingController(text: s.motto);
+    _ctrl = TextEditingController(text: ref.read(settingsProvider).motto);
   }
 
   @override
@@ -33,31 +32,37 @@ class _MottoAreaState extends ConsumerState<MottoArea> {
     final motto = ref.watch(settingsProvider).motto;
     if (!_editing && _ctrl.text != motto) _ctrl.text = motto;
 
+    // 가장 약한 위계 — 보조 정보. 월 라벨보다 시각적으로 약해야 함.
     return Container(
-      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, 0),
+      padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.xs),
       color: sh.bg,
       child: Row(
         children: [
-          Text('"', style: AppType.section.copyWith(
-              fontWeight: FontWeight.w700, color: sh.accentInk, height: 1)),
+          Text('"',
+              style: AppType.label.copyWith(
+                  color: sh.inkFaint.withValues(alpha: 0.6), height: 1)),
           Expanded(
             child: TextField(
               controller: _ctrl,
-              style: AppType.body.copyWith(color: sh.inkSoft,
-                  fontStyle: FontStyle.italic),
+              style: AppType.label.copyWith(
+                  color: sh.inkFaint, fontStyle: FontStyle.italic),
               decoration: InputDecoration(
-                hintText: '이달의 교훈 / 나의 모토 — 클릭해서 적어보세요',
-                hintStyle: AppType.body.copyWith(color: sh.inkFaint,
+                hintText: '이달의 모토',
+                hintStyle: AppType.label.copyWith(
+                    color: sh.inkFaint.withValues(alpha: 0.45),
                     fontStyle: FontStyle.italic),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: Gap.xs),
               ),
+              maxLines: 1,
               maxLength: 120,
               buildCounter: (_, {required int currentLength,
-                required bool isFocused, required int? maxLength}) => null,
+                    required bool isFocused, required int? maxLength}) =>
+                  null,
               onTap: () => setState(() => _editing = true),
               onSubmitted: (v) {
                 ref.read(settingsProvider.notifier).setMotto(v);
@@ -69,8 +74,9 @@ class _MottoAreaState extends ConsumerState<MottoArea> {
               },
             ),
           ),
-          Text('"', style: AppType.section.copyWith(
-              fontWeight: FontWeight.w700, color: sh.accentInk, height: 1)),
+          Text('"',
+              style: AppType.label.copyWith(
+                  color: sh.inkFaint.withValues(alpha: 0.6), height: 1)),
         ],
       ),
     );

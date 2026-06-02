@@ -48,50 +48,45 @@ class _NavControlsState extends ConsumerState<NavControls> {
         ? '${view.viewYear}년'
         : '${view.viewYear}년 ${_monthNames[view.viewMonth - 1]}';
 
-    // 연속 보기: 화살표 없음, 월 라벨 + 오늘 버튼만
+    // ── 연속 보기: 월 라벨(left, title size) + 오늘 버튼(right) ──
     if (isContinuous) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
+        padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.md, Gap.xs),
         color: sh.bg,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label, style: AppType.section.copyWith(
+            Text(label, style: AppType.title.copyWith(
                 fontWeight: FontWeight.w700, color: sh.ink)),
-            const SizedBox(width: Gap.sm),
+            const Spacer(),
             _TodayBtn(onTap: () => notifier.goToToday(), sh: sh),
           ],
         ),
       );
     }
 
+    // ── 일반 보기: 월 라벨(left, title size) + 화살표+오늘(right) ──
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
+      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.md, Gap.xs),
       color: sh.bg,
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (!isYear) _NavBtn('≪', () => notifier.prevYear(), sh),
-              _NavBtn('＜', () => isYear ? notifier.prevYear() : notifier.prevMonth(), sh),
-              const SizedBox(width: Gap.xs),
-              // 월 레이블 — 탭하면 날짜 피커 팝업
+              // 월/년 레이블 — 탭하면 날짜 피커 팝업
               GestureDetector(
                 onTap: () => setState(() => _pickerOpen = !_pickerOpen),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: Gap.xs),
-                  child: Text(
-                    label,
-                    style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink),
-                  ),
+                child: Text(
+                  label,
+                  style: AppType.title.copyWith(fontWeight: FontWeight.w700, color: sh.ink),
                 ),
               ),
-              const SizedBox(width: Gap.xs),
+              const Spacer(),
+              // 화살표 (compact)
+              if (!isYear) _NavBtn('≪', () => notifier.prevYear(), sh),
+              _NavBtn('＜', () => isYear ? notifier.prevYear() : notifier.prevMonth(), sh),
               _NavBtn('＞', () => isYear ? notifier.nextYear() : notifier.nextMonth(), sh),
               if (!isYear) _NavBtn('≫', () => notifier.nextYear(), sh),
-              const SizedBox(width: Gap.sm),
-              // 오늘 버튼
+              const SizedBox(width: Gap.xs),
               _TodayBtn(onTap: () {
                 notifier.goToToday();
                 if (view.mode != ViewMode.events) {
