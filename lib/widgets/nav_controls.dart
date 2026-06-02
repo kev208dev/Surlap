@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../providers/view_provider.dart';
+import '../providers/settings_provider.dart';
 
 class NavControls extends ConsumerStatefulWidget {
   const NavControls({super.key});
@@ -40,10 +41,29 @@ class _NavControlsState extends ConsumerState<NavControls> {
     }
 
     final isYear = view.mode == ViewMode.year;
+    final isContinuous = ref.read(settingsProvider).continuousView &&
+        view.mode == ViewMode.events;
 
     final label = isYear
         ? '${view.viewYear}년'
         : '${view.viewYear}년 ${_monthNames[view.viewMonth - 1]}';
+
+    // 연속 보기: 화살표 없음, 월 라벨 + 오늘 버튼만
+    if (isContinuous) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
+        color: sh.bg,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(label, style: AppType.section.copyWith(
+                fontWeight: FontWeight.w700, color: sh.ink)),
+            const SizedBox(width: Gap.sm),
+            _TodayBtn(onTap: () => notifier.goToToday(), sh: sh),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),

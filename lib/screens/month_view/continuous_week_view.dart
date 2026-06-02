@@ -155,8 +155,17 @@ class _ContinuousWeekViewState extends ConsumerState<ContinuousWeekView> {
               controller: _ctrl,
               physics: const _WeekSnapPhysics(itemExtent: _rowH),
               itemExtent: _rowH,
-              itemBuilder: (context, index) =>
-                  _WeekRow(weekStart: _weekStartForIndex(index)),
+              itemBuilder: (context, index) {
+                final ws = _weekStartForIndex(index);
+                // 이 주가 새 달의 1일을 포함하면 월 경계 구분선 표시
+                final containsMonthStart = List.generate(7,
+                    (i) => DateTime(ws.year, ws.month, ws.day + i))
+                    .any((d) => d.day == 1);
+                return _WeekRow(
+                  weekStart: ws,
+                  showTopBorder: containsMonthStart,
+                );
+              },
             ),
           ),
         ],
@@ -208,7 +217,8 @@ class _WeekSnapPhysics extends ScrollPhysics {
 
 class _WeekRow extends ConsumerWidget {
   final DateTime weekStart;
-  const _WeekRow({required this.weekStart});
+  final bool showTopBorder;
+  const _WeekRow({required this.weekStart, this.showTopBorder = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -222,7 +232,8 @@ class _WeekRow extends ConsumerWidget {
     final birthdays = ref.watch(birthdaysProvider);
     final sh = context.sh;
 
-    return Row(
+    // 월 경계 구분선 (1일이 포함된 주의 상단에 은은한 라인)
+    Widget row = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: List.generate(7, (i) {
         final date = DateTime(
@@ -289,6 +300,16 @@ class _WeekRow extends ConsumerWidget {
 
         return Expanded(child: cell);
       }),
+    );
+
+    if (!showTopBorder) return row;
+
+    // 월 경계: 은은한 상단 라인 추가 (Stack으로 row 위에 오버레이)
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: sh.border, width: 1.5)),
+      ),
+      child: row,
     );
   }
 
