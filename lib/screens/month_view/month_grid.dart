@@ -22,6 +22,8 @@ class MonthGrid extends StatelessWidget {
   final void Function(DateTime) onDayTap;
   final void Function(DateTime) onDayLongPress;
   final void Function(String memoKey, String current)? onMemoTap;
+  /// 날짜 셀 Hero 줌인 활성화 (단일 월 그리드에서만 — 연속 보기는 끔).
+  final bool heroCells;
 
   const MonthGrid({
     super.key,
@@ -40,6 +42,7 @@ class MonthGrid extends StatelessWidget {
     required this.onDayTap,
     required this.onDayLongPress,
     this.onMemoTap,
+    this.heroCells = false,
   });
 
   @override
@@ -183,6 +186,7 @@ class MonthGrid extends StatelessWidget {
         dateWidgetValues: dateWidgetValues,
         onTap: () => onDayTap(cellDate),
         onLongPress: () => onDayLongPress(cellDate),
+        heroDateNumber: heroCells,
       ),
     );
   }

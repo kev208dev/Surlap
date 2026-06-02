@@ -20,6 +20,9 @@ class DayCell extends StatelessWidget {
   final Map<String, Map<String, dynamic>> dateWidgetValues;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  /// 셀 탭 시 날짜 숫자가 액션 시트 헤더로 줌인되는 Hero 전환.
+  /// 연속 보기는 같은 날짜가 여러 그리드에 중복 렌더되어 태그가 충돌하므로 끈다.
+  final bool heroDateNumber;
 
   const DayCell({
     super.key,
@@ -35,6 +38,7 @@ class DayCell extends StatelessWidget {
     this.dateWidgetValues = const {},
     required this.onTap,
     required this.onLongPress,
+    this.heroDateNumber = false,
   });
 
   @override
@@ -60,6 +64,35 @@ class DayCell extends StatelessWidget {
     }
 
     final visible = events.where((e) => !e.isTimetable).toList();
+
+    Widget dayNumber = Container(
+      width: 22,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: hasCircle
+          ? BoxDecoration(
+              border: Border.all(
+                  color: sh.accent.withValues(alpha: dimmed ? 0.3 : 0.7),
+                  width: 1.5),
+              shape: BoxShape.circle)
+          : isToday
+              ? BoxDecoration(color: sh.accent, shape: BoxShape.circle)
+              : null,
+      child: Text(
+        '${date.day}',
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+          color: isToday ? (sh.dark ? sh.ink : Colors.white) : dayNumColor,
+        ),
+      ),
+    );
+    if (heroDateNumber) {
+      dayNumber = Hero(
+        tag: 'daycell-${du.toDateKey(date)}',
+        child: dayNumber,
+      );
+    }
 
     return GestureDetector(
       onTap: onTap,
@@ -92,33 +125,7 @@ class DayCell extends StatelessWidget {
                   )
                 else
                   const SizedBox(width: 1),
-                Container(
-                  width: 22,
-                  height: 22,
-                  alignment: Alignment.center,
-                  decoration: hasCircle
-                      ? BoxDecoration(
-                          border: Border.all(
-                              color: sh.accent
-                                  .withValues(alpha: dimmed ? 0.3 : 0.7),
-                              width: 1.5),
-                          shape: BoxShape.circle)
-                      : isToday
-                          ? BoxDecoration(
-                              color: sh.accent, shape: BoxShape.circle)
-                          : null,
-                  child: Text(
-                    '${date.day}',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight:
-                          isToday ? FontWeight.w700 : FontWeight.w500,
-                      color: isToday
-                          ? (sh.dark ? sh.ink : Colors.white)
-                          : dayNumColor,
-                    ),
-                  ),
-                ),
+                dayNumber,
               ],
             ),
             // 이벤트 + 위젯 (남은 공간 채움, 오버플로우 클립)

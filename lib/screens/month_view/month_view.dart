@@ -74,6 +74,7 @@ class MonthView extends ConsumerWidget {
         onDayLongPress: (date) => _handleDayTap(context, ref, date),
         onMemoTap: (memoKey, current) =>
             _editMemo(context, ref, memoKey, current),
+        heroCells: true,
       ),
     );
   }
@@ -166,10 +167,17 @@ class _DayActionSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${date.month}월 ${date.day}일',
-            style: TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w700, color: sh.ink),
+          // 탭한 날짜 셀에서 줌인되는 Hero (단일 월 뷰에서만 매칭됨)
+          Hero(
+            tag: 'daycell-$dateKey',
+            child: Material(
+              type: MaterialType.transparency,
+              child: Text(
+                '${date.month}월 ${date.day}일',
+                style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w700, color: sh.ink),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           _ActionTile(
