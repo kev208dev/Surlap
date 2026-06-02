@@ -1,5 +1,6 @@
 // auth.js 대응 — 아이디는 '<id>@cal-id.local' 이메일로 합성.
 // Supabase Dashboard에서 이메일 확인 비활성화 필요.
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_client.dart';
@@ -34,34 +35,52 @@ class AuthNotifier extends Notifier<User?> {
     final client = sb;
     if (client == null) { throw Exception('Supabase 클라이언트가 없습니다'); }
     if (!isValidId(id)) { throw Exception('아이디는 4~20자 영문/숫자/_'); }
-    final res = await client.auth.signInWithPassword(
-        email: idToEmail(id), password: password);
-    state = res.user;
-    // 로그인 성공 → 클라우드에서 데이터 pull
-    EventsSync.forceReady();
-    await UserDataSync.pullAll();
+    try {
+      final res = await client.auth.signInWithPassword(
+          email: idToEmail(id), password: password);
+      state = res.user;
+      // 로그인 성공 → 클라우드에서 데이터 pull
+      EventsSync.forceReady();
+      await UserDataSync.pullAll();
+    } catch (e, st) {
+      debugPrint('[Auth] signInWithId 실패: ${e.runtimeType} → $e');
+      debugPrint('$st');
+      rethrow;
+    }
   }
 
   Future<void> signUpWithId(String id, String password) async {
     final client = sb;
     if (client == null) { throw Exception('Supabase 클라이언트가 없습니다'); }
     if (!isValidId(id)) { throw Exception('아이디는 4~20자 영문/숫자/_'); }
-    final res = await client.auth.signUp(
-        email: idToEmail(id), password: password,
-        data: {'id': id});
-    state = res.user;
-    EventsSync.forceReady();
-    await UserDataSync.pushAll();
+    try {
+      final res = await client.auth.signUp(
+          email: idToEmail(id), password: password,
+          data: {'id': id});
+      state = res.user;
+      EventsSync.forceReady();
+      await UserDataSync.pushAll();
+    } catch (e, st) {
+      debugPrint('[Auth] signUpWithId 실패: ${e.runtimeType} → $e');
+      debugPrint('$st');
+      rethrow;
+    }
   }
 
   Future<void> signInGoogle() async {
     final client = sb;
     if (client == null) { throw Exception('Supabase 클라이언트가 없습니다'); }
-    await client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: Uri.base.origin,   // 웹: 현재 페이지로 복귀
-    );
-    // OAuth는 리다이렉트 방식 — onAuthStateChange에서 상태 갱신됨
+    try {
+      await client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: Uri.base.origin,   // 웹: 현재 페이지로 복귀
+      );
+      // OAuth는 리다이렉트 방식 — onAuthStateChange에서 상태 갱신됨
+    } catch (e, st) {
+      debugPrint('[Auth] signInGoogle 실패: ${e.runtimeType} → $e');
+      debugPrint('$st');
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {
