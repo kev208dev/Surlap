@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
 import '../../providers/events_provider.dart';
@@ -257,8 +258,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                     ),
                     child: Text(
                       _dowNames[i],
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: AppType.caption.copyWith(
                         fontWeight: FontWeight.w600,
                         color: isToday
                             ? sh.accentInk
@@ -324,10 +324,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
         return AlertDialog(
           backgroundColor: sh.card,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+              borderRadius: BorderRadius.circular(Radii.card)),
           title: Text('$hour:00 일정',
-              style: TextStyle(
-                  fontSize: 15,
+              style: AppType.body.copyWith(
                   fontWeight: FontWeight.w700,
                   color: sh.ink)),
           content: TextField(

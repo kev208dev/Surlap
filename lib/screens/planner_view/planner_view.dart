@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
 import '../../models/calendar_theme.dart';
@@ -131,8 +132,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                       children: [
                                         Text(
                                           _dowNames[i],
-                                          style: TextStyle(
-                                            fontSize: 11,
+                                          style: AppType.label.copyWith(
                                             fontWeight: FontWeight.w600,
                                             color: isToday
                                                 ? sh.accentInk
@@ -145,8 +145,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                         ),
                                         Text(
                                           '${d.month}/${d.day}',
-                                          style: TextStyle(
-                                            fontSize: 13,
+                                          style: AppType.body.copyWith(
                                             fontWeight: isToday
                                                 ? FontWeight.w700
                                                 : FontWeight.w500,
@@ -366,7 +365,7 @@ class _WeekNav extends StatelessWidget {
         ? '${first.year}년 ${first.month}월'
         : '${first.month}월 ~ ${last.month}월';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
       color: sh.bg,
       child: Row(
         children: [
@@ -374,21 +373,21 @@ class _WeekNav extends StatelessWidget {
           Expanded(
             child: Center(
               child: Text(label,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
+                  style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
             ),
           ),
           _NavBtn('＞', onNext, sh),
-          const SizedBox(width: 6),
+          const SizedBox(width: Gap.xs + 2),
           InkWell(
             onTap: onToday,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(Radii.small),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: Gap.sm + 2, vertical: Gap.xs),
               decoration: BoxDecoration(
                 border: Border.all(color: sh.border),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Radii.small),
               ),
-              child: Text('오늘', style: TextStyle(fontSize: 12, color: sh.inkSoft)),
+              child: Text('오늘', style: AppType.caption.copyWith(color: sh.inkSoft)),
             ),
           ),
         ],
@@ -410,7 +409,7 @@ class _NavBtn extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Text(label, style: TextStyle(fontSize: 16, color: sh.inkSoft)),
+        child: Text(label, style: AppType.section.copyWith(color: sh.inkSoft)),
       ),
     );
   }
