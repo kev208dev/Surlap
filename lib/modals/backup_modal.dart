@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../core/constants/storage_keys.dart';
 import '../providers/events_provider.dart';
 import '../providers/themes_provider.dart';
@@ -61,7 +62,7 @@ class _BackupModalState extends ConsumerState<BackupModal> {
               child: Row(children: [
                 const Text('💾 ', style: TextStyle(fontSize: 20)),
                 Text('정보 백업',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: sh.ink)),
+                    style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                 const Spacer(),
                 IconButton(icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
                     onPressed: () => Navigator.pop(context)),
@@ -94,14 +95,14 @@ class _BackupModalState extends ConsumerState<BackupModal> {
                       Expanded(child: _Btn('⬇️ 클라우드 내려받기', sh,
                           onTap: _cloudPull, loading: _loading)),
                     ]),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: Gap.sm),
                     Text('일정·테마·설정 전체를 Supabase에 저장/복원합니다.',
-                        style: TextStyle(fontSize: 11, color: sh.inkFaint)),
+                        style: AppType.label.copyWith(color: sh.inkFaint)),
                   ],
                   if (_msg != null) ...[
                     const SizedBox(height: 10),
                     Text(_msg!,
-                        style: TextStyle(fontSize: 13, color: sh.inkSoft)),
+                        style: AppType.body.copyWith(color: sh.inkSoft)),
                   ],
                 ],
               ),
@@ -200,7 +201,7 @@ class _Section extends StatelessWidget {
   final String text; final SpaceHourColors sh;
   const _Section(this.text, this.sh);
   @override Widget build(BuildContext context) =>
-      Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: sh.inkSoft));
+      Text(text, style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: sh.inkSoft));
 }
 
 class _Btn extends StatelessWidget {
@@ -211,7 +212,7 @@ class _Btn extends StatelessWidget {
     onPressed: loading ? null : onTap,
     style: OutlinedButton.styleFrom(
         foregroundColor: sh.ink, side: BorderSide(color: sh.border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-    child: Text(label, style: const TextStyle(fontSize: 12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card))),
+    child: Text(label, style: AppType.caption),
   );
 }

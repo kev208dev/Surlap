@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../supabase/auth_service.dart';
 import 'login_modal.dart';
 import 'backup_modal.dart';
@@ -32,7 +33,7 @@ class ProfileModal extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 18, 12, 10),
               child: Row(children: [
                 Text('프로필 설정',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: sh.ink)),
+                    style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                 const Spacer(),
                 IconButton(
                   icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
@@ -43,7 +44,7 @@ class ProfileModal extends ConsumerWidget {
             Divider(color: sh.border, height: 1),
             // 아바타 + 이름
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(Gap.xl),
               child: Row(children: [
                 Container(
                   width: 52, height: 52,
@@ -53,16 +54,16 @@ class ProfileModal extends ConsumerWidget {
                   child: Text(
                     isLoggedIn && displayName.isNotEmpty
                         ? displayName[0].toUpperCase() : '👤',
-                    style: TextStyle(fontSize: 22, color: sh.accentInk,
+                    style: AppType.title.copyWith(color: sh.accentInk,
                         fontWeight: FontWeight.w700),
                   ),
                 ),
                 const SizedBox(width: 14),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(isLoggedIn ? displayName : '로그인 없이 사용 중',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: sh.ink)),
+                      style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                   if (user?.email != null)
-                    Text(user!.email!, style: TextStyle(fontSize: 12, color: sh.inkSoft)),
+                    Text(user!.email!, style: AppType.caption.copyWith(color: sh.inkSoft)),
                 ]),
               ]),
             ),
@@ -118,7 +119,7 @@ class _Row extends StatelessWidget {
     final c = color ?? sh.ink;
     return ListTile(
       leading: Icon(icon, color: c, size: 20),
-      title: Text(label, style: TextStyle(color: c, fontSize: 14)),
+      title: Text(label, style: AppType.body.copyWith(color: c)),
       trailing: Icon(Icons.chevron_right_rounded, color: sh.inkFaint, size: 18),
       onTap: onTap,
     );
