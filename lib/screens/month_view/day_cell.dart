@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
 import '../../models/calendar_theme.dart';
@@ -80,7 +81,7 @@ class DayCell extends StatelessWidget {
               : null,
       child: Text(
         '${date.day}',
-        style: TextStyle(
+        style: AppType.label.copyWith(
           fontSize: 11.5,
           fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
           color: isToday ? (sh.dark ? sh.ink : Colors.white) : dayNumColor,

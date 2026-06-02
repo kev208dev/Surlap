@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
 import '../../models/calendar_theme.dart';
@@ -89,8 +90,7 @@ class MonthGrid extends StatelessWidget {
                   ),
                   child: Text(
                     e.value,
-                    style: TextStyle(
-                      fontSize: 11,
+                    style: AppType.label.copyWith(
                       fontWeight: FontWeight.w600,
                       color: isSunHeader
                           ? sh.danger
@@ -211,7 +211,7 @@ class _MemoCell extends StatelessWidget {
             bottom: BorderSide(color: sh.border, width: 0.5),
           ),
         ),
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(Gap.xs),
         alignment: Alignment.topLeft,
         child: text.isNotEmpty
             ? Text(
