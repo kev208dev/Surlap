@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../providers/view_provider.dart';
 import '../providers/color_preset_provider.dart';
 import '../supabase/auth_service.dart';
@@ -189,8 +190,7 @@ class _BnTab extends StatelessWidget {
             ),
             const SizedBox(height: 3),
             Text(label,
-                style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600, color: color, height: 1)),
+                style: AppType.label.copyWith(fontWeight: FontWeight.w600, color: color, height: 1)),
           ],
         ),
       ),
@@ -235,8 +235,7 @@ class _ViewTab extends StatelessWidget {
             IconTheme(data: IconThemeData(color: color, size: 20), child: icon),
             const SizedBox(height: 3),
             Text(label,
-                style: TextStyle(
-                    fontSize: 10.5, fontWeight: FontWeight.w600, color: color, height: 1)),
+                style: AppType.label.copyWith(fontSize: 10.5, fontWeight: FontWeight.w600, color: color, height: 1)),
           ],
         ),
       ),
@@ -277,8 +276,8 @@ class _ProfileIcon extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
-      child: Text(initial, style: const TextStyle(
-          fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700)),
+      child: Text(initial, style: AppType.label.copyWith(
+          color: Colors.white, fontWeight: FontWeight.w700)),
     );
   }
 }
