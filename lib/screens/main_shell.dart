@@ -7,8 +7,6 @@ import '../providers/settings_provider.dart';
 import '../utils/screenshot_util.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/app_header.dart';
-import '../widgets/nav_controls.dart';
-import '../widgets/motto_area.dart';
 import 'month_view/month_view.dart';
 import 'month_view/continuous_week_view.dart';
 import 'year_view/year_view.dart';
@@ -41,8 +39,6 @@ class MainShell extends ConsumerWidget {
             Column(
               children: [
                 const AppHeader(),
-                const MottoArea(),
-                const NavControls(),
                 Expanded(
                   child: RepaintBoundary(
                     key: screenshotKey,
