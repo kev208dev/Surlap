@@ -8,6 +8,7 @@ import '../providers/themes_provider.dart';
 import '../providers/filter_provider.dart';
 import '../providers/birthdays_provider.dart';
 import '../utils/vcf_parser.dart';
+import '../core/theme/design_tokens.dart';
 import '../modals/neis_setup_modal.dart';
 import '../modals/timetable_template_modal.dart';
 import 'coach_mark.dart';
@@ -39,14 +40,13 @@ class _SidebarContent extends ConsumerWidget {
           children: [
             // 헤더
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+              padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.lg, Gap.sm, Gap.md),
               child: Row(
                 children: [
                   Expanded(child: Text('설정 · 보기 옵션',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                          color: sh.ink))),
+                      style: AppType.title.copyWith(color: sh.ink))),
                   IconButton(
-                    icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
+                    icon: Icon(Icons.close, color: sh.inkSoft, size: 22),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -55,7 +55,7 @@ class _SidebarContent extends ConsumerWidget {
             Divider(color: sh.border, height: 1),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: Gap.sm),
                 children: [
                   // 카테고리 필터
                   _SectionLabel('카테고리 필터', sh),
@@ -94,18 +94,18 @@ class _SidebarContent extends ConsumerWidget {
                   ),
                   // 주 시작일
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.sm),
                     child: Row(
                       children: [
                         Icon(Icons.calendar_today_outlined,
-                            size: 14, color: sh.inkSoft),
-                        const SizedBox(width: 8),
+                            size: 18, color: sh.inkSoft),
+                        const SizedBox(width: Gap.sm),
                         Expanded(child: Text('주 시작일',
-                            style: TextStyle(fontSize: 13, color: sh.ink))),
+                            style: AppType.body.copyWith(color: sh.ink))),
                         DropdownButton<int>(
                           value: settings.weekStartDow,
                           underline: const SizedBox(),
-                          style: TextStyle(fontSize: 12,
+                          style: AppType.body.copyWith(
                               color: sh.ink, fontFamily: 'Pretendard'),
                           items: const [
                             DropdownMenuItem(value: 1, child: Text('월요일')),
@@ -182,10 +182,11 @@ class _SidebarBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    dense: true,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-    leading: Icon(icon, size: 16, color: sh.inkSoft),
-    title: Text(label, style: TextStyle(fontSize: 13, color: sh.ink)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: Gap.lg),
+    minVerticalPadding: Gap.md,
+    horizontalTitleGap: Gap.sm,
+    leading: Icon(icon, size: 18, color: sh.inkSoft),
+    title: Text(label, style: AppType.body.copyWith(color: sh.ink)),
     onTap: onTap,
   );
 }
@@ -196,10 +197,8 @@ class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text, this.sh);
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-    child: Text(text,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-            color: sh.inkSoft, letterSpacing: 0.4)),
+    padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.lg, Gap.lg, Gap.sm),
+    child: Text(text, style: AppType.label.copyWith(color: sh.inkSoft)),
   );
 }
 
@@ -255,7 +254,7 @@ class _FilterItem extends StatelessWidget {
     return InkWell(
       onTap: onToggle,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.sm),
         child: Row(
           children: [
             Checkbox(
@@ -264,13 +263,13 @@ class _FilterItem extends StatelessWidget {
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: Gap.sm),
             Container(
               width: 10, height: 10,
               decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 8),
-            Text(name, style: TextStyle(fontSize: 13, color: sh.ink)),
+            const SizedBox(width: Gap.sm),
+            Text(name, style: AppType.body.copyWith(color: sh.ink)),
           ],
         ),
       ),
@@ -322,13 +321,13 @@ class _ToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: sh.inkSoft),
-          const SizedBox(width: 8),
+          Icon(icon, size: 18, color: sh.inkSoft),
+          const SizedBox(width: Gap.sm),
           Expanded(child: Text(label,
-              style: TextStyle(fontSize: 13, color: sh.ink))),
+              style: AppType.body.copyWith(color: sh.ink))),
           Switch(value: value, onChanged: onChanged),
         ],
       ),
