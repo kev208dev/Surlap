@@ -66,5 +66,21 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- 테마 공유 커스텀 스킴: spacehour://theme/<code> -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.spacehour.spacehour</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>spacehour</string>
+			</array>
+		</dict>
+	</array>
+	<!-- TODO(출시): https 앱링크(Universal Links)는 Apple Developer 계정 +
+	     Associated Domains(applinks:sunfish501.github.io) + AASA 파일
+	     (https://sunfish501.github.io/.well-known/apple-app-site-association)
+	     호스팅 필요. Xcode에서 Associated Domains capability 추가 후 활성화. -->
 </dict>
 </plist>

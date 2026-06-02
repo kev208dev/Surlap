@@ -458,12 +458,16 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     }
   }
 
-  // 공유 코드 + 딥링크를 시스템 공유 시트로 내보낸다(코드는 클립보드에도 복사).
+  // 공유 코드 + 링크를 시스템 공유 시트로 내보낸다(링크는 클립보드에도 복사).
+  // https 앱링크를 주로, 커스텀 스킴/코드를 폴백으로 함께 담는다.
   void _shareLink(String name, String code) {
-    final link = ThemeShareService.linkForCode(code);
-    Clipboard.setData(ClipboardData(text: link));
+    final httpsLink = ThemeShareService.httpsLinkForCode(code);
+    Clipboard.setData(ClipboardData(text: httpsLink));
     Share.share(
-      '"$name" 테마를 공유했어요.\n링크로 열기: $link\n또는 코드 입력: $code',
+      '"$name" 테마를 공유했어요.\n'
+      '링크로 열기: $httpsLink\n'
+      '앱에서 바로 열기: ${ThemeShareService.linkForCode(code)}\n'
+      '또는 코드 입력: $code',
       subject: 'spaceHour 테마 공유',
     );
   }
