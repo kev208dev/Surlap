@@ -4,6 +4,7 @@ import '../core/theme/app_theme.dart';
 import '../core/constants/color_presets.dart';
 import '../providers/color_preset_provider.dart';
 import '../widgets/sidebar_drawer.dart';
+import '../widgets/coach_mark.dart';
 import '../modals/theme_manager_modal.dart';
 import '../modals/profile_modal.dart';
 import '../utils/screenshot_util.dart';
@@ -48,6 +49,7 @@ class AppHeader extends ConsumerWidget {
           const SizedBox(width: 4),
           // 카테고리 관리 버튼
           _HeaderBtn(
+            key: coachKeyBtnCategory,
             icon: Icons.label_outline_rounded,
             label: '카테고리',
             color: sh.inkSoft,
@@ -56,6 +58,7 @@ class AppHeader extends ConsumerWidget {
           const SizedBox(width: 2),
           // 설정 버튼
           _HeaderBtn(
+            key: coachKeyBtnSettings,
             icon: Icons.settings_outlined,
             label: '설정',
             color: sh.inkSoft,
@@ -222,7 +225,7 @@ class _HeaderBtn extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _HeaderBtn({required this.icon, required this.label,
+  const _HeaderBtn({super.key, required this.icon, required this.label,
     required this.color, required this.onTap});
 
   @override

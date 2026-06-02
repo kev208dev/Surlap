@@ -10,6 +10,7 @@ import '../providers/birthdays_provider.dart';
 import '../utils/vcf_parser.dart';
 import '../modals/neis_setup_modal.dart';
 import '../modals/timetable_template_modal.dart';
+import 'coach_mark.dart';
 
 class SidebarDrawer extends StatelessWidget {
   const SidebarDrawer({super.key});
@@ -122,6 +123,19 @@ class _SidebarContent extends ConsumerWidget {
 
                   // ─── 더보기 ────────────────────────────
                   _SectionLabel('더보기', sh),
+                  _SidebarBtn(
+                    icon: Icons.lightbulb_outline_rounded,
+                    label: '사용법 안내',
+                    sh: sh,
+                    onTap: () {
+                      // 서랍(바텀시트)을 닫은 뒤 루트 위에 코치마크를 띄운다.
+                      final rootCtx =
+                          Navigator.of(context, rootNavigator: true).context;
+                      Navigator.pop(context);
+                      WidgetsBinding.instance.addPostFrameCallback(
+                          (_) => showCoachMarks(rootCtx));
+                    },
+                  ),
                   _SidebarBtn(
                     icon: Icons.grid_view_rounded,
                     label: '반복 시간표 설정',

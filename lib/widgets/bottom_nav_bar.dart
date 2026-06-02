@@ -9,6 +9,7 @@ import '../modals/profile_modal.dart';
 import '../modals/login_modal.dart';
 import '../modals/theme_manager_modal.dart';
 import '../modals/day_template_manager_modal.dart';
+import 'coach_mark.dart';
 
 /// 원본 하단 바 재현.
 /// 레이아웃: [일정테마][일일기록] | [년][월][주][일] | [시간표] | [프로필]
@@ -40,6 +41,7 @@ class SpaceHourBottomNav extends ConsumerWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
               child: Container(
+                key: coachKeyBottomNav,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
                   color: sh.dark
@@ -112,6 +114,7 @@ class SpaceHourBottomNav extends ConsumerWidget {
 
                     // ─── 시간표 ───
                     _BnTab(
+                      key: coachKeyTabTimetable,
                       icon: _gridIcon,
                       label: '시간표',
                       active: isView(ViewMode.timetable),
@@ -124,6 +127,7 @@ class SpaceHourBottomNav extends ConsumerWidget {
 
                     // ─── 프로필 (로그인 상태에 따라 아바타 표시) ───
                     _BnTab(
+                      key: coachKeyTabProfile,
                       icon: _ProfileIcon(user: user, accent: accent),
                       label: '프로필',
                       active: false,
@@ -156,6 +160,7 @@ class _BnTab extends StatelessWidget {
   final VoidCallback onTap;
 
   const _BnTab({
+    super.key,
     required this.icon, required this.label,
     required this.active, required this.accent, required this.onTap,
   });
