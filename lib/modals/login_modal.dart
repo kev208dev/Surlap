@@ -36,7 +36,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('🕐 spaceHour',
+            Text('🕐 HourSpace',
                 style: AppType.title.copyWith(fontWeight: FontWeight.w800, color: sh.ink)),
             const SizedBox(height: Gap.sm),
             Text('사용 방식을 선택해주세요',

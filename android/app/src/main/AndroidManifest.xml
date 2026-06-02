@@ -3,7 +3,7 @@
          debug/profile 매니페스트에는 이미 있으나 release 병합용으로 main에도 추가. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="spacehour"
+        android:label="HourSpace"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

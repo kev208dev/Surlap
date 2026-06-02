@@ -27,7 +27,7 @@ class AppHeader extends ConsumerWidget {
           // ── 브랜드 (compact, 보조 위계) ─────────────────────────
           _SpaceHourLogo(color: sh.inkFaint),
           const SizedBox(width: Gap.xs),
-          Text('spaceHour',
+          Text('HourSpace',
               style: AppType.label.copyWith(
                   fontWeight: FontWeight.w600,
                   color: sh.inkSoft,

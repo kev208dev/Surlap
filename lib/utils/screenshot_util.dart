@@ -21,6 +21,6 @@ Future<void> captureAndShare() async {
     final fname = '달력_${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}.png';
     final file = File('${dir.path}/$fname');
     await file.writeAsBytes(bytes.buffer.asUint8List());
-    await Share.shareXFiles([XFile(file.path)], text: 'spaceHour 달력');
+    await Share.shareXFiles([XFile(file.path)], text: 'HourSpace 달력');
   } catch (_) {}
 }

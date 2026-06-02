@@ -470,7 +470,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
       '링크로 열기: $httpsLink\n'
       '앱에서 바로 열기: ${ThemeShareService.linkForCode(code)}\n'
       '또는 코드 입력: $code',
-      subject: 'spaceHour 테마 공유',
+      subject: 'HourSpace 테마 공유',
     );
   }
 }

@@ -87,7 +87,7 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp> {
   Widget build(BuildContext context) {
     final preset = ref.watch(colorPresetProvider);
     return MaterialApp(
-      title: 'spaceHour',
+      title: 'HourSpace',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: scaffoldMessengerKey,
       theme: buildTheme(preset),
