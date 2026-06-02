@@ -8,7 +8,7 @@ import 'supabase_client.dart';
 class ThemeShareService {
   // 딥링크 — https 앱링크(주) + 커스텀 스킴(보조)
   static const scheme = 'spacehour';
-  static const httpsDomain = 'sunfish501.github.io';
+  static const httpsDomain = 'kev208dev.github.io';
   static String linkForCode(String code) => '$scheme://theme/$code';
   static String httpsLinkForCode(String code) =>
       'https://$httpsDomain/theme/$code';

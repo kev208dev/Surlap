@@ -34,14 +34,14 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="spacehour" android:host="theme"/>
             </intent-filter>
-            <!-- 테마 공유 HTTPS 앱링크(주): https://sunfish501.github.io/theme/<code>
-                 autoVerify=true → /.well-known/assetlinks.json 호스팅 시 자동 검증 -->
+            <!-- 테마 공유 HTTPS 앱링크(주): https://kev208dev.github.io/theme/<code>
+                 autoVerify=true → 도메인 루트 /.well-known/assetlinks.json 검증 -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"
-                      android:host="sunfish501.github.io"
+                      android:host="kev208dev.github.io"
                       android:pathPrefix="/theme"/>
             </intent-filter>
         </activity>
