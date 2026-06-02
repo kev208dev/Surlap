@@ -1,11 +1,50 @@
-# 무인 작업 진행 기록
+# 무인 작업 진행 기록 (feature/polish)
 
-## 최종 요약 (작업 완료 후 여기에 씀)
-_작업 완료 후 업데이트 예정_
+## feature/polish 진행 현황
+
+### 디자인 시안 정렬
+
+| 화면 | 상태 | 비고 |
+|------|------|------|
+| 상단 chrome — 날짜 앵커·뷰 세그먼트·4탭 하단 네비 | [완료] | feat(chrome) 커밋 |
+| 월간 뷰 | [완료] | 기존 구조 시안과 일치, 추가 변경 불필요 |
+| 연간 뷰 | [완료] | 3열 미니카드, 현재 월 강조 테두리 확인 |
+| 주간 뷰 | [완료] | 7컬럼 시간 그리드 확인 |
+| 일별 뷰 | [완료] | 시간축 + 현재 시각 표시선 확인 |
+| 시간표 뷰 | [완료] | 주간 그리드 확인, NEIS 연동 설정 접근 가능 |
+| 테마 관리 | [건너뜀] | 기능 동작 이상 없음, 미세 시각 폴리시는 다음 이터레이션 |
+
+### 히어로 전환 점검
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| 연간→월간 커스텀 오버레이 줌 전환 | [완료] | easeInOutCubic 360ms, 콘텐츠 스케일 — 이미 구현됨 |
+
+### 앱 이름 통일
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| android:label | [완료] | HourSpace |
+| iOS CFBundleDisplayName | [완료] | HourSpace |
+| UI 텍스트 (AppHeader) | [완료] | HourSpace |
+
+### 배포 준비
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| flutter analyze 경고 | [완료] | 0 이슈 |
+| 디버그 print | [완료] | 전부 debugPrint (릴리스 모드 자동 억제) |
+| Android 빌드 설정 점검 | [완료] | applicationId/권한/딥링크 확인 |
+| RELEASE_CHECKLIST.md 작성 | [완료] | 직접 해야 할 항목 목록화 |
+
+### 확인 필요 (위험/미검증)
+- 릴리스 키 서명 미설정 (debug key 사용 중) → RELEASE_CHECKLIST.md 참고
+- assetlinks.json에 릴리스 SHA256 미추가 → RELEASE_CHECKLIST.md 참고
+- Supabase RLS 수동 검증 필요 → RELEASE_CHECKLIST.md 참고
 
 ---
 
-## 진행 기록
+## 이전 작업 기록 (feature/finish-remaining)
 
 ### Baseline
 - 커밋: d81ddd9 (master)
