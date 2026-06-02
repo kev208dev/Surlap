@@ -57,16 +57,22 @@ class ThemeManagerModal extends ConsumerWidget {
                 children: [
                   if (local.isNotEmpty) ...[
                     _GroupLabel('내 카테고리', sh),
-                    ...local.map((t) => _ThemeRow(theme: t, editable: true, ref: ref, sh: sh)),
+                    ...local.map((t) => _ThemeRow(
+                        key: ValueKey(t.id),
+                        theme: t, editable: true, ref: ref, sh: sh)),
                   ],
                   if (owned.isNotEmpty) ...[
                     _GroupLabel('🔗 공유 중 · 내가 공유', sh),
-                    ...owned.map((t) => _ThemeRow(theme: t, editable: true, ref: ref, sh: sh,
+                    ...owned.map((t) => _ThemeRow(
+                        key: ValueKey(t.id),
+                        theme: t, editable: true, ref: ref, sh: sh,
                         shareCode: t.shareCode)),
                   ],
                   if (subbed.isNotEmpty) ...[
                     _GroupLabel('📥 구독 중', sh),
-                    ...subbed.map((t) => _ThemeRow(theme: t, editable: false, ref: ref, sh: sh,
+                    ...subbed.map((t) => _ThemeRow(
+                        key: ValueKey(t.id),
+                        theme: t, editable: false, ref: ref, sh: sh,
                         shareCode: t.shareCode)),
                   ],
                   const SizedBox(height: 16),
@@ -201,6 +207,7 @@ class _ThemeRow extends ConsumerStatefulWidget {
   final String? shareCode;
 
   const _ThemeRow({
+    super.key,
     required this.theme, required this.editable,
     required this.ref, required this.sh, this.shareCode,
   });
@@ -218,6 +225,19 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.theme.name);
     _color = widget.theme.colorValue;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ThemeRow old) {
+    super.didUpdateWidget(old);
+    // 같은 행(ValueKey로 theme.id 고정)에서 테마 속성이 외부 변경되면 재동기화.
+    if (old.theme.color != widget.theme.color) {
+      _color = widget.theme.colorValue;
+    }
+    if (old.theme.name != widget.theme.name &&
+        widget.theme.name != _nameCtrl.text) {
+      _nameCtrl.text = widget.theme.name;
+    }
   }
 
   @override
