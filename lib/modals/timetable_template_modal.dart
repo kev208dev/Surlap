@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
 import '../core/constants/storage_keys.dart';
 import '../storage/local_store.dart';
 
@@ -87,7 +88,7 @@ class _TimetableTemplateModalState extends State<TimetableTemplateModal> {
               padding: const EdgeInsets.fromLTRB(20, 18, 12, 10),
               child: Row(children: [
                 Text('📅 반복 시간표 설정',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: sh.ink)),
+                    style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                 const Spacer(),
                 IconButton(
                   icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
@@ -99,17 +100,17 @@ class _TimetableTemplateModalState extends State<TimetableTemplateModal> {
             Expanded(
               child: _blocks.isEmpty
                   ? Center(child: Text('+ 수업 추가 버튼으로 시작하세요',
-                      style: TextStyle(color: sh.inkFaint, fontSize: 13)))
+                      style: AppType.body.copyWith(color: sh.inkFaint)))
                   : ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
                         for (int d = 0; d < 7; d++)
                           if (byDay.containsKey(d)) ...[
                             Padding(
-                              padding: const EdgeInsets.only(top: 12, bottom: 4),
+                              padding: const EdgeInsets.only(top: Gap.md, bottom: Gap.xs),
                               child: Text(_dowNames[d],
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                                      color: sh.inkSoft, letterSpacing: 0.4)),
+                                  style: AppType.label.copyWith(fontWeight: FontWeight.w700,
+                                      color: sh.inkSoft)),
                             ),
                             ...byDay[d]!.map((b) => _BlockTile(
                               block: b, sh: sh,
@@ -132,7 +133,7 @@ class _TimetableTemplateModalState extends State<TimetableTemplateModal> {
                 style: FilledButton.styleFrom(
                   backgroundColor: sh.accent,
                   minimumSize: const Size(double.infinity, 44),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card)),
                 ),
               ),
             ),
@@ -176,19 +177,19 @@ class _BlockTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: 10),
       decoration: BoxDecoration(
         color: sh.card2,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: sh.border),
       ),
       child: Row(children: [
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(block.title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: sh.ink)),
+            Text(block.title, style: AppType.body.copyWith(fontWeight: FontWeight.w600, color: sh.ink)),
             Text(block.tm + (block.te != null ? ' ~ ${block.te}' : ''),
-                style: TextStyle(fontSize: 12, color: sh.inkSoft)),
+                style: AppType.caption.copyWith(color: sh.inkSoft)),
           ],
         )),
         IconButton(icon: Icon(Icons.edit_outlined, size: 16, color: sh.inkSoft), onPressed: onEdit),
@@ -233,25 +234,25 @@ class _BlockEditorState extends State<_BlockEditor> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('수업 편집', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: sh.ink)),
-            const SizedBox(height: 16),
+            Text('수업 편집', style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
+            const SizedBox(height: Gap.lg),
             TextField(controller: _titleCtrl,
                 decoration: InputDecoration(labelText: '수업명', hintText: '예) 수학',
                     hintStyle: TextStyle(color: sh.inkFaint)),
                 textCapitalization: TextCapitalization.sentences),
-            const SizedBox(height: 12),
+            const SizedBox(height: Gap.md),
             DropdownButtonFormField<int>(
               initialValue: _day,
               decoration: const InputDecoration(labelText: '요일'),
               items: List.generate(7, (i) => DropdownMenuItem(value: i, child: Text(_dowNames[i]))),
               onChanged: (v) { if (v != null) setState(() => _day = v); },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Gap.md),
             Row(children: [
               Expanded(child: _TimeField(
                 label: '시작 시간', value: _tm, sh: sh,
                 onPick: (t) => setState(() => _tm = t))),
-              const SizedBox(width: 12),
+              const SizedBox(width: Gap.md),
               Expanded(child: _TimeField(
                 label: '종료 시간 (선택)', value: _te, sh: sh,
                 onPick: (t) => setState(() => _te = t))),
@@ -262,7 +263,7 @@ class _BlockEditorState extends State<_BlockEditor> {
               style: FilledButton.styleFrom(
                 backgroundColor: sh.accent,
                 minimumSize: const Size(double.infinity, 44),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card)),
               ),
               child: const Text('저장'),
             ),
@@ -306,7 +307,7 @@ class _TimeField extends StatelessWidget {
       child: InputDecorator(
         decoration: InputDecoration(labelText: label),
         child: Text(value ?? '--:--',
-            style: TextStyle(fontSize: 14,
+            style: AppType.body.copyWith(
                 color: value != null ? sh.ink : sh.inkFaint)),
       ),
     );
