@@ -1,5 +1,6 @@
 // NEIS 교육정보 개방포털 API
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../core/constants/storage_keys.dart';
 import '../storage/local_store.dart';
@@ -52,21 +53,39 @@ class NeisSchool {
 Future<List<Map<String, dynamic>>> searchSchools(String query) async {
   final uri = Uri.parse(
       '$_base/schoolInfo?KEY=$_neisKey&Type=json&pSize=10&SCHUL_NM=${Uri.encodeComponent(query)}');
+  debugPrint('[NEIS] 1) 학교 검색 → "$query"');
   final res = await http.get(uri);
-  if (res.statusCode != 200) { return []; }
+  if (res.statusCode != 200) {
+    debugPrint('[NEIS] 학교 검색 HTTP ${res.statusCode}');
+    return [];
+  }
   try {
     final j = jsonDecode(res.body) as Map<String, dynamic>;
+    if (j['RESULT'] != null) {
+      debugPrint('[NEIS] 학교 검색 결과 없음: ${(j['RESULT'] as Map?)?['MESSAGE']}');
+      return [];
+    }
     final rows = j['schoolInfo']?[1]['row'] as List? ?? [];
+    debugPrint('[NEIS] 학교 ${rows.length}건 검색됨');
     return rows.cast<Map<String, dynamic>>();
-  } catch (_) { return []; }
+  } catch (e) {
+    debugPrint('[NEIS] 학교 검색 파싱 오류: $e');
+    return [];
+  }
 }
 
 // 시간표 조회
 Future<Map<int, String>?> fetchTimetable(
     NeisSchool school, String date) async {
-  if (school.officeCode.isEmpty) { return null; }
+  if (school.officeCode.isEmpty) {
+    debugPrint('[NEIS] 시간표: 교육청코드(ATPT_OFCDC_SC_CODE) 없음 — 학교 재연결 필요');
+    return null;
+  }
   final apiName = _timetableApiName(school.kind);
-  if (apiName == null) { return null; }
+  if (apiName == null) {
+    debugPrint('[NEIS] 시간표: 지원하지 않는 학교 종류 "${school.kind}"');
+    return null;
+  }
 
   final uri = Uri.parse(
       '$_base/$apiName?KEY=$_neisKey&Type=json&pSize=100'
@@ -74,11 +93,20 @@ Future<Map<int, String>?> fetchTimetable(
       '&SD_SCHUL_CODE=${school.code}'
       '&TI_FROM_YMD=$date&TI_TO_YMD=$date'
       '&GRADE=${school.grade}&CLASS_NM=${school.classNm}');
+  debugPrint('[NEIS] 2) 시간표 호출 $apiName $date '
+      '(${school.grade}학년 ${school.classNm}반)');
 
   final res = await http.get(uri);
-  if (res.statusCode != 200) { return null; }
+  if (res.statusCode != 200) {
+    debugPrint('[NEIS] 시간표 HTTP ${res.statusCode}');
+    return null;
+  }
   try {
     final j = jsonDecode(res.body) as Map<String, dynamic>;
+    if (j['RESULT'] != null) {
+      debugPrint('[NEIS] 시간표 데이터 없음 ($date): ${(j['RESULT'] as Map?)?['MESSAGE']}');
+      return {};
+    }
     final rows = j[apiName]?[1]['row'] as List? ?? [];
     final result = <int, String>{};
     for (final row in rows.cast<Map<String, dynamic>>()) {
@@ -86,8 +114,12 @@ Future<Map<int, String>?> fetchTimetable(
       final subject = row['ITRT_CNTNT']?.toString() ?? '';
       if (period > 0 && subject.isNotEmpty) { result[period] = subject; }
     }
+    debugPrint('[NEIS] 시간표 $date → ${result.length}교시 수신 $result');
     return result;
-  } catch (_) { return null; }
+  } catch (e) {
+    debugPrint('[NEIS] 시간표 파싱 오류 ($date): $e');
+    return null;
+  }
 }
 
 // 급식 조회
@@ -99,15 +131,28 @@ Future<String?> fetchLunch(NeisSchool school, String date) async {
       '&SD_SCHUL_CODE=${school.code}'
       '&MLSV_FROM_YMD=$date&MLSV_TO_YMD=$date');
   final res = await http.get(uri);
-  if (res.statusCode != 200) { return null; }
+  if (res.statusCode != 200) {
+    debugPrint('[NEIS] 급식 HTTP ${res.statusCode}');
+    return null;
+  }
   try {
     final j = jsonDecode(res.body) as Map<String, dynamic>;
+    if (j['RESULT'] != null) {
+      debugPrint('[NEIS] 급식 데이터 없음 ($date): ${(j['RESULT'] as Map?)?['MESSAGE']}');
+      return null;
+    }
     final rows = j['mealServiceDietInfo']?[1]['row'] as List? ?? [];
     if (rows.isEmpty) { return null; }
     final raw = rows[0]['DDISH_NM']?.toString() ?? '';
     // <br/> 구분자를 개행으로, 칼로리 태그 제거
-    return raw.replaceAll('<br/>', '\n').replaceAll(RegExp(r'\s*\(.*?\)'), '').trim();
-  } catch (_) { return null; }
+    final lunch =
+        raw.replaceAll('<br/>', '\n').replaceAll(RegExp(r'\s*\(.*?\)'), '').trim();
+    debugPrint('[NEIS] 급식 $date → ${lunch.split('\n').length}개 메뉴');
+    return lunch;
+  } catch (e) {
+    debugPrint('[NEIS] 급식 파싱 오류 ($date): $e');
+    return null;
+  }
 }
 
 String? _timetableApiName(String kind) {

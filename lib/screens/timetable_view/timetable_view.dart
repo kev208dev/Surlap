@@ -56,8 +56,14 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
   Future<void> _fetchNeisIfNeeded() async {
     final school = NeisSchool.load();
-    if (school == null || _neisFetching) return;
+    if (school == null) {
+      debugPrint('[NEIS] 연결된 학교 없음 — 설정에서 학교를 먼저 연결하세요');
+      return;
+    }
+    if (_neisFetching) return;
     _neisFetching = true;
+    debugPrint('[NEIS] 시간표 뷰: ${school.name} ${school.grade}학년 '
+        '${school.classNm}반 (${school.kind}) 주간 데이터 조회 시작');
     final days = _weekDays();
     for (int di = 0; di < 5; di++) {
       // 주중만 (월~금)
@@ -76,11 +82,13 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
             _neisLunch[di] = lunch;
           });
         }
-      } catch (_) {
-        // 네트워크 오류 무시
+      } catch (e) {
+        debugPrint('[NEIS] $dateStr 조회 오류: $e');
       }
     }
     _neisFetching = false;
+    debugPrint('[NEIS] 주간 조회 완료 — 시간표 ${_neisData.length}일, '
+        '급식 ${_neisLunch.length}일 채워짐');
   }
 
   List<DateTime> _weekDays() {
