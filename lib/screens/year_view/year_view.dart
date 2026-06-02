@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../providers/view_provider.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../providers/events_provider.dart';
@@ -17,12 +18,12 @@ class YearView extends ConsumerWidget {
     final year = view.viewYear;
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+      padding: const EdgeInsets.fromLTRB(Gap.md, Gap.sm, Gap.md, 80),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.85,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        crossAxisSpacing: Gap.sm,
+        mainAxisSpacing: Gap.sm,
       ),
       itemCount: 12,
       itemBuilder: (context, i) {
@@ -72,7 +73,7 @@ class _MiniMonthCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: sh.card,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Radii.card),
           border: isCurrentMonth
               ? Border.all(color: sh.accent, width: 1.5)
               : Border.all(color: sh.border, width: 0.5),
@@ -91,13 +92,12 @@ class _MiniMonthCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
                 color: isCurrentMonth ? sh.accentBg : sh.card2,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.card)),
               ),
               child: Center(
                 child: Text(
                   _monthNames[month - 1],
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: AppType.label.copyWith(
                     fontWeight: FontWeight.w700,
                     color: isCurrentMonth ? sh.accentInk : sh.inkSoft,
                   ),
@@ -298,7 +298,7 @@ class _ZoomOverlayState extends State<_ZoomOverlay>
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: sh.card,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: sh.accent, width: 1.5),
         boxShadow: [
           BoxShadow(
@@ -314,8 +314,7 @@ class _ZoomOverlayState extends State<_ZoomOverlay>
             color: sh.accentBg,
             child: Center(
               child: Text(widget.monthLabel,
-                  style: TextStyle(
-                      fontSize: 13,
+                  style: AppType.body.copyWith(
                       fontWeight: FontWeight.w700,
                       color: sh.accentInk)),
             ),
