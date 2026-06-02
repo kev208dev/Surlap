@@ -258,10 +258,11 @@ class _ZoomOverlayState extends State<_ZoomOverlay>
     _c.addStatusListener((s) {
       if (s == AnimationStatus.completed) widget.onDone();
     });
-    // 뷰 전환을 먼저 트리거해 월간 뷰를 오버레이 뒤에서 미리 빌드.
-    // 2프레임 후에 애니메이션 시작 → 빌드 비용이 애니메이션 프레임을 잡아먹지 않는다.
-    widget.onSwitch();
+    // 프레임 1 끝: provider 수정(onSwitch)을 빌드 사이클 밖에서 실행.
+    // initState() 안에서 직접 호출하면 "widget tree building 중 provider 수정" 에러 발생.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onSwitch(); // 월간 뷰를 오버레이 뒤에서 미리 빌드
+      // 프레임 2 끝: 뷰가 빌드된 뒤 애니메이션 시작 → 첫 프레임 드랍 방지
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _c.forward();
       });
