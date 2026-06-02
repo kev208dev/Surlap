@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../providers/view_provider.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../providers/events_provider.dart';
+import '../../utils/screenshot_util.dart' show screenshotKey;
 
 class YearView extends ConsumerWidget {
   const YearView({super.key});
@@ -31,10 +32,7 @@ class YearView extends ConsumerWidget {
           month: month,
           events: events,
           sh: sh,
-          onTap: () {
-            ref.read(viewProvider.notifier).setYearMonth(year, month);
-            ref.read(viewProvider.notifier).setMode(ViewMode.events);
-          },
+          onTap: (source) => _zoomToMonth(context, ref, source, year, month, sh),
         );
       },
     );
@@ -45,7 +43,7 @@ class _MiniMonthCard extends StatelessWidget {
   final int year, month;
   final Map<String, List<dynamic>> events;
   final SpaceHourColors sh;
-  final VoidCallback onTap;
+  final void Function(Rect source) onTap;
 
   const _MiniMonthCard({
     required this.year, required this.month,
@@ -64,7 +62,13 @@ class _MiniMonthCard extends StatelessWidget {
     final isCurrentMonth = year == now.year && month == now.month;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        final box = context.findRenderObject();
+        final rect = box is RenderBox && box.hasSize
+            ? box.localToGlobal(Offset.zero) & box.size
+            : Rect.zero;
+        onTap(rect);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: sh.card,
@@ -187,6 +191,136 @@ class _MiniMonthCard extends StatelessWidget {
               }),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 년→월 줌(히어로 유사) 전환 ──────────────────────────────
+// 뷰 전환이 Navigator 라우트가 아니라 AnimatedSwitcher 기반이라 실제 Hero 대신,
+// 탭한 미니 월을 콘텐츠 영역으로 확대하는 오버레이를 띄운다. 시작과 동시에 뷰를
+// 월간으로 전환해 두고, 끝에서 페이드아웃하며 실제 월간 뷰를 드러낸다.
+void _zoomToMonth(BuildContext context, WidgetRef ref, Rect source,
+    int year, int month, SpaceHourColors sh) {
+  void switchView() {
+    ref.read(viewProvider.notifier).setYearMonth(year, month);
+    ref.read(viewProvider.notifier).setMode(ViewMode.events);
+  }
+
+  if (source == Rect.zero) {
+    switchView();
+    return;
+  }
+  final overlayState = Overlay.of(context);
+  final box = screenshotKey.currentContext?.findRenderObject();
+  final target = (box is RenderBox && box.hasSize)
+      ? box.localToGlobal(Offset.zero) & box.size
+      : Offset.zero & MediaQuery.of(context).size;
+
+  late OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (_) => _ZoomOverlay(
+      source: source,
+      target: target,
+      sh: sh,
+      monthLabel: '$month월',
+      onSwitch: switchView,
+      onDone: () => entry.remove(),
+    ),
+  );
+  overlayState.insert(entry);
+}
+
+class _ZoomOverlay extends StatefulWidget {
+  final Rect source, target;
+  final SpaceHourColors sh;
+  final String monthLabel;
+  final VoidCallback onSwitch;
+  final VoidCallback onDone;
+  const _ZoomOverlay({
+    required this.source, required this.target, required this.sh,
+    required this.monthLabel, required this.onSwitch, required this.onDone,
+  });
+  @override
+  State<_ZoomOverlay> createState() => _ZoomOverlayState();
+}
+
+class _ZoomOverlayState extends State<_ZoomOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 300));
+    _c.addStatusListener((s) {
+      if (s == AnimationStatus.completed) widget.onDone();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onSwitch(); // 월간 뷰를 아래에서 미리 빌드
+      _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sh = widget.sh;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final t = Curves.easeInOutCubic.transform(_c.value);
+        final rect = Rect.lerp(widget.source, widget.target, t)!;
+        final fade = t < 0.7 ? 1.0 : (1 - (t - 0.7) / 0.3).clamp(0.0, 1.0);
+        return IgnorePointer(
+          child: Stack(
+            children: [
+              Positioned.fromRect(
+                rect: rect,
+                child: Opacity(opacity: fade, child: _card(sh)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _card(SpaceHourColors sh) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: sh.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: sh.accent, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 16, offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            color: sh.accentBg,
+            child: Center(
+              child: Text(widget.monthLabel,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: sh.accentInk)),
+            ),
+          ),
+          const Expanded(child: SizedBox()),
         ],
       ),
     );
