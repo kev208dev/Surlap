@@ -6,19 +6,29 @@ import '../core/theme/design_tokens.dart';
 import '../supabase/auth_service.dart';
 import 'login_modal.dart';
 
+const _deepInk = Color(0xFF15151A);
+
 /// 첫 진입 로그인 — 바닥 시트가 아니라 화면 중앙에 떠 있는 floating modal.
-/// 배경 blur + dim, 가운데 rounded card.
+/// 배경 blur + dim, 가운데 공중에 뜬 rounded card (iOS 첫 진입 화면 톤).
 Future<void> showLoginDialog(BuildContext context) => showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'login',
       barrierColor: Colors.transparent, // 자체 dim/blur 사용
-      transitionDuration: const Duration(milliseconds: 220),
+      transitionDuration: const Duration(milliseconds: 240),
       pageBuilder: (_, _, _) => const _LoginDialog(),
-      transitionBuilder: (_, anim, _, child) => FadeTransition(
-        opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-        child: child,
-      ),
+      transitionBuilder: (_, anim, _, child) {
+        final curved =
+            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curved,
+          // 살짝 떠오르며 등장 — 공중에 뜨는 느낌 강화.
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
 
 class _LoginDialog extends ConsumerStatefulWidget {
@@ -35,12 +45,14 @@ class _LoginDialogState extends ConsumerState<_LoginDialog> {
     setState(() => _loading = true);
     try {
       await ref.read(authProvider.notifier).signInGoogle();
-      // OAuth 리다이렉트 — 성공 시 onAuthStateChange로 상태 갱신.
+      // OAuth 리다이렉트 — 성공 시 onAuthStateChange로 상태 갱신되고
+      // 아래 ref.listen이 모달을 자동으로 닫는다.
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('로그인 오류: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인에 실패했어요. 잠시 후 다시 시도해주세요')),
+        );
       }
     }
   }
@@ -49,111 +61,143 @@ class _LoginDialogState extends ConsumerState<_LoginDialog> {
   Widget build(BuildContext context) {
     final sh = context.sh;
     final w = MediaQuery.of(context).size.width;
-    final cardW = (w - 40).clamp(0.0, 360.0);
+    final cardW = (w - 48).clamp(0.0, 360.0); // 좌우 margin 24
+
+    // 로그인 성공(세션 확보) 시 모달 자동 닫기.
+    ref.listen<dynamic>(authProvider, (prev, next) {
+      if (next != null && mounted) {
+        Navigator.of(context).pop();
+      }
+    });
 
     return Stack(
       children: [
-        // dim + blur 배경 (탭하면 닫힘)
+        // ── dim + blur 배경 (탭하면 닫힘) ──
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.pop(context),
+            onTap: _loading ? null : () => Navigator.pop(context),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: ColoredBox(color: Colors.black.withValues(alpha: 0.32)),
+              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              child: ColoredBox(color: Colors.black.withValues(alpha: 0.22)),
             ),
           ),
         ),
-        // 중앙 카드
+        // ── 중앙 floating 카드 ──
         Center(
           child: SizedBox(
             width: cardW,
             child: Material(
               color: Colors.transparent,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
+                  color: Colors.white.withValues(alpha: 0.94),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.70), width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.22),
-                      blurRadius: 44,
-                      offset: const Offset(0, 20),
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 48,
+                      offset: const Offset(0, 24),
                     ),
                   ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset('assets/images/logo.png',
-                        height: 44, fit: BoxFit.contain),
-                    const SizedBox(height: 14),
-                    Text('HourSpace에 로그인',
-                        style: AppType.title.copyWith(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF15151A))),
-                    const SizedBox(height: 6),
-                    Text('내 일정과 설정을 안전하게 동기화해요',
-                        textAlign: TextAlign.center,
-                        style: AppType.body.copyWith(
-                            fontSize: 13,
-                            color: Colors.black.withValues(alpha: 0.45))),
-                    const SizedBox(height: 22),
-                    // Google 로그인
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        onPressed: _loading ? null : _google,
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF15151A),
-                          side: BorderSide(
-                              color: Colors.black.withValues(alpha: 0.08)),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const _GoogleG(size: 18),
-                                  const SizedBox(width: 10),
-                                  Text('Google로 계속하기',
-                                      style: AppType.body.copyWith(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700)),
-                                ],
-                              ),
+                    // ── 로고 (연한 브랜드 배경 위) ──
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3EFFF),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      alignment: Alignment.center,
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 34,
+                        height: 34,
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    // 아이디로 로그인 (기존 폼)
-                    TextButton(
-                      onPressed: _loading
-                          ? null
-                          : () {
-                              Navigator.pop(context);
-                              showLoginModal(context);
-                            },
-                      child: Text('아이디로 로그인',
-                          style: AppType.body.copyWith(
-                              fontWeight: FontWeight.w600, color: sh.accent)),
+                    const SizedBox(height: 20),
+                    // ── 제목 ──
+                    const Text(
+                      'HourSpace에 로그인',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: _deepInk,
+                      ),
                     ),
-                    // 나중에 하기
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('나중에 하기',
-                          style: AppType.label.copyWith(
-                              fontSize: 13,
-                              color: Colors.black.withValues(alpha: 0.4))),
+                    const SizedBox(height: 8),
+                    // ── 부제 ──
+                    Text(
+                      '내 일정과 설정을 안전하게 동기화해요',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        height: 1.35,
+                        color: Colors.black.withValues(alpha: 0.48),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // ── Google 로그인 (아이콘 없는 깔끔한 버튼) ──
+                    _PrimaryButton(
+                      label: 'Google로 계속하기',
+                      loading: _loading,
+                      onTap: _loading ? null : _google,
+                    ),
+                    const SizedBox(height: 14),
+                    // ── 아이디로 로그인 (보조 액션) ──
+                    SizedBox(
+                      height: 44,
+                      child: TextButton(
+                        onPressed: _loading
+                            ? null
+                            : () {
+                                Navigator.pop(context);
+                                showLoginModal(context);
+                              },
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: Text(
+                          '아이디로 로그인',
+                          style: AppType.body.copyWith(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: sh.accent,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // ── 나중에 하기 (약한 tertiary 액션) ──
+                    SizedBox(
+                      height: 40,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 40),
+                        ),
+                        child: Text(
+                          '나중에 하기',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black.withValues(alpha: 0.32),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -166,41 +210,65 @@ class _LoginDialogState extends ConsumerState<_LoginDialog> {
   }
 }
 
-// ─── 깔끔한 Google "G" 아이콘 (4색) ──────────────────────────────
-class _GoogleG extends StatelessWidget {
-  final double size;
-  const _GoogleG({required this.size});
+// ─── 1차 액션 버튼 (흰 배경 + 부드러운 그림자) ────────────────────
+class _PrimaryButton extends StatelessWidget {
+  final String label;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  const _PrimaryButton({
+    required this.label,
+    required this.loading,
+    required this.onTap,
+  });
 
   @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: Size.square(size), painter: _GoogleGPainter());
-}
-
-class _GoogleGPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final rect = Rect.fromLTWH(s * 0.06, s * 0.06, s * 0.88, s * 0.88);
-    final sw = s * 0.20;
-    Paint p(Color c) => Paint()
-      ..color = c
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = sw
-      ..strokeCap = StrokeCap.butt;
-    // 빨강(상단 왼쪽) → 노랑(왼쪽) → 초록(하단) → 파랑(오른쪽)
-    canvas.drawArc(rect, -0.35, -1.25, false, p(const Color(0xFFEA4335)));
-    canvas.drawArc(rect, -1.6, -1.5, false, p(const Color(0xFFFBBC05)));
-    canvas.drawArc(rect, 3.14, 1.45, false, p(const Color(0xFF34A853)));
-    canvas.drawArc(rect, 1.5, 1.0, false, p(const Color(0xFF4285F4)));
-    // 가로 막대(파랑) — G의 안쪽 바
-    final bar = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..strokeWidth = sw
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-        Offset(s * 0.52, s * 0.5), Offset(s * 0.92, s * 0.5), bar);
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        shadowColor: Colors.black.withValues(alpha: 0.04),
+        elevation: 0,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Ink(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border:
+                  Border.all(color: Colors.black.withValues(alpha: 0.08)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _deepInk),
+                    )
+                  : Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: _deepInk,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(_GoogleGPainter old) => false;
 }
