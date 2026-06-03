@@ -32,11 +32,15 @@ class MainShell extends ConsumerWidget {
     return Scaffold(
       backgroundColor: sh.bg,
       resizeToAvoidBottomInset: false,
-      // bottomNavigationBar 제거 — 플로팅 pill 바는 Stack으로 처리
+      // 콘텐츠가 하단 시스템 영역(home indicator 등)까지 확장되도록 허용
+      extendBody: true,
       body: SafeArea(
+        // bottom: false → 그리드/배경이 화면 맨 아래까지 채워짐
+        // 콘텐츠 가림 방지는 각 뷰의 scroll bottom padding으로 처리
+        bottom: false,
         child: Stack(
           children: [
-            // ── 메인 콘텐츠 ──
+            // ── 메인 콘텐츠 (화면 전체 높이 채움) ──
             Column(
               children: [
                 const AppHeader(),
@@ -59,11 +63,11 @@ class MainShell extends ConsumerWidget {
                     ),
                   ),
                 ),
-                // 하단 바 높이만큼 패딩 (플로팅 바에 가려지지 않도록)
-                const SizedBox(height: 100),
+                // SizedBox 제거 — 그리드가 화면 끝까지 확장됨
+                // 스크롤 콘텐츠 가림은 각 뷰 내부의 bottom padding으로 처리
               ],
             ),
-            // ── 플로팅 하단 바 (Positioned) ──
+            // ── 플로팅 하단 바 (그리드 위에 overlay) ──
             const SpaceHourBottomNav(),
           ],
         ),
