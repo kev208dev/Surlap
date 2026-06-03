@@ -163,7 +163,8 @@ class _LoginDialogState extends ConsumerState<_LoginDialog> {
                             ? null
                             : () {
                                 Navigator.pop(context);
-                                showLoginModal(context);
+                                // 곧장 아이디·비번 폼으로(Google 선택 화면 건너뜀).
+                                showLoginModal(context, startWithForm: true);
                               },
                         style: TextButton.styleFrom(
                           minimumSize: const Size(double.infinity, 44),

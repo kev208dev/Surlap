@@ -4,15 +4,20 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../supabase/auth_service.dart';
 
-Future<void> showLoginModal(BuildContext context) => showModalBottomSheet(
+/// [startWithForm]=true 면 Google/선택 화면을 건너뛰고 바로 아이디·비번 폼을 연다.
+/// (플로팅 로그인 다이얼로그에서 '아이디로 로그인'으로 진입할 때 사용)
+Future<void> showLoginModal(BuildContext context,
+        {bool startWithForm = false}) =>
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => const LoginModal(),
+      builder: (_) => LoginModal(startWithForm: startWithForm),
     );
 
 class LoginModal extends ConsumerStatefulWidget {
-  const LoginModal({super.key});
+  final bool startWithForm;
+  const LoginModal({super.key, this.startWithForm = false});
   @override ConsumerState<LoginModal> createState() => _LoginModalState();
 }
 
@@ -21,7 +26,8 @@ class _LoginModalState extends ConsumerState<LoginModal> {
   final _pwCtrl  = TextEditingController();
   String? _error;
   bool _loading = false;
-  bool _showForm = false;
+  // startWithForm 으로 진입하면 선택 화면을 건너뛰고 폼부터 표시.
+  late bool _showForm = widget.startWithForm;
 
   @override void dispose() { _idCtrl.dispose(); _pwCtrl.dispose(); super.dispose(); }
 
