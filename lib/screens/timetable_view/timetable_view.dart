@@ -8,7 +8,6 @@ import '../../core/constants/storage_keys.dart';
 import '../../providers/recurring_provider.dart';
 import '../../providers/cell_design_provider.dart';
 import '../../providers/neis_cache_provider.dart';
-import '../../modals/add_todo_modal.dart';
 import '../../modals/neis_setup_modal.dart';
 import 'dart:convert';
 
@@ -407,9 +406,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     final mergeGroups = _computeMerges(rows, offsets, displayData);
     final mergeSet = _buildMergeSet(mergeGroups);
 
-    return Stack(
-      children: [
-        Column(
+    return Column(
           children: [
             // ── 제목 + 햄버거 메뉴 ─────────────────────────────────
             Padding(
@@ -658,18 +655,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
               ),
             ),
           ],
-        ),
-
-        // ── 가운데 하단 원형 + 버튼 (할 일 추가) ─────────────────────
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 92,
-          child: Center(
-            child: _AddTodoFab(onTap: () => showAddTodoModal(context)),
-          ),
-        ),
-      ],
     );
   }
 
@@ -702,36 +687,6 @@ class _HamburgerBtn extends StatelessWidget {
           border: Border.all(color: sh.ink.withValues(alpha: 0.06)),
         ),
         child: Icon(Icons.menu_rounded, size: 20, color: sh.inkSoft),
-      ),
-    );
-  }
-}
-
-// ─── 가운데 + 버튼 ────────────────────────────────────────────────
-class _AddTodoFab extends StatelessWidget {
-  final VoidCallback onTap;
-  const _AddTodoFab({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final sh = context.sh;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: sh.accent,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: sh.accent.withValues(alpha: 0.4),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: const Icon(Icons.add_rounded, size: 28, color: Colors.white),
       ),
     );
   }

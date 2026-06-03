@@ -109,6 +109,9 @@ class DayTemplateScope {
   }
 
   bool appliesTo(String dateKey) {
+    // 명시적으로 추가된 날짜(days)는 모드와 무관하게 항상 적용 —
+    // 특정 날짜에 위젯을 "추가"하면 이 목록에 들어간다.
+    if (days != null && days!.contains(dateKey)) return true;
     if (mode == 'all') return true;
     if (mode == 'weekdays') {
       final parts = dateKey.split('-');
@@ -121,6 +124,18 @@ class DayTemplateScope {
     }
     if (mode == 'days') return days?.contains(dateKey) ?? false;
     return false;
+  }
+
+  /// 특정 날짜를 적용 목록에 추가한 새 scope. 기존 모드/규칙은 보존한다.
+  DayTemplateScope withDay(String dateKey) {
+    if (days?.contains(dateKey) ?? false) return this;
+    return DayTemplateScope(
+      mode: mode,
+      weekdays: weekdays,
+      start: start,
+      end: end,
+      days: [...(days ?? const []), dateKey],
+    );
   }
 }
 
@@ -138,6 +153,20 @@ class DayTemplate {
     this.scope = const DayTemplateScope(),
     this.enabled = true,
   });
+
+  DayTemplate copyWith({
+    String? name,
+    List<DayField>? fields,
+    DayTemplateScope? scope,
+    bool? enabled,
+  }) =>
+      DayTemplate(
+        id: id,
+        name: name ?? this.name,
+        fields: fields ?? this.fields,
+        scope: scope ?? this.scope,
+        enabled: enabled ?? this.enabled,
+      );
 
   Map<String, dynamic> toJson() => {
     'id': id,

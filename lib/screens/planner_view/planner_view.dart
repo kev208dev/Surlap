@@ -10,7 +10,6 @@ import '../../providers/themes_provider.dart';
 import '../../providers/view_provider.dart';
 import '../../providers/recurring_provider.dart';
 import '../../modals/add_edit_event_modal.dart';
-import '../../modals/add_todo_modal.dart';
 
 class PlannerView extends ConsumerStatefulWidget {
   const PlannerView({super.key});
@@ -52,14 +51,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
     final days = _weekDays();
     final dayKeys = days.map(du.toDateKey).toList();
     final now = DateTime.now();
-    // 추가 기본 날짜: 표시 중인 주에 오늘이 있으면 오늘, 없으면 그 주 첫날.
-    final defaultDate = days.firstWhere(
-        (d) => du.isSameDay(d, now),
-        orElse: () => days.first);
-    final defaultDateKey = du.toDateKey(defaultDate);
-    return Stack(
-      children: [
-        Column(
+    return Column(
       children: [
         // 주 이동 헤더
         _WeekNav(
@@ -292,19 +284,6 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                 ),
               ),
             ],
-          ),
-        ),
-      ],
-        ),
-        // 우하단 speed-dial FAB — 위로 펼쳐 일정/할 일 추가.
-        Positioned(
-          right: 16,
-          bottom: 96,
-          child: _SpeedDialFab(
-            onAddEvent: () =>
-                showAddEditEventModal(context, dateKey: defaultDateKey),
-            onAddTodo: () =>
-                showAddTodoModal(context, dateKey: defaultDateKey),
           ),
         ),
       ],
@@ -542,142 +521,6 @@ class _NowLine extends StatelessWidget {
       child: Container(
         height: 1.5,
         color: sh.danger.withValues(alpha: 0.7),
-      ),
-    );
-  }
-}
-
-// ─── 우하단 speed-dial FAB ───────────────────────────────────────
-// + 버튼 → 위로 펼쳐지는 일정/할 일 추가.
-class _SpeedDialFab extends StatefulWidget {
-  final VoidCallback onAddEvent;
-  final VoidCallback onAddTodo;
-  const _SpeedDialFab({required this.onAddEvent, required this.onAddTodo});
-
-  @override
-  State<_SpeedDialFab> createState() => _SpeedDialFabState();
-}
-
-class _SpeedDialFabState extends State<_SpeedDialFab> {
-  bool _open = false;
-
-  void _toggle() => setState(() => _open = !_open);
-
-  @override
-  Widget build(BuildContext context) {
-    final sh = context.sh;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        _action(
-          sh: sh,
-          icon: Icons.event_rounded,
-          label: '일정 추가',
-          onTap: () {
-            _toggle();
-            widget.onAddEvent();
-          },
-        ),
-        _action(
-          sh: sh,
-          icon: Icons.check_circle_outline_rounded,
-          label: '할 일 추가',
-          onTap: () {
-            _toggle();
-            widget.onAddTodo();
-          },
-        ),
-        // 메인 +
-        GestureDetector(
-          onTap: _toggle,
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: sh.accent,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: sh.accent.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: AnimatedRotation(
-              duration: const Duration(milliseconds: 220),
-              turns: _open ? 0.125 : 0,
-              child: const Icon(Icons.add_rounded, size: 30, color: Colors.white),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _action({
-    required SpaceHourColors sh,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return AnimatedSlide(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutBack,
-      offset: _open ? Offset.zero : const Offset(0, 0.5),
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 160),
-        opacity: _open ? 1 : 0,
-        child: IgnorePointer(
-          ignoring: !_open,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: GestureDetector(
-              onTap: onTap,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: sh.card,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(label,
-                        style: AppType.label.copyWith(
-                            fontWeight: FontWeight.w700, color: sh.ink)),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: sh.card,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(icon, size: 22, color: sh.accent),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

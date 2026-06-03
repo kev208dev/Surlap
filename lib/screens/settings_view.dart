@@ -8,6 +8,7 @@ import '../providers/settings_provider.dart';
 import '../providers/themes_provider.dart';
 import '../providers/filter_provider.dart';
 import '../providers/birthdays_provider.dart';
+import '../providers/view_provider.dart';
 import '../supabase/auth_service.dart';
 import '../utils/vcf_parser.dart';
 import '../modals/neis_setup_modal.dart';
@@ -34,15 +35,29 @@ class SettingsView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, 120),
       children: [
-        // ── 자체 헤더 (AppHeader는 settings 모드에서 숨김) ──
+        // ── 자체 헤더 (뒤로 → 프로필) ──
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-          child: Text('설정',
-              style: AppType.title.copyWith(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: sh.ink)),
+          padding: const EdgeInsets.fromLTRB(0, 0, 4, 4),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () =>
+                    ref.read(viewProvider.notifier).setMode(ViewMode.profile),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+                  child: Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 20, color: sh.ink),
+                ),
+              ),
+              Text('설정',
+                  style: AppType.title.copyWith(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      color: sh.ink)),
+            ],
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),

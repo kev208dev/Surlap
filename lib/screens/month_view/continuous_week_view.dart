@@ -11,8 +11,7 @@ import '../../providers/filter_provider.dart';
 import '../../providers/extras_provider.dart';
 import '../../providers/day_widget_provider.dart';
 import '../../providers/birthdays_provider.dart';
-import '../../modals/add_edit_event_modal.dart';
-import '../../modals/day_widget_input_modal.dart';
+import '../../modals/day_action_sheet.dart';
 import 'day_cell.dart';
 
 /// 연속 보기 — 세로로 끝없이 이어지는 주(週) 단위 캘린더.
@@ -314,124 +313,6 @@ class _WeekRow extends ConsumerWidget {
   }
 
   void _handleDayTap(BuildContext context, WidgetRef ref, DateTime date) {
-    final key = du.toDateKey(date);
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => _DayActionSheet(dateKey: key, date: date, ref: ref),
-    );
-  }
-}
-
-class _DayActionSheet extends StatelessWidget {
-  final String dateKey;
-  final DateTime date;
-  final WidgetRef ref;
-
-  const _DayActionSheet({
-    required this.dateKey,
-    required this.date,
-    required this.ref,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sh = context.sh;
-    return Container(
-      color: sh.card,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${date.month}월 ${date.day}일',
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w700, color: sh.ink)),
-          const SizedBox(height: 12),
-          _ActionTile(
-            icon: Icons.add_rounded,
-            label: '일정 추가',
-            color: sh.accent,
-            onTap: () {
-              Navigator.pop(context);
-              showAddEditEventModal(context, dateKey: dateKey);
-            },
-          ),
-          _ActionTile(
-            icon: Icons.today_outlined,
-            label: '이날 자세히 보기',
-            color: sh.ink,
-            onTap: () {
-              Navigator.pop(context);
-              ref.read(viewProvider.notifier).setDayView(dateKey);
-            },
-          ),
-          _ActionTile(
-            icon: Icons.bar_chart_rounded,
-            label: '위젯 입력',
-            color: sh.ink,
-            onTap: () {
-              Navigator.pop(context);
-              showDayWidgetInputModal(context, dateKey);
-            },
-          ),
-          Builder(builder: (ctx) {
-            final starCount = ref.read(starredProvider)[dateKey] ?? 0;
-            final starLabel = starCount == 0
-                ? '별표 표시'
-                : starCount < 3
-                    ? '별표 추가 ($starCount/3)'
-                    : '별표 해제';
-            final starIcon = starCount >= 3
-                ? Icons.star_rounded
-                : Icons.star_border_rounded;
-            return _ActionTile(
-              icon: starIcon,
-              label: starLabel,
-              color: starCount > 0 ? const Color(0xFFF39C12) : sh.ink,
-              onTap: () {
-                Navigator.pop(context);
-                ref.read(starredProvider.notifier).toggle(dateKey);
-              },
-            );
-          }),
-          Builder(builder: (ctx) {
-            final hasCircle = ref.read(circlesProvider).contains(dateKey);
-            return _ActionTile(
-              icon: hasCircle
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              label: hasCircle ? '동그라미 해제' : '동그라미 표시',
-              color: sh.ink,
-              onTap: () {
-                Navigator.pop(context);
-                ref.read(circlesProvider.notifier).toggle(dateKey);
-              },
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _ActionTile(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: color, size: 20),
-      title: Text(label, style: TextStyle(fontSize: 14, color: color)),
-      onTap: onTap,
-    );
+    showDayActionSheet(context, du.toDateKey(date), date);
   }
 }

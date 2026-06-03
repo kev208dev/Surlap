@@ -6,6 +6,7 @@ import '../providers/view_provider.dart';
 import '../providers/settings_provider.dart';
 import '../supabase/auth_service.dart';
 import '../modals/login_dialog.dart';
+import '../modals/add_todo_modal.dart';
 import '../utils/screenshot_util.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/app_header.dart';
@@ -95,6 +96,8 @@ class MainShell extends ConsumerWidget {
           const AppOverlayTopBar(),
           // ── nav 뒤 하단 scrim (nav보다 아래 레이어) ──
           const BottomNavScrim(),
+          // ── 항상 보이는 우측 + 버튼 (할 일 추가) ──
+          const _GlobalAddTodoButton(),
           // ── glass 플로팅 하단 바 (콘텐츠 위 overlay) ──
           const SpaceHourBottomNav(),
         ],
@@ -120,6 +123,44 @@ class MainShell extends ConsumerWidget {
   String _todayKey() {
     final n = DateTime.now();
     return '${n.year}-${n.month.toString().padLeft(2,'0')}-${n.day.toString().padLeft(2,'0')}';
+  }
+}
+
+// ─── 항상 보이는 할 일 추가 버튼 (우하단) ─────────────────────────
+class _GlobalAddTodoButton extends StatelessWidget {
+  const _GlobalAddTodoButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final sh = context.sh;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    return Positioned(
+      right: 18,
+      bottom: bottomInset + 78,
+      child: Semantics(
+        label: '할 일 추가',
+        button: true,
+        child: GestureDetector(
+          onTap: () => showAddTodoModal(context),
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: sh.accent,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: sh.accent.withValues(alpha: 0.45),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.add_rounded, size: 30, color: Colors.white),
+          ),
+        ),
+      ),
+    );
   }
 }
 

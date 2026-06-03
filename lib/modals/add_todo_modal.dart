@@ -267,6 +267,16 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 2),
+              child: Text(
+                _listening
+                    ? '🎤 듣고 있어요… 말하면 자동으로 추가돼요'
+                    : '🎤 마이크를 누르면 음성으로 입력돼요',
+                style: AppType.caption.copyWith(
+                    color: _listening ? sh.accent : sh.inkFaint),
+              ),
+            ),
             if (parsed.content.isNotEmpty &&
                 parsed.content != _textCtrl.text.trim())
               Padding(

@@ -118,34 +118,37 @@ class DayCell extends StatelessWidget {
           color: isToday
               ? sh.accent.withValues(alpha: sh.dark ? 0.12 : 0.06)
               : Colors.transparent,
-          // 세로선 제거 — 가로선만 아주 약하게(planner 느낌)
+          // 칸 구분 격자선 — 가로+세로 모두, 또렷하게.
           border: Border(
             bottom: BorderSide(
-                color: sh.ink.withValues(alpha: 0.05), width: 1),
+                color: sh.ink.withValues(alpha: sh.dark ? 0.18 : 0.12),
+                width: 1),
+            right: BorderSide(
+                color: sh.ink.withValues(alpha: sh.dark ? 0.18 : 0.12),
+                width: 1),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+        padding: const EdgeInsets.fromLTRB(5, 4, 4, 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 날짜 숫자 + 별표/동그라미
+            // 날짜 숫자(좌측) + 별표(우측)
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                dayNumber,
+                const Spacer(),
                 if (starCount > 0)
                   Text(
                     List.filled(starCount, '★').join(),
                     style: TextStyle(
-                        fontSize: 7,
+                        fontSize: 8,
                         color: const Color(0xFFF39C12)
                             .withValues(alpha: dimmed ? 0.4 : 1.0),
                         height: 1.2),
-                  )
-                else
-                  const SizedBox(width: 1),
-                dayNumber,
+                  ),
               ],
             ),
+            const SizedBox(height: 2),
             // 이벤트 + 할 일 + 위젯 (남은 공간 채움, 오버플로우 클립)
             Expanded(
               child: Column(

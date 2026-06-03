@@ -25,13 +25,6 @@ class ThemeManagerModal extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sh = context.sh;
-    final themes = ref.watch(themesProvider);
-
-    // 분류: local, owned(공유 중), sub(구독 중)
-    final local  = themes.where((t) => t.shareCode == null).toList();
-    final owned  = themes.where((t) => t.shareCode != null && t.shareRole == 'owner').toList();
-    final subbed = themes.where((t) => t.shareCode != null && t.shareRole == 'subscriber').toList();
-
     return FractionallySizedBox(
       heightFactor: 0.88,
       child: Container(
@@ -76,68 +69,10 @@ class ThemeManagerModal extends ConsumerWidget {
             ),
             Divider(color: sh.border, height: 1),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xl),
-                children: [
-                  if (local.isNotEmpty) ...[
-                    _GroupLabel('내 카테고리', sh),
-                    ...local.map((t) => _ThemeRow(
-                        key: ValueKey(t.id),
-                        theme: t, editable: true, ref: ref, sh: sh)),
-                  ],
-                  if (owned.isNotEmpty) ...[
-                    _GroupLabel('🔗 공유 중 · 내가 공유', sh),
-                    ...owned.map((t) => _ThemeRow(
-                        key: ValueKey(t.id),
-                        theme: t, editable: true, ref: ref, sh: sh,
-                        shareCode: t.shareCode)),
-                  ],
-                  if (subbed.isNotEmpty) ...[
-                    _GroupLabel('📥 구독 중', sh),
-                    ...subbed.map((t) => _ThemeRow(
-                        key: ValueKey(t.id),
-                        theme: t, editable: false, ref: ref, sh: sh,
-                        shareCode: t.shareCode)),
-                  ],
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-            // 하단 버튼
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.lg),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _addTheme(context, ref),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('테마 추가'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: sh.accent,
-                        side: BorderSide(color: sh.accent),
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: Gap.md),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _importTheme(context, ref, sh),
-                      icon: const Icon(Icons.download_outlined, size: 18),
-                      label: const Text('초대 링크로 가져오기'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: sh.inkSoft,
-                        side: BorderSide(color: sh.border),
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                  ),
-                ],
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xl),
+                child: const ThemeManagerBody(),
               ),
             ),
           ],
@@ -145,8 +80,89 @@ class ThemeManagerModal extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _addTheme(BuildContext context, WidgetRef ref) {
+/// 테마(카테고리) 관리 본문 — 모달/테마 탭 양쪽에서 인라인으로 재사용.
+class ThemeManagerBody extends ConsumerWidget {
+  const ThemeManagerBody({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sh = context.sh;
+    final themes = ref.watch(themesProvider);
+
+    final local =
+        themes.where((t) => t.shareCode == null).toList();
+    final owned = themes
+        .where((t) => t.shareCode != null && t.shareRole == 'owner')
+        .toList();
+    final subbed = themes
+        .where((t) => t.shareCode != null && t.shareRole == 'subscriber')
+        .toList();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (local.isNotEmpty) ...[
+          _GroupLabel('내 카테고리', sh),
+          ...local.map((t) => _ThemeRow(
+              key: ValueKey(t.id),
+              theme: t, editable: true, ref: ref, sh: sh)),
+        ],
+        if (owned.isNotEmpty) ...[
+          _GroupLabel('🔗 공유 중 · 내가 공유', sh),
+          ...owned.map((t) => _ThemeRow(
+              key: ValueKey(t.id),
+              theme: t, editable: true, ref: ref, sh: sh,
+              shareCode: t.shareCode)),
+        ],
+        if (subbed.isNotEmpty) ...[
+          _GroupLabel('📥 구독 중', sh),
+          ...subbed.map((t) => _ThemeRow(
+              key: ValueKey(t.id),
+              theme: t, editable: false, ref: ref, sh: sh,
+              shareCode: t.shareCode)),
+        ],
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _addTheme(ref),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('테마 추가'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: sh.accent,
+                  side: BorderSide(color: sh.accent),
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+            const SizedBox(width: Gap.md),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _importTheme(context, ref, sh),
+                icon: const Icon(Icons.download_outlined, size: 18),
+                label: const Text('초대 링크로 가져오기'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: sh.inkSoft,
+                  side: BorderSide(color: sh.border),
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _addTheme(WidgetRef ref) {
     final theme = CalendarTheme(
       id: 'th_${const Uuid().v4().replaceAll('-', '').substring(0, 8)}',
       name: '새 카테고리',
