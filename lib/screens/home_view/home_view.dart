@@ -10,6 +10,7 @@ import '../../providers/themes_provider.dart';
 import '../../providers/view_provider.dart';
 import '../../supabase/neis_service.dart';
 import '../../modals/add_edit_event_modal.dart';
+import '../../modals/neis_setup_modal.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -347,11 +348,19 @@ class _MealCard extends StatelessWidget {
                     fontWeight: FontWeight.w600, color: sh.ink),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis)
-          else
-            Text(
-              NeisSchool.load() == null ? 'NEIS 미연결' : '정보 없음',
-              style: AppType.body.copyWith(color: sh.inkFaint),
+          else if (NeisSchool.load() == null) ...[
+            Text('NEIS 미연결',
+                style: AppType.body.copyWith(color: sh.inkFaint)),
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => showNeisSetupModal(context),
+              child: Text('연결하러 가기 →',
+                  style: AppType.label.copyWith(
+                      color: sh.accent, fontWeight: FontWeight.w600)),
             ),
+          ] else
+            Text('정보 없음',
+                style: AppType.body.copyWith(color: sh.inkFaint)),
         ],
       ),
     );
