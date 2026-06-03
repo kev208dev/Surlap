@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
-import '../../models/event_item.dart';
-import '../../providers/events_provider.dart';
 import '../../storage/local_store.dart';
 import '../../core/constants/storage_keys.dart';
 import '../../supabase/neis_service.dart';
@@ -98,6 +96,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   bool _designMode = false;
   final Map<String, _CellDesign> _designs = {};
 
+  // 시간표 직접 입력 — 요일(col 0=월..6=일) → 시각 → 텍스트. 매주 반복.
+  final Map<int, Map<int, String>> _weekly = {};
+
   // ── Design color presets ──────────────────────────────────────
   static const _palette = [
     Color(0xFFFFE4E4), // red tint
@@ -114,7 +115,48 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   void initState() {
     super.initState();
     _loadDesigns();
+    _loadWeekly();
     _fetchNeisIfNeeded();
+  }
+
+  // ── 주간 반복 시간표 persistence ──────────────────────────────
+  void _loadWeekly() {
+    final raw = LocalStore.instance.getString(StorageKeys.timetableWeekly);
+    if (raw == null) return;
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      for (final colEntry in map.entries) {
+        final col = int.tryParse(colEntry.key);
+        if (col == null) continue;
+        final hours = <int, String>{};
+        if (colEntry.value is Map) {
+          (colEntry.value as Map).forEach((h, t) {
+            final hi = int.tryParse(h.toString());
+            if (hi != null) hours[hi] = t.toString();
+          });
+        }
+        _weekly[col] = hours;
+      }
+    } catch (_) {}
+  }
+
+  void _saveWeekly() {
+    final out = <String, dynamic>{};
+    _weekly.forEach((col, hours) {
+      if (hours.isEmpty) return;
+      out['$col'] = hours.map((h, t) => MapEntry('$h', t));
+    });
+    LocalStore.instance
+        .setString(StorageKeys.timetableWeekly, jsonEncode(out));
+  }
+
+  // col(요일) → 시각 → 텍스트 (모든 주에 동일하게 반복).
+  Map<int, Map<int, String>> _buildWeeklyData() {
+    final result = <int, Map<int, String>>{};
+    for (int col = 0; col < 7; col++) {
+      result[col] = Map<int, String>.from(_weekly[col] ?? const {});
+    }
+    return result;
   }
 
   // ── Design persistence ────────────────────────────────────────
@@ -223,24 +265,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     }
     offsets.add(acc);
     return offsets;
-  }
-
-  Map<int, Map<int, String>> _buildFreeData(
-      Map<String, List<EventItem>> events, List<String> dayKeys) {
-    final result = <int, Map<int, String>>{};
-    for (int di = 0; di < 7; di++) {
-      result[di] = {};
-      for (final item in (events[dayKeys[di]] ?? [])) {
-        if (!item.isTimetable) continue;
-        final m = RegExp(r'\((\d{1,2}):(\d{2})\)').firstMatch(item.t);
-        if (m != null) {
-          final h = int.parse(m.group(1)!);
-          result[di]![h] =
-              item.t.replaceAll(RegExp(r'\(\d{1,2}:\d{2}\)'), '').trim();
-        }
-      }
-    }
-    return result;
   }
 
   Map<int, Map<int, String>> _buildTemplateData(List<DateTime> days) {
@@ -392,7 +416,8 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
   // ── Cell edit / design handlers ───────────────────────────────
 
-  void _editCell(BuildContext ctx, String dateKey, int hour, String current) {
+  // col = 요일(0=월..6=일). 입력 내용은 해당 요일에 매주 반복된다.
+  void _editCell(BuildContext ctx, int col, int hour, String current) {
     final ctrl = TextEditingController(text: current);
     showDialog(
       context: ctx,
@@ -402,7 +427,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
           backgroundColor: sh.card,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(Radii.card)),
-          title: Text('$hour:00 메모',
+          title: Text('${_dowNames[col]}요일 $hour:00 · 매주 반복',
               style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
           content: TextField(
             controller: ctrl,
@@ -412,19 +437,19 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
               hintStyle: TextStyle(color: sh.inkFaint),
             ),
             textCapitalization: TextCapitalization.sentences,
-            onSubmitted: (_) => _saveCell(dctx, dateKey, hour, ctrl.text.trim()),
+            onSubmitted: (_) => _saveCell(dctx, col, hour, ctrl.text.trim()),
           ),
           actions: [
             if (current.isNotEmpty)
               TextButton(
-                onPressed: () => _saveCell(dctx, dateKey, hour, ''),
+                onPressed: () => _saveCell(dctx, col, hour, ''),
                 style: TextButton.styleFrom(foregroundColor: sh.danger),
                 child: const Text('삭제'),
               ),
             TextButton(
                 onPressed: () => Navigator.pop(dctx), child: const Text('취소')),
             FilledButton(
-              onPressed: () => _saveCell(dctx, dateKey, hour, ctrl.text.trim()),
+              onPressed: () => _saveCell(dctx, col, hour, ctrl.text.trim()),
               child: const Text('저장'),
             ),
           ],
@@ -433,34 +458,16 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     );
   }
 
-  void _saveCell(BuildContext ctx, String dateKey, int hour, String text) {
+  void _saveCell(BuildContext ctx, int col, int hour, String text) {
     Navigator.pop(ctx);
-    final eventsNotifier = ref.read(eventsProvider.notifier);
-    final current = ref.read(eventsProvider)[dateKey] ?? [];
-    final tag = '($hour:00)';
-    final existing = current.indexWhere(
-        (e) => e.isTimetable && e.t.contains(tag));
+    final hours = _weekly.putIfAbsent(col, () => <int, String>{});
     if (text.isEmpty) {
-      if (existing >= 0) eventsNotifier.deleteEvent(dateKey, existing);
+      hours.remove(hour);
     } else {
-      _writeRawCell(dateKey, hour, text);
-      final stored = LocalStore.instance.getString(StorageKeys.events);
-      if (stored != null) eventsNotifier.replaceAll(eventsFromJson(stored));
+      hours[hour] = text;
     }
+    _saveWeekly();
     setState(() {});
-  }
-
-  void _writeRawCell(String dateKey, int hour, String text) {
-    final raw = LocalStore.instance.getString(StorageKeys.events) ?? '{}';
-    final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
-    final list = List<dynamic>.from(map[dateKey] as List? ?? []);
-    final tag = '($hour:00)';
-    final idx = list.indexWhere(
-        (e) => e is Map && (e['tt'] == true) && (e['t'] as String? ?? '').contains(tag));
-    final newItem = {'t': '$text $tag', 'tt': true};
-    if (idx >= 0) { list[idx] = newItem; } else { list.add(newItem); }
-    map[dateKey] = list;
-    LocalStore.instance.setString(StorageKeys.events, jsonEncode(map));
   }
 
   void _showDesignPanel(BuildContext ctx, int col, int hour, SpaceHourColors sh) {
@@ -491,9 +498,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   @override
   Widget build(BuildContext context) {
     final sh = context.sh;
-    final events = ref.watch(eventsProvider);
     final days = _weekDays();
-    final dayKeys = days.map(du.toDateKey).toList();
     final now = DateTime.now();
 
     final maxPeriod = _maxPeriod();
@@ -501,7 +506,8 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     final offsets = _rowOffsets(rows);
     final totalH = offsets.last;
     final neisHourData = _buildNeisHourData();
-    final freeData = _buildFreeData(events, dayKeys);
+    // 직접 입력한 셀은 요일 기준으로 매주 반복.
+    final freeData = _buildWeeklyData();
     final tplData = _buildTemplateData(days);
     final displayData = _buildDisplayData(neisHourData, tplData, freeData, rows);
     final mergeGroups = _computeMerges(rows, offsets, displayData);
@@ -683,7 +689,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                                         if (_designMode) {
                                           _showDesignPanel(context, col, row.hour, sh);
                                         } else {
-                                          _editCell(context, dayKeys[col], row.hour,
+                                          _editCell(context, col, row.hour,
                                               freeData[col]?[row.hour] ?? '');
                                         }
                                       },

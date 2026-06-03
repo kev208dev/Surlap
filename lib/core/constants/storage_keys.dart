@@ -17,6 +17,8 @@ abstract final class StorageKeys {
   static const dayWidgetValues = 'calendar-day-widget-values-v1';
   static const timetableTemplate  = 'calendar-timetable-template-v1';
   static const timetableOverrides = 'calendar-timetable-overrides-v1';
+  // 시간표 직접 입력 — 요일(0=월..6=일)×시각으로 매주 반복 저장.
+  static const timetableWeekly    = 'calendar-timetable-weekly-v1';
   static const cellDesign    = 'calendar-cell-design-v1';
   static const neisSchool    = 'calendar-neis-school-v1';
   static const birthdays     = 'calendar-birthdays-v1';
@@ -35,13 +37,13 @@ abstract final class StorageKeys {
   static const Set<String> accountKeys = {
     events, themes, memos, starred, circles, themeFilter, cellDesign,
     motto, mottoIcon, dayTemplates, dayWidgetValues,
-    timetableTemplate, timetableOverrides, birthdays, neisSchool,
+    timetableTemplate, timetableOverrides, timetableWeekly, birthdays, neisSchool,
   };
 
   /// user_data KV 테이블로 동기화하는 키 (events 는 별도 events 테이블이라 제외).
   static const Set<String> userDataKeys = {
     themes, memos, starred, circles, themeFilter, cellDesign,
     motto, mottoIcon, dayTemplates, dayWidgetValues,
-    timetableTemplate, timetableOverrides, birthdays, neisSchool,
+    timetableTemplate, timetableOverrides, timetableWeekly, birthdays, neisSchool,
   };
 }
