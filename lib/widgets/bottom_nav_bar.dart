@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/view_provider.dart';
-import '../widgets/calendar_settings_sheet.dart';
-import '../widgets/theme_share_sheet.dart';
+import '../screens/calendar_settings_page.dart';
+import '../screens/theme_share_page.dart';
 import '../widgets/glass_container.dart';
 import 'coach_mark.dart';
 
@@ -53,14 +53,18 @@ class SpaceHourBottomNav extends ConsumerWidget {
         inactive: Icons.ios_share_rounded,
         label: '테마 공유',
         isActive: false,
-        onTap: () => showThemeShareSheet(context),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ThemeSharePage()),
+        ),
       ),
       _Tab(
         active: Icons.settings_rounded,
         inactive: Icons.settings_outlined,
         label: '설정',
         isActive: false,
-        onTap: () => showCalendarSettingsSheet(context),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CalendarSettingsPage()),
+        ),
         coachKey: coachKeyTabProfile,
       ),
     ];

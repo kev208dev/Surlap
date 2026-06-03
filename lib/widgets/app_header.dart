@@ -37,18 +37,13 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── 날짜 앵커 + 탐색 (홈 모드에서 숨김) ─────────────
-          if (isHome) const SizedBox.shrink()
+          // ── 날짜 앵커 + 탐색 (홈·시간표에서 숨김) ────────────
+          // 시간표 제목은 TimetableView가 직접 그린다(셀 디자인 버튼과 한 줄).
+          if (isHome || isTimetable) const SizedBox.shrink()
           else
           Padding(
             padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, 0),
-            child: isTimetable
-                ? Text('시간표',
-                    style: AppType.title.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: sh.ink))
-                : Row(
+            child: Row(
                     children: [
                       // 날짜 라벨 탭 → 날짜 피커
                       GestureDetector(

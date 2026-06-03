@@ -85,7 +85,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   static const _timeLblW = 52.0;
   static const _divH   = 3.0;  // wk-divider height
   static const _hdrH   = 48.0; // day header height (shows dow + date)
-  static const _tlbH   = 42.0; // toolbar height
 
   // NEIS cache: di(0=Mon..6=Sun) → period → subject
   final Map<int, Map<int, String>> _neisData = {};
@@ -517,6 +516,42 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
     return Column(
       children: [
+        // ── 제목 + 셀 디자인 버튼 (상단 액션 영역) ───────────────
+        SizedBox(
+          height: 48,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(
+                child: Text('시간표',
+                    style: AppType.title.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: sh.ink)),
+              ),
+              if (school != null)
+                Positioned(
+                  left: Gap.lg,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.school_outlined, size: 13, color: sh.inkFaint),
+                      const SizedBox(width: Gap.xs),
+                      Text('${school.name} ${school.grade}학년',
+                          style: AppType.label.copyWith(color: sh.inkFaint)),
+                    ],
+                  ),
+                ),
+              Positioned(
+                right: Gap.lg,
+                child: _DesignModeBtn(
+                  active: _designMode,
+                  onTap: () => setState(() => _designMode = !_designMode),
+                ),
+              ),
+            ],
+          ),
+        ),
         // ── Day header (요일 + 날짜) ─────────────────────────────
         SizedBox(
           height: _hdrH,
@@ -565,32 +600,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
           ),
         ),
 
-        // ── Toolbar (🎨 design mode + NEIS info) ─────────────────
-        SizedBox(
-          height: _tlbH,
-          child: Container(
-            color: sh.bg,
-            padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: 4),
-            child: Row(
-              children: [
-                if (school != null) ...[
-                  Icon(Icons.school_outlined, size: 13, color: sh.inkFaint),
-                  const SizedBox(width: Gap.xs),
-                  Text('${school.name} ${school.grade}학년',
-                      style: AppType.label.copyWith(color: sh.inkFaint)),
-                ],
-                const Spacer(),
-                _DesignModeBtn(
-                  active: _designMode,
-                  onTap: () => setState(() => _designMode = !_designMode),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Divider(height: 1, color: _gridLine(sh)),
-
-        // ── Scrollable grid ──────────────────────────────────────
+        // ── Scrollable grid (요일 헤더 바로 아래) ────────────────
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 110),

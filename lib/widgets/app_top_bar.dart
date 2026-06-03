@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../widgets/coach_mark.dart';
-import '../widgets/calendar_settings_sheet.dart';
+import '../screens/calendar_settings_page.dart';
 import '../modals/theme_manager_modal.dart';
 import '../modals/profile_modal.dart';
 import '../utils/screenshot_util.dart';
@@ -116,7 +116,9 @@ class AppOverlayTopBar extends ConsumerWidget {
         case _MoreAction.category:
           showThemeManagerModal(context);
         case _MoreAction.settings:
-          showCalendarSettingsSheet(context);
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CalendarSettingsPage()),
+          );
         case _MoreAction.profile:
           showProfileModal(context);
       }
