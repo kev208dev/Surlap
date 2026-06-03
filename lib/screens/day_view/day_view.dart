@@ -63,7 +63,7 @@ class _DayViewState extends ConsumerState<DayView> {
       children: [
         // 날짜 헤더
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xs),
+          padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.xs),
           child: Row(
             children: [
               GestureDetector(
@@ -268,7 +268,7 @@ class _AllDayBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.xs),
+      margin: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.xs),
       padding: const EdgeInsets.symmetric(horizontal: Gap.sm + 2, vertical: Gap.xs),
       decoration: BoxDecoration(
         color: sh.card2,

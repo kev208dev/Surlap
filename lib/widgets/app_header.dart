@@ -68,7 +68,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
         children: [
           // ── 브랜드 행 ──────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.md, 0),
+            padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xs, Gap.xl, 0),
             child: Row(
               children: [
                 _SpaceHourLogo(color: sh.inkFaint),
@@ -99,7 +99,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
           if (isHome) const SizedBox.shrink()
           else
           Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.md, 0),
+            padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, 0),
             child: isTimetable
                 ? Text('시간표',
                     style: AppType.title.copyWith(
@@ -152,7 +152,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
           // 날짜 피커 팝업
           if (_pickerOpen && !isTimetable)
             Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, 0),
+              padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xs, Gap.xl, 0),
               child: _DatePickerPopup(
                 year: view.viewYear,
                 month: view.viewMonth,
@@ -167,7 +167,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
 
           // ── 모토 (홈·시간표에서 숨김) ────────────────────────
           if (!isHome) Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.lg, 2, Gap.lg, Gap.xs),
+            padding: const EdgeInsets.fromLTRB(Gap.xl, 2, Gap.xl, Gap.xs),
             child: Row(
               children: [
                 Text('"',
@@ -216,7 +216,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
 
           // ── 뷰 세그먼트 탭 (홈에서 숨김) ────────────────────
           if (!isHome) Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.sm),
+            padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.sm),
             child: _ViewSegment(view: view, notifier: notifier, sh: sh),
           ),
         ],
@@ -527,7 +527,7 @@ class _MoreSheet extends ConsumerWidget {
     final preset = watchRef.watch(colorPresetProvider);
     return Container(
       color: sh.card,
-      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.lg, Gap.xl),
+      padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.md, Gap.xl, Gap.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -91,7 +91,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
           child: _buildGreeting(sh, now),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, 80),
+          padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, 80),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               // 다음 일정 카드 (large)
@@ -159,7 +159,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 : '오늘 하루도 수고했어요 🌆';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.md),
+      padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

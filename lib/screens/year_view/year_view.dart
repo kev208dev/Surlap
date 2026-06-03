@@ -18,7 +18,7 @@ class YearView extends ConsumerWidget {
     final year = view.viewYear;
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(Gap.md, Gap.sm, Gap.md, 80),
+      padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, 80),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.85,

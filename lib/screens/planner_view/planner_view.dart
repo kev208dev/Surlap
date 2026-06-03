@@ -365,7 +365,7 @@ class _WeekNav extends StatelessWidget {
         ? '${first.year}년 ${first.month}월'
         : '${first.month}월 ~ ${last.month}월';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.xs),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.xl, vertical: Gap.xs),
       color: sh.bg,
       child: Row(
         children: [
