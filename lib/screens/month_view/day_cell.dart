@@ -55,20 +55,21 @@ class DayCell extends StatelessWidget {
 
     Color dayNumColor;
     if (isToday) {
-      dayNumColor = sh.accentInk;
+      dayNumColor = Colors.white;
     } else if (isSun) {
-      dayNumColor = sh.danger.withValues(alpha: dimmed ? 0.4 : 1.0);
+      dayNumColor = sh.sun.withValues(alpha: dimmed ? 0.35 : 1.0);
     } else if (isSat) {
-      dayNumColor = sh.sat.withValues(alpha: dimmed ? 0.4 : 1.0);
+      dayNumColor = sh.sat.withValues(alpha: dimmed ? 0.35 : 1.0);
     } else {
-      dayNumColor = dimmed ? sh.inkFaint : sh.ink;
+      dayNumColor = dimmed ? sh.ink.withValues(alpha: 0.30) : sh.ink;
     }
 
     final visible = events.where((e) => !e.isTimetable).toList();
 
+    // 오늘: 브랜드 퍼플 원 + 은은한 글로우 / 선택 동그라미: 브랜드 테두리
     Widget dayNumber = Container(
-      width: 22,
-      height: 22,
+      width: 26,
+      height: 26,
       alignment: Alignment.center,
       decoration: hasCircle
           ? BoxDecoration(
@@ -77,14 +78,24 @@ class DayCell extends StatelessWidget {
                   width: 1.5),
               shape: BoxShape.circle)
           : isToday
-              ? BoxDecoration(color: sh.accent, shape: BoxShape.circle)
+              ? BoxDecoration(
+                  color: sh.accent,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: sh.accent.withValues(alpha: 0.28),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                )
               : null,
       child: Text(
         '${date.day}',
         style: AppType.label.copyWith(
-          fontSize: 11.5,
+          fontSize: isToday ? 13 : 12,
           fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
-          color: isToday ? (sh.dark ? sh.ink : Colors.white) : dayNumColor,
+          color: dayNumColor,
         ),
       ),
     );
@@ -101,13 +112,14 @@ class DayCell extends StatelessWidget {
       child: Container(
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-          color: isToday ? sh.accentBg : sh.card,
+          color: Colors.transparent,
+          // 세로선 제거 — 가로선만 아주 약하게(planner 느낌)
           border: Border(
-            right: BorderSide(color: sh.border, width: 0.5),
-            bottom: BorderSide(color: sh.border, width: 0.5),
+            bottom: BorderSide(
+                color: sh.ink.withValues(alpha: 0.05), width: 1),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

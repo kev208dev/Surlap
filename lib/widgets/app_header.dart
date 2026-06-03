@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../providers/view_provider.dart';
-import '../providers/settings_provider.dart';
 
 // ─── 서브 헤더 (날짜 앵커 / 모토 / 뷰 세그먼트) ───────────────────
 // 브랜드 행·공유·더보기는 AppOverlayTopBar(투명 overlay)로 이전됨.
@@ -17,8 +16,6 @@ class AppHeader extends ConsumerStatefulWidget {
 
 class _AppHeaderState extends ConsumerState<AppHeader> {
   bool _pickerOpen = false;
-  late TextEditingController _mottoCtrl;
-  bool _mottoEditing = false;
 
   static const _monthNames = [
     '1월','2월','3월','4월','5월','6월',
@@ -26,31 +23,13 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _mottoCtrl = TextEditingController(
-        text: ref.read(settingsProvider).motto);
-  }
-
-  @override
-  void dispose() {
-    _mottoCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final sh = context.sh;
     final view = ref.watch(viewProvider);
     final notifier = ref.read(viewProvider.notifier);
-    final settings = ref.watch(settingsProvider);
     final isHome = view.mode == ViewMode.home;
     final isTimetable = view.mode == ViewMode.timetable;
     final isYear = view.mode == ViewMode.year;
-
-    if (!_mottoEditing && _mottoCtrl.text != settings.motto) {
-      _mottoCtrl.text = settings.motto;
-    }
 
     return Container(
       color: sh.bg,
@@ -128,58 +107,9 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
               ),
             ),
 
-          // ── 모토 (홈·시간표에서 숨김) ────────────────────────
-          if (!isHome) Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.xl, 2, Gap.xl, Gap.xs),
-            child: Row(
-              children: [
-                Text('"',
-                    style: AppType.label.copyWith(
-                        color: sh.inkFaint.withValues(alpha: 0.6), height: 1)),
-                Expanded(
-                  child: TextField(
-                    controller: _mottoCtrl,
-                    style: AppType.label.copyWith(
-                        color: sh.inkFaint, fontStyle: FontStyle.italic),
-                    decoration: InputDecoration(
-                      hintText: '이달의 모토',
-                      hintStyle: AppType.label.copyWith(
-                          color: sh.inkFaint.withValues(alpha: 0.45),
-                          fontStyle: FontStyle.italic),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: Gap.xs),
-                    ),
-                    maxLines: 1,
-                    maxLength: 120,
-                    buildCounter: (_, {required currentLength,
-                          required isFocused, required maxLength}) => null,
-                    onTap: () => setState(() => _mottoEditing = true),
-                    onSubmitted: (v) {
-                      ref.read(settingsProvider.notifier).setMotto(v);
-                      setState(() => _mottoEditing = false);
-                    },
-                    onEditingComplete: () {
-                      ref
-                          .read(settingsProvider.notifier)
-                          .setMotto(_mottoCtrl.text);
-                      setState(() => _mottoEditing = false);
-                    },
-                  ),
-                ),
-                Text('"',
-                    style: AppType.label.copyWith(
-                        color: sh.inkFaint.withValues(alpha: 0.6), height: 1)),
-              ],
-            ),
-          ),
-
           // ── 뷰 세그먼트 탭 (홈에서 숨김) ────────────────────
           if (!isHome) Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.sm),
+            padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.sm),
             child: _ViewSegment(view: view, notifier: notifier, sh: sh),
           ),
         ],
@@ -222,52 +152,46 @@ class _ViewSegment extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: sh.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: sh.border, width: 0.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        color: sh.card2,
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         children: tabs.map((t) {
           final active = isActive(t.mode);
           return Expanded(
             child: GestureDetector(
-            onTap: t.onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Gap.md, vertical: Gap.xs + 2),
-              decoration: BoxDecoration(
-                color: active ? sh.accent : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: active
-                    ? [
-                        BoxShadow(
-                          color: sh.accent.withValues(alpha: 0.25),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Text(
-                t.label,
-                textAlign: TextAlign.center,
-                style: AppType.label.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: active ? Colors.white : sh.inkSoft,
-                    height: 1),
+              onTap: t.onTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                decoration: BoxDecoration(
+                  color: active ? sh.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: sh.accent.withValues(alpha: 0.28),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  t.label,
+                  textAlign: TextAlign.center,
+                  style: AppType.label.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: active ? Colors.white : sh.inkSoft,
+                      height: 1),
+                ),
               ),
             ),
-          ));
+          );
         }).toList(),
       ),
     );

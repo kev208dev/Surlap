@@ -137,9 +137,10 @@ class SpaceHourColors extends ThemeExtension<SpaceHourColors> {
   Color get accentInk => preset.accentInk;
   Color get dot      => preset.dot;
   bool  get dark     => preset.dark;
-  // 원본 --sat (토요일 색)
-  Color get sat      => preset.dark ? const Color(0xFF8AAAC8) : const Color(0xFF5A86D6);
-  // 원본 --danger
+  // 주말 색 — 너무 튀지 않는 soft red / soft blue
+  Color get sat      => preset.dark ? const Color(0xFF8AAAC8) : const Color(0xFF5C7CFA);
+  Color get sun      => preset.dark ? const Color(0xFFD98A8A) : const Color(0xFFE86A6A);
+  // 파괴적 액션용 (삭제 등)
   Color get danger   => const Color(0xFFD9614E);
 
   @override

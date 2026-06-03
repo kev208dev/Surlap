@@ -34,21 +34,23 @@ class ColorPreset {
   });
 }
 
-// 단일 프리셋: 흰 배경 + 검정 글씨 / 테마 선택 제거
+// 단일 프리셋: 라이트 라벤더 배경 + 브랜드 퍼플 액센트
+const kBrandPurple = Color(0xFF5A2DF4);
+
 const kDefaultPreset = ColorPreset(
   id: 'light',
   name: 'HourSpace',
-  dot: Color(0xFF1A1A1A),
-  accent: Color(0xFF1A1A1A),
-  accentInk: Color(0xFF111111),
-  accentBg: Color(0xFFEEEEEE),
-  app: Color(0xFFF8F8F8),
+  dot: kBrandPurple,
+  accent: kBrandPurple,
+  accentInk: Color(0xFF4A1FD0),
+  accentBg: Color(0xFFEDE8FD),
+  app: Color(0xFFF8F7FB),      // 아주 연한 라벤더 배경
   card: Color(0xFFFFFFFF),
-  card2: Color(0xFFF3F3F3),
-  hairline: Color(0xFFE2E2E2),
-  ink: Color(0xFF111111),
-  inkSoft: Color(0xFF666666),
-  inkFaint: Color(0xFFAAAAAA),
+  card2: Color(0xFFF6F4FA),    // soft surface
+  hairline: Color(0xFFEAE8F0),
+  ink: Color(0xFF15151A),      // deep ink
+  inkSoft: Color(0xFF6B6B77),
+  inkFaint: Color(0xFFA6A6B2),
   dark: false,
 );
 

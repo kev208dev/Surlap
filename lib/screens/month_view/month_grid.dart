@@ -69,9 +69,9 @@ class MonthGrid extends StatelessWidget {
 
     return Column(
       children: [
-        // 요일 헤더 행
-        Container(
-          color: sh.card2,
+        // 요일 헤더 행 — 배경 거의 투명, 경계선 없음
+        Padding(
+          padding: const EdgeInsets.only(top: Gap.sm, bottom: Gap.xs),
           child: Row(
             children: headers.asMap().entries.map((e) {
               final isSunHeader =
@@ -79,24 +79,17 @@ class MonthGrid extends StatelessWidget {
               final isSatHeader =
                   (weekStartDow + e.key) % 7 == DateTime.saturday;
               return Expanded(
-                child: Container(
-                  height: 24,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border(
-                      right: BorderSide(color: sh.border, width: 0.5),
-                      bottom: BorderSide(color: sh.border, width: 0.5),
-                    ),
-                  ),
+                child: Center(
                   child: Text(
                     e.value,
                     style: AppType.label.copyWith(
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: isSunHeader
-                          ? sh.danger
+                          ? sh.sun.withValues(alpha: 0.8)
                           : isSatHeader
-                              ? sh.sat
-                              : sh.inkSoft,
+                              ? sh.sat.withValues(alpha: 0.8)
+                              : sh.inkFaint,
                     ),
                   ),
                 ),
@@ -205,13 +198,13 @@ class _MemoCell extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: sh.card2,
+          color: sh.card2.withValues(alpha: 0.4),
           border: Border(
-            right: BorderSide(color: sh.border, width: 0.5),
-            bottom: BorderSide(color: sh.border, width: 0.5),
+            bottom: BorderSide(
+                color: sh.ink.withValues(alpha: 0.05), width: 1),
           ),
         ),
-        padding: const EdgeInsets.all(Gap.xs),
+        padding: const EdgeInsets.all(Gap.sm),
         alignment: Alignment.topLeft,
         child: text.isNotEmpty
             ? Text(

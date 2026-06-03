@@ -142,7 +142,8 @@ class _TopIconBtn extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(kMinTouch / 2),
-        child: Center(child: Icon(icon, size: 20, color: sh.inkSoft)),
+        // 보조 액션 — 시각적으로 약하게
+        child: Center(child: Icon(icon, size: 19, color: sh.inkFaint)),
       ),
     );
   }

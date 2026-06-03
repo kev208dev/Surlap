@@ -75,40 +75,65 @@ class SpaceHourBottomNav extends ConsumerWidget {
     ];
 
     // ── glass 색상 (다크/라이트 분기) ──────────────────────────
-    // 밝은 배경: 흰 frost(높은 불투명) + 옅은 어두운 hairline + shadow로 capsule 정의
-    // 어두운 배경: 검정 frost + 밝은 border
+    // 밝은 배경: 흰 frost + 밝은 border + 넓은 shadow → 뒤 scrim과 함께 floating
     final tint = dark
-        ? Colors.black.withValues(alpha: 0.55)
-        : Colors.white.withValues(alpha: 0.62);
+        ? Colors.black.withValues(alpha: 0.50)
+        : Colors.white.withValues(alpha: 0.58);
     final borderColor = dark
-        ? Colors.white.withValues(alpha: 0.14)
-        : Colors.black.withValues(alpha: 0.06);
-    final shadowColor = Colors.black.withValues(alpha: dark ? 0.45 : 0.12);
+        ? Colors.white.withValues(alpha: 0.16)
+        : Colors.white.withValues(alpha: 0.55);
+    final shadowColor = Colors.black.withValues(alpha: dark ? 0.50 : 0.14);
 
     return Positioned(
       left: 0,
       right: 0,
-      bottom: 12,
-      child: SafeArea(
-        child: Center(
-          child: GlassContainer(
-            key: coachKeyBottomNav,
-            borderRadius: 32,
-            blur: 22,
-            tint: tint,
-            borderColor: borderColor,
-            shadowColor: shadowColor,
-            shadowBlur: 24,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: SizedBox(
-              height: 58,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: tabs.map((t) => _NavBtn(tab: t, dark: dark)).toList(),
+      bottom: 0,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // nav 뒤 약한 scrim — 콘텐츠 위에 떠 있는 느낌 강화
+          IgnorePointer(
+            child: Container(
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    sh.bg.withValues(alpha: 0.92),
+                    sh.bg.withValues(alpha: 0.0),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+          // ── glass capsule nav ──
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SafeArea(
+              top: false,
+              child: Center(
+                child: GlassContainer(
+                  key: coachKeyBottomNav,
+                  borderRadius: 32,
+                  blur: 22,
+                  tint: tint,
+                  borderColor: borderColor,
+                  shadowColor: shadowColor,
+                  shadowBlur: 28,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: SizedBox(
+                    height: 58,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: tabs.map((t) => _NavBtn(tab: t, dark: dark)).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

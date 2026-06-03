@@ -55,9 +55,13 @@ class MonthView extends ConsumerWidget {
     }
 
     return Container(
+      margin: const EdgeInsets.fromLTRB(Gap.md, Gap.xs, Gap.md, 0),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: sh.border, width: 0.5)),
+        color: sh.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: sh.ink.withValues(alpha: 0.04)),
       ),
+      clipBehavior: Clip.antiAlias,
       child: MonthGrid(
         year: view.viewYear,
         month: view.viewMonth,
