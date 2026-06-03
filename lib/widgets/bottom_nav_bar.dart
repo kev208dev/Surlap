@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/view_provider.dart';
-import '../screens/calendar_settings_page.dart';
 import '../widgets/glass_container.dart';
 import 'coach_mark.dart';
 
@@ -58,10 +57,8 @@ class SpaceHourBottomNav extends ConsumerWidget {
         active: Icons.settings_rounded,
         inactive: Icons.settings_outlined,
         label: '설정',
-        isActive: false,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const CalendarSettingsPage()),
-        ),
+        isActive: view.mode == ViewMode.settings,
+        onTap: () => notifier.setMode(ViewMode.settings),
         coachKey: coachKeyTabProfile,
       ),
     ];

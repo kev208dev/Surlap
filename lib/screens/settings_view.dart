@@ -8,15 +8,18 @@ import '../providers/settings_provider.dart';
 import '../providers/themes_provider.dart';
 import '../providers/filter_provider.dart';
 import '../providers/birthdays_provider.dart';
+import '../supabase/auth_service.dart';
 import '../utils/vcf_parser.dart';
 import '../modals/neis_setup_modal.dart';
 import '../modals/timetable_template_modal.dart';
-import '../widgets/app_page_scaffold.dart';
+import '../modals/profile_modal.dart';
+import '../modals/login_dialog.dart';
 import '../widgets/coach_mark.dart';
 
-/// 보기 설정 — 독립 페이지 (bottom sheet 아님).
-class CalendarSettingsPage extends ConsumerWidget {
-  const CalendarSettingsPage({super.key});
+/// 보기 설정 — 하단 nav의 한 탭으로, 다른 뷰처럼 좌우 viewer(AnimatedSwitcher)
+/// 안에서 전환되는 in-shell 뷰. (push 페이지 아님 → 자체 헤더를 그린다)
+class SettingsView extends ConsumerWidget {
+  const SettingsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,11 +29,41 @@ class CalendarSettingsPage extends ConsumerWidget {
     final themes = ref.watch(themesProvider);
     final hidden = ref.watch(filterProvider);
     final birthdays = ref.watch(birthdaysProvider);
+    final user = ref.watch(authProvider);
+    final loggedIn = user != null;
 
-    return AppPageScaffold(
-      title: '보기 설정',
-      subtitle: '캘린더 표시 방식과 알림을 조정해요',
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, 120),
       children: [
+        // ── 자체 헤더 (AppHeader는 settings 모드에서 숨김) ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+          child: Text('설정',
+              style: AppType.title.copyWith(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: sh.ink)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+          child: Text('내 계정과 캘린더 표시 방식을 한곳에서',
+              style: AppType.body.copyWith(color: sh.inkSoft)),
+        ),
+
+        // ── 계정 hero 카드 (Airbnb 톤) ──
+        _AccountCard(
+          sh: sh,
+          loggedIn: loggedIn,
+          name: loggedIn ? userDisplayName(user) : '로그인하고 동기화하기',
+          subtitle: loggedIn
+              ? '모든 기기에서 안전하게 동기화 중'
+              : '일정 · 시간표 · 테마를 기기 간 동기화해요',
+          onTap: () =>
+              loggedIn ? showProfileModal(context) : showLoginDialog(context),
+        ),
+        const SizedBox(height: 18),
+
         // ── 카테고리 ──
         SettingsSectionCard(
           sh: sh,
@@ -124,12 +157,11 @@ class CalendarSettingsPage extends ConsumerWidget {
                 icon: Icons.lightbulb_outline_rounded,
                 title: '사용법 안내',
                 onTap: () {
-                  // 코치마크는 하단 nav(루트)를 가리키므로 페이지를 닫고 표시.
+                  // 코치마크는 루트(하단 nav)를 가리킨다. settings는 이제 뷰이므로
+                  // 페이지를 닫을 필요 없이 루트 컨텍스트로 바로 표시한다.
                   final rootCtx =
                       Navigator.of(context, rootNavigator: true).context;
-                  Navigator.pop(context);
-                  WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => showCoachMarks(rootCtx));
+                  showCoachMarks(rootCtx);
                 },
               ),
               SettingsRow(
@@ -156,6 +188,128 @@ class CalendarSettingsPage extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── 계정 hero 카드 ──────────────────────────────────────────────
+class _AccountCard extends StatelessWidget {
+  final SpaceHourColors sh;
+  final bool loggedIn;
+  final String name;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _AccountCard({
+    required this.sh,
+    required this.loggedIn,
+    required this.name,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final initial =
+        loggedIn && name.isNotEmpty ? name.substring(0, 1).toUpperCase() : null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              sh.accent.withValues(alpha: 0.14),
+              sh.accent.withValues(alpha: 0.04),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: sh.accent.withValues(alpha: 0.16)),
+        ),
+        child: Row(
+          children: [
+            // 아바타
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: sh.accent,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: sh.accent.withValues(alpha: 0.32),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: initial != null
+                  ? Text(initial,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800))
+                  : const Icon(Icons.person_rounded,
+                      color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: 14),
+            // 이름 + 부제
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.title.copyWith(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: sh.ink)),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      if (loggedIn) ...[
+                        Icon(Icons.cloud_done_rounded,
+                            size: 13, color: sh.accent),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Text(subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppType.label.copyWith(
+                                fontSize: 12.5,
+                                color: sh.ink.withValues(alpha: 0.55))),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // CTA pill
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: loggedIn ? sh.ink.withValues(alpha: 0.05) : sh.accent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(loggedIn ? '관리' : '로그인',
+                  style: AppType.label.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: loggedIn
+                          ? sh.ink.withValues(alpha: 0.7)
+                          : Colors.white)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

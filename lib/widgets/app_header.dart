@@ -30,6 +30,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
     final isHome = view.mode == ViewMode.home;
     final isTimetable = view.mode == ViewMode.timetable;
     final isStudy = view.mode == ViewMode.study;
+    final isSettings = view.mode == ViewMode.settings;
     final isYear = view.mode == ViewMode.year;
 
     return Container(
@@ -40,7 +41,8 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
         children: [
           // ── 날짜 앵커 + 탐색 (홈·시간표·공부위젯에서 숨김) ──────
           // 시간표·공부위젯 제목은 각 View가 직접 그린다.
-          if (isHome || isTimetable || isStudy) const SizedBox.shrink()
+          if (isHome || isTimetable || isStudy || isSettings)
+            const SizedBox.shrink()
           else
           Padding(
             padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, 0),
@@ -105,7 +107,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
 
           // ── 뷰 세그먼트 탭 (홈·시간표·공부위젯에서 숨김) ──────
           // 시간표·공부위젯은 세그먼트(연/월/주/일) 대상이 아니므로 숨긴다.
-          if (!isHome && !isTimetable && !isStudy) Padding(
+          if (!isHome && !isTimetable && !isStudy && !isSettings) Padding(
             padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.sm),
             child: _ViewSegment(view: view, notifier: notifier, sh: sh),
           ),

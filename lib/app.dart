@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/color_preset_provider.dart';
 import 'providers/themes_provider.dart';
-import 'screens/main_shell.dart';
+import 'screens/splash/splash_gate.dart';
 import 'supabase/theme_share_service.dart';
 
 /// 딥링크 등 어디서든 스낵바를 띄우기 위한 전역 messenger key.
@@ -91,7 +91,7 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp> {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: scaffoldMessengerKey,
       theme: buildTheme(preset),
-      home: const MainShell(),
+      home: const SplashGate(),
     );
   }
 }
