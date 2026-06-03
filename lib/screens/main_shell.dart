@@ -9,6 +9,7 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/app_header.dart';
 import '../widgets/app_top_bar.dart';
 import 'home_view/home_view.dart';
+import 'study_widgets_view.dart';
 import 'month_view/month_view.dart';
 import 'month_view/continuous_week_view.dart';
 import 'year_view/year_view.dart';
@@ -84,6 +85,7 @@ class MainShell extends ConsumerWidget {
   Widget _buildView(ViewMode mode, String? dayKey, bool continuous) {
     switch (mode) {
       case ViewMode.home:      return const HomeView();
+      case ViewMode.study:     return const StudyWidgetsView();
       case ViewMode.events:
         return continuous ? const ContinuousWeekView() : const MonthView();
       case ViewMode.year:      return const YearView();

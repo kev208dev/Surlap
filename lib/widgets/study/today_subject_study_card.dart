@@ -21,13 +21,13 @@ class StudySubjectEntry {
 class TodaySubjectStudyCard extends StatelessWidget {
   final List<StudySubjectEntry> subjects;
   final ValueChanged<StudySubjectEntry>? onSubjectTap;
-  final VoidCallback? onAddSubject;
+  final VoidCallback? onAdd;
 
   const TodaySubjectStudyCard({
     super.key,
     required this.subjects,
     this.onSubjectTap,
-    this.onAddSubject,
+    this.onAdd,
   });
 
   @override
@@ -40,29 +40,7 @@ class TodaySubjectStudyCard extends StatelessWidget {
           StudySectionHeader(
             title: '오늘 공부한 과목',
             subtitle: '과목을 눌러 시간을 기록해요',
-            trailing: GestureDetector(
-              onTap: onAddSubject,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: sh.accentBg,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.add_rounded, size: 15, color: sh.accentInk),
-                    const SizedBox(width: 2),
-                    Text('과목',
-                        style: AppType.label.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: sh.accentInk)),
-                  ],
-                ),
-              ),
-            ),
+            trailing: StudyCardAddButton(onTap: onAdd),
           ),
           const SizedBox(height: 14),
           if (subjects.isEmpty)

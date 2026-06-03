@@ -29,6 +29,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
     final notifier = ref.read(viewProvider.notifier);
     final isHome = view.mode == ViewMode.home;
     final isTimetable = view.mode == ViewMode.timetable;
+    final isStudy = view.mode == ViewMode.study;
     final isYear = view.mode == ViewMode.year;
 
     return Container(
@@ -37,9 +38,9 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── 날짜 앵커 + 탐색 (홈·시간표에서 숨김) ────────────
-          // 시간표 제목은 TimetableView가 직접 그린다(셀 디자인 버튼과 한 줄).
-          if (isHome || isTimetable) const SizedBox.shrink()
+          // ── 날짜 앵커 + 탐색 (홈·시간표·공부위젯에서 숨김) ──────
+          // 시간표·공부위젯 제목은 각 View가 직접 그린다.
+          if (isHome || isTimetable || isStudy) const SizedBox.shrink()
           else
           Padding(
             padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, 0),
@@ -102,9 +103,9 @@ class _AppHeaderState extends ConsumerState<AppHeader> {
               ),
             ),
 
-          // ── 뷰 세그먼트 탭 (홈·시간표에서 숨김) ──────────────
-          // 시간표는 세그먼트(연/월/주/일) 대상이 아니므로 숨긴다.
-          if (!isHome && !isTimetable) Padding(
+          // ── 뷰 세그먼트 탭 (홈·시간표·공부위젯에서 숨김) ──────
+          // 시간표·공부위젯은 세그먼트(연/월/주/일) 대상이 아니므로 숨긴다.
+          if (!isHome && !isTimetable && !isStudy) Padding(
             padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.sm),
             child: _ViewSegment(view: view, notifier: notifier, sh: sh),
           ),

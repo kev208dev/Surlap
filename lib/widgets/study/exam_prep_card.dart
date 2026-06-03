@@ -37,11 +37,7 @@ class ExamPrepCard extends StatelessWidget {
           StudySectionHeader(
             title: title,
             subtitle: '다가오는 평가를 미리 준비해요',
-            trailing: GestureDetector(
-              onTap: onAdd,
-              child: Icon(Icons.add_circle_outline_rounded,
-                  size: 22, color: sh.accent),
-            ),
+            trailing: StudyCardAddButton(onTap: onAdd),
           ),
           const SizedBox(height: 12),
           for (final e in sorted)

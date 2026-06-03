@@ -84,6 +84,40 @@ class StudySectionHeader extends StatelessWidget {
   }
 }
 
+// ─── 카드 헤더 우측 "추가" 버튼 (위젯을 캘린더/일간에 추가) ───────
+class StudyCardAddButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final String label;
+  const StudyCardAddButton({super.key, this.onTap, this.label = '추가'});
+
+  @override
+  Widget build(BuildContext context) {
+    final sh = context.sh;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: sh.accentBg,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_rounded, size: 16, color: sh.accentInk),
+            const SizedBox(width: 2),
+            Text(label,
+                style: AppType.label.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: sh.accentInk)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── pill 버튼 (filled = 브랜드, else 연한 surface) ───────────────
 class StudyPillButton extends StatelessWidget {
   final String label;

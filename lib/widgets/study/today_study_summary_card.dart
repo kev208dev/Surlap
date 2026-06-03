@@ -9,6 +9,7 @@ class TodayStudySummaryCard extends StatelessWidget {
   final int subjectCount;
   final String reviewLabel;
   final double goalProgress; // 0.0 ~ 1.0
+  final VoidCallback? onAdd;
 
   const TodayStudySummaryCard({
     super.key,
@@ -16,6 +17,7 @@ class TodayStudySummaryCard extends StatelessWidget {
     required this.subjectCount,
     required this.reviewLabel,
     required this.goalProgress,
+    this.onAdd,
   });
 
   @override
@@ -34,11 +36,18 @@ class TodayStudySummaryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('오늘 공부',
-                        style: AppType.label.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: sh.inkSoft)),
+                    Row(
+                      children: [
+                        Text('오늘 공부',
+                            style: AppType.label.copyWith(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: sh.inkSoft)),
+                        const Spacer(),
+                        StudyCardAddButton(onTap: onAdd),
+                        const SizedBox(width: 12),
+                      ],
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       formatStudyDuration(studyTime),

@@ -22,12 +22,14 @@ class ReviewRoundSelector extends StatelessWidget {
   final ReviewRound selectedRound;
   final ValueChanged<ReviewRound>? onChanged;
   final bool boxed; // true면 카드로 감쌈
+  final VoidCallback? onAdd;
 
   const ReviewRoundSelector({
     super.key,
     required this.selectedRound,
     this.onChanged,
     this.boxed = true,
+    this.onAdd,
   });
 
   @override
@@ -64,9 +66,10 @@ class ReviewRoundSelector extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const StudySectionHeader(
+          StudySectionHeader(
             title: '회독 상태',
             subtitle: '과목·단원별 회독 진행을 표시해요',
+            trailing: StudyCardAddButton(onTap: onAdd),
           ),
           const SizedBox(height: 14),
           segment,

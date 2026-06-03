@@ -9,6 +9,7 @@ class StudyTimeInputCard extends StatelessWidget {
   final Duration studyTime;
   final ValueChanged<Duration>? onChanged;
   final VoidCallback? onManualInput;
+  final VoidCallback? onAdd;
   final Duration goal; // 목표(progress ring 용)
 
   const StudyTimeInputCard({
@@ -16,6 +17,7 @@ class StudyTimeInputCard extends StatelessWidget {
     required this.studyTime,
     this.onChanged,
     this.onManualInput,
+    this.onAdd,
     this.goal = const Duration(hours: 6),
   });
 
@@ -37,13 +39,25 @@ class StudyTimeInputCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          StudySectionHeader(
+            title: '순공시간',
+            subtitle: '오늘 집중해서 공부한 시간을 기록해요',
+            trailing: StudyCardAddButton(onTap: onAdd),
+          ),
+          const SizedBox(height: 14),
+          // 큰 숫자(강조) + progress ring
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Expanded(
-                child: StudySectionHeader(
-                  title: '순공시간',
-                  subtitle: '오늘 집중해서 공부한 시간을 기록해요',
+              Expanded(
+                child: Text(
+                  formatStudyDuration(studyTime),
+                  style: AppType.number.copyWith(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: sh.ink,
+                  ),
                 ),
               ),
               StudyProgressRing(
@@ -56,17 +70,6 @@ class StudyTimeInputCard extends StatelessWidget {
                     size: 20, color: sh.accent),
               ),
             ],
-          ),
-          const SizedBox(height: 14),
-          // 큰 숫자 (가장 강조)
-          Text(
-            formatStudyDuration(studyTime),
-            style: AppType.number.copyWith(
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-              color: sh.ink,
-            ),
           ),
           const SizedBox(height: 14),
           // 빠른 버튼

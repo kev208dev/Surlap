@@ -37,11 +37,7 @@ class StudyRoutineCheckCard extends StatelessWidget {
           StudySectionHeader(
             title: '루틴 체크',
             subtitle: '오늘 $doneCount / ${routines.length} 달성',
-            trailing: GestureDetector(
-              onTap: onAdd,
-              child: Icon(Icons.add_circle_outline_rounded,
-                  size: 22, color: sh.accent),
-            ),
+            trailing: StudyCardAddButton(onTap: onAdd),
           ),
           const SizedBox(height: 8),
           for (int i = 0; i < routines.length; i++)

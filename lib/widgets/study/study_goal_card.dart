@@ -40,11 +40,7 @@ class StudyGoalCard extends StatelessWidget {
           StudySectionHeader(
             title: '오늘 목표',
             subtitle: '$doneCount / ${goals.length} 완료',
-            trailing: GestureDetector(
-              onTap: onAdd,
-              child: Icon(Icons.add_circle_outline_rounded,
-                  size: 22, color: sh.accent),
-            ),
+            trailing: StudyCardAddButton(onTap: onAdd),
           ),
           const SizedBox(height: 12),
           for (int i = 0; i < goals.length; i++)

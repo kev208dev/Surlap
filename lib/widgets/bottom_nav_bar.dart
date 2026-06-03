@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/view_provider.dart';
 import '../screens/calendar_settings_page.dart';
-import '../screens/theme_share_page.dart';
 import '../widgets/glass_container.dart';
 import 'coach_mark.dart';
 
@@ -49,13 +48,11 @@ class SpaceHourBottomNav extends ConsumerWidget {
         coachKey: coachKeyTabTimetable,
       ),
       _Tab(
-        active: Icons.ios_share_rounded,
-        inactive: Icons.ios_share_rounded,
-        label: '테마 공유',
-        isActive: false,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ThemeSharePage()),
-        ),
+        active: Icons.auto_stories_rounded,
+        inactive: Icons.auto_stories_outlined,
+        label: '공부 위젯',
+        isActive: view.mode == ViewMode.study,
+        onTap: () => notifier.setMode(ViewMode.study),
       ),
       _Tab(
         active: Icons.settings_rounded,
