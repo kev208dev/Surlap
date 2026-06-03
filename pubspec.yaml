@@ -40,6 +40,12 @@ dependencies:
   flutter_svg: ^2.0.17
   app_links: ^7.0.0
 
+  # 음성 인식 (할 일 음성 입력)
+  speech_to_text: ^7.0.0
+
+  # 갤러리 저장 (달력 이미지 저장)
+  gal: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

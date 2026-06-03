@@ -3,6 +3,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
+import '../../models/todo_item.dart';
 import '../../models/calendar_theme.dart';
 import '../../models/day_template.dart';
 import 'day_cell.dart';
@@ -12,6 +13,7 @@ class MonthGrid extends StatelessWidget {
   final int month;
   final int weekStartDow;
   final Map<String, List<EventItem>> events;
+  final Map<String, List<TodoItem>> todosByDate;
   final List<CalendarTheme> themes;
   final SpaceHourColors sh;
   final bool showPast;
@@ -32,6 +34,7 @@ class MonthGrid extends StatelessWidget {
     required this.month,
     required this.weekStartDow,
     required this.events,
+    this.todosByDate = const {},
     required this.themes,
     required this.sh,
     required this.showPast,
@@ -171,6 +174,7 @@ class MonthGrid extends StatelessWidget {
         date: cellDate,
         viewMonth: viewMonth,
         events: cellEvents,
+        todos: todosByDate[key] ?? const [],
         themes: themes,
         sh: sh,
         showPast: showPast,

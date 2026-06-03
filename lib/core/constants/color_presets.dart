@@ -54,5 +54,23 @@ const kDefaultPreset = ColorPreset(
   dark: false,
 );
 
+// 다크: 어두운 배경 + 흰 글자. 라이트와 동일한 토큰 구조.
+const kDarkPreset = ColorPreset(
+  id: 'dark',
+  name: 'HourSpace Dark',
+  dot: Color(0xFF8B6CFF),
+  accent: Color(0xFF8B6CFF),
+  accentInk: Color(0xFFC4B2FF),
+  accentBg: Color(0xFF2A2342),
+  app: Color(0xFF0F0F14),       // 깊은 배경
+  card: Color(0xFF1A1A22),
+  card2: Color(0xFF24242E),
+  hairline: Color(0xFF33333F),
+  ink: Color(0xFFF2F2F6),       // 거의 흰 글자
+  inkSoft: Color(0xFFADADBC),
+  inkFaint: Color(0xFF6E6E7C),
+  dark: true,
+);
+
 // presetById 호출 코드 하위 호환용
-ColorPreset presetById(String id) => kDefaultPreset;
+ColorPreset presetById(String id) => id == 'dark' ? kDarkPreset : kDefaultPreset;

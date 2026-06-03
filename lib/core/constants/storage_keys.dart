@@ -19,6 +19,8 @@ abstract final class StorageKeys {
   static const timetableOverrides = 'calendar-timetable-overrides-v1';
   // 시간표 직접 입력 — 요일(0=월..6=일)×시각으로 매주 반복 저장.
   static const timetableWeekly    = 'calendar-timetable-weekly-v1';
+  // 할 일(Todo) — 일정과 분리된 별도 목록.
+  static const todos         = 'calendar-todos-v1';
   static const cellDesign    = 'calendar-cell-design-v1';
   static const neisSchool    = 'calendar-neis-school-v1';
   // NEIS 시간표/급식 로컬 캐시(주 단위). 재요청 가능하므로 동기화 대상 아님.
@@ -40,6 +42,7 @@ abstract final class StorageKeys {
     events, themes, memos, starred, circles, themeFilter, cellDesign,
     motto, mottoIcon, dayTemplates, dayWidgetValues,
     timetableTemplate, timetableOverrides, timetableWeekly, birthdays, neisSchool,
+    todos,
   };
 
   /// user_data KV 테이블로 동기화하는 키 (events 는 별도 events 테이블이라 제외).

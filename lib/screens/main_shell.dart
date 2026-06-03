@@ -11,7 +11,7 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/app_header.dart';
 import '../widgets/app_top_bar.dart';
 import 'home_view/home_view.dart';
-import 'study_widgets_view.dart';
+import 'profile_view.dart';
 import 'settings_view.dart';
 import 'theme_share_page.dart';
 import 'month_view/month_view.dart';
@@ -105,7 +105,7 @@ class MainShell extends ConsumerWidget {
   Widget _buildView(ViewMode mode, String? dayKey, bool continuous) {
     switch (mode) {
       case ViewMode.home:      return const HomeView();
-      case ViewMode.study:     return const StudyWidgetsView();
+      case ViewMode.profile:   return const ProfileView();
       case ViewMode.settings:  return const SettingsView();
       case ViewMode.themes:    return const ThemeSharePage();
       case ViewMode.events:

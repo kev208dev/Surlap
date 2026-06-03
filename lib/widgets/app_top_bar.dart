@@ -5,18 +5,22 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../widgets/coach_mark.dart';
 import '../providers/view_provider.dart';
-import '../modals/theme_manager_modal.dart';
-import '../modals/profile_modal.dart';
 import '../utils/screenshot_util.dart';
 
 // overlay 버튼 영역 높이 (status bar 제외)
 const double kTopBarButtonH = 52.0;
 
-enum _MoreAction { category, settings, profile }
+// 달력 계열 뷰에서만 뷰 전환(점세개) 노출.
+const _calendarModes = {
+  ViewMode.events,
+  ViewMode.year,
+  ViewMode.planner,
+  ViewMode.day,
+};
 
 // ─── 투명 상단 overlay 헤더 ──────────────────────────────────────
 // Status bar 뒤쪽까지 자연스럽게 gradient가 깔리는 미니멀 상단 바.
-// logo/앱이름 중앙 + 좌우 버튼만 표시. MainShell의 Positioned(top:0)에 배치.
+// 좌: 이미지 저장 / 중앙: 로고 / 우: 뷰 전환(달력뷰 한정).
 class AppOverlayTopBar extends ConsumerWidget {
   const AppOverlayTopBar({super.key});
 
@@ -24,8 +28,9 @@ class AppOverlayTopBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final topPad = MediaQuery.of(context).padding.top;
     final sh = context.sh;
+    final mode = ref.watch(viewProvider).mode;
+    final showSwitcher = _calendarModes.contains(mode);
 
-    // 라이트 배경에서 자연스러운 페이드: 위(불투명) → 아래(투명)
     final gradientColors = [
       sh.bg.withValues(alpha: 0.96),
       sh.bg.withValues(alpha: 0.82),
@@ -55,17 +60,17 @@ class AppOverlayTopBar extends ConsumerWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // ── 왼쪽: 공유 ─────────────────────────────
+                  // ── 왼쪽: 이미지로 저장 ─────────────────────────
                   Align(
                     alignment: Alignment.centerLeft,
                     child: _TopIconBtn(
                       key: coachKeyBtnCategory,
-                      icon: Icons.ios_share_outlined,
+                      icon: Icons.save_alt_rounded,
                       sh: sh,
-                      onTap: captureAndShare,
+                      onTap: captureAndSaveImage,
                     ),
                   ),
-                  // ── 중앙: 로고 (이미지 + 워드마크) ──────────
+                  // ── 중앙: 로고 ───────────────────────────────
                   Center(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -87,15 +92,17 @@ class AppOverlayTopBar extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  // ── 오른쪽: 더보기 ─────────────────────────
+                  // ── 오른쪽: 뷰 전환 (달력뷰에서만) ───────────────
                   Align(
                     alignment: Alignment.centerRight,
-                    child: _TopIconBtn(
-                      key: coachKeyBtnSettings,
-                      icon: Icons.more_horiz,
-                      sh: sh,
-                      onTap: () => _openMore(context, ref, sh),
-                    ),
+                    child: showSwitcher
+                        ? _TopIconBtn(
+                            key: coachKeyBtnSettings,
+                            icon: Icons.more_vert,
+                            sh: sh,
+                            onTap: () => _openViewSwitcher(context, ref, mode),
+                          )
+                        : const SizedBox(width: kMinTouch),
                   ),
                 ],
               ),
@@ -106,21 +113,11 @@ class AppOverlayTopBar extends ConsumerWidget {
     );
   }
 
-  void _openMore(BuildContext context, WidgetRef ref, SpaceHourColors sh) {
-    showModalBottomSheet<_MoreAction>(
+  void _openViewSwitcher(BuildContext context, WidgetRef ref, ViewMode current) {
+    showModalBottomSheet<void>(
       context: context,
-      builder: (_) => const _OverlayMoreSheet(),
-    ).then((action) {
-      if (action == null || !context.mounted) return;
-      switch (action) {
-        case _MoreAction.category:
-          showThemeManagerModal(context);
-        case _MoreAction.settings:
-          ref.read(viewProvider.notifier).setMode(ViewMode.settings);
-        case _MoreAction.profile:
-          showProfileModal(context);
-      }
-    });
+      builder: (_) => _ViewSwitcherSheet(current: current),
+    );
   }
 }
 
@@ -129,7 +126,8 @@ class _TopIconBtn extends StatelessWidget {
   final IconData icon;
   final SpaceHourColors sh;
   final VoidCallback onTap;
-  const _TopIconBtn({super.key, required this.icon, required this.sh, required this.onTap});
+  const _TopIconBtn(
+      {super.key, required this.icon, required this.sh, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -139,50 +137,72 @@ class _TopIconBtn extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(kMinTouch / 2),
-        // 보조 액션 — 시각적으로 약하게
-        child: Center(child: Icon(icon, size: 19, color: sh.inkFaint)),
+        child: Center(child: Icon(icon, size: 20, color: sh.inkSoft)),
       ),
     );
   }
 }
 
-// ─── 더보기 시트 ─────────────────────────────────────────────────
-class _OverlayMoreSheet extends StatelessWidget {
-  const _OverlayMoreSheet();
+// ─── 뷰 전환 시트 (연간/월간/주간/일간) ──────────────────────────
+class _ViewSwitcherSheet extends ConsumerWidget {
+  final ViewMode current;
+  const _ViewSwitcherSheet({required this.current});
+
+  String _todayKey() {
+    final n = DateTime.now();
+    return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final sh = context.sh;
+    final notifier = ref.read(viewProvider.notifier);
+
+    final items = [
+      (label: '연간', icon: Icons.calendar_view_month_rounded,
+          mode: ViewMode.year, onTap: () => notifier.setMode(ViewMode.year)),
+      (label: '월간', icon: Icons.calendar_month_rounded,
+          mode: ViewMode.events, onTap: () => notifier.setMode(ViewMode.events)),
+      (label: '주간', icon: Icons.view_week_rounded,
+          mode: ViewMode.planner,
+          onTap: () => notifier.setWeekView(_todayKey())),
+      (label: '일간', icon: Icons.view_day_rounded,
+          mode: ViewMode.day, onTap: () => notifier.setDayView(_todayKey())),
+    ];
+
     return Container(
       color: sh.card,
       padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.md, Gap.xl, Gap.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            minLeadingWidth: Gap.xl,
-            leading: Icon(Icons.label_outline_rounded, size: 20, color: sh.inkSoft),
-            title: Text('카테고리 관리', style: AppType.body.copyWith(color: sh.ink)),
-            trailing: Icon(Icons.chevron_right_rounded, size: 18, color: sh.inkFaint),
-            onTap: () => Navigator.pop(context, _MoreAction.category),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text('보기 전환',
+                style: AppType.label.copyWith(
+                    fontWeight: FontWeight.w700, color: sh.inkSoft)),
           ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            minLeadingWidth: Gap.xl,
-            leading: Icon(Icons.settings_outlined, size: 20, color: sh.inkSoft),
-            title: Text('설정', style: AppType.body.copyWith(color: sh.ink)),
-            trailing: Icon(Icons.chevron_right_rounded, size: 18, color: sh.inkFaint),
-            onTap: () => Navigator.pop(context, _MoreAction.settings),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            minLeadingWidth: Gap.xl,
-            leading: Icon(Icons.person_outline_rounded, size: 20, color: sh.inkSoft),
-            title: Text('프로필', style: AppType.body.copyWith(color: sh.ink)),
-            trailing: Icon(Icons.chevron_right_rounded, size: 18, color: sh.inkFaint),
-            onTap: () => Navigator.pop(context, _MoreAction.profile),
-          ),
+          ...items.map((it) {
+            final active = it.mode == current;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              minLeadingWidth: Gap.xl,
+              leading: Icon(it.icon,
+                  size: 21, color: active ? sh.accent : sh.inkSoft),
+              title: Text(it.label,
+                  style: AppType.body.copyWith(
+                      color: active ? sh.accent : sh.ink,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w500)),
+              trailing: active
+                  ? Icon(Icons.check_rounded, size: 18, color: sh.accent)
+                  : null,
+              onTap: () {
+                Navigator.pop(context);
+                it.onTap();
+              },
+            );
+          }),
         ],
       ),
     );

@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
+import '../../models/todo_item.dart';
 import '../../providers/view_provider.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/themes_provider.dart';
@@ -12,7 +13,9 @@ import '../../providers/filter_provider.dart';
 import '../../providers/extras_provider.dart';
 import '../../providers/day_widget_provider.dart';
 import '../../providers/birthdays_provider.dart';
+import '../../providers/todos_provider.dart';
 import '../../modals/add_edit_event_modal.dart';
+import '../../modals/add_todo_modal.dart';
 import '../../modals/day_widget_input_modal.dart';
 import 'month_grid.dart';
 
@@ -32,7 +35,16 @@ class MonthView extends ConsumerWidget {
     final widgetValues = ref.watch(widgetValuesProvider);
     final dayTemplates = ref.watch(dayTemplatesProvider);
     final birthdays = ref.watch(birthdaysProvider);
+    final todos = ref.watch(todosProvider);
     final sh = context.sh;
+
+    // 날짜별 할 일 묶음 (날짜 지정된 것만 캘린더에 표시).
+    final todosByDate = <String, List<TodoItem>>{};
+    for (final t in todos) {
+      final k = t.dateKey;
+      if (k == null) continue;
+      todosByDate.putIfAbsent(k, () => []).add(t);
+    }
 
     final filteredEvents = Map.fromEntries(
       events.entries.map((e) => MapEntry(
@@ -75,6 +87,7 @@ class MonthView extends ConsumerWidget {
         month: view.viewMonth,
         weekStartDow: settings.weekStartDow,
         events: mergedEvents,
+        todosByDate: todosByDate,
         themes: themes,
         sh: sh,
         showPast: settings.showPast,
@@ -83,10 +96,9 @@ class MonthView extends ConsumerWidget {
         memos: memos,
         dayTemplates: dayTemplates,
         widgetValues: widgetValues,
-        // 월간: 날짜 탭 → 해당 주(주간 뷰)로 이동. (일정 추가는 주간/일간에서)
-        onDayTap: (date) =>
-            ref.read(viewProvider.notifier).setWeekView(du.toDateKey(date)),
-        // 길게 누르면 별표/메모/위젯 등 부가 액션 시트(추가 포함).
+        // 월간: 날짜 탭 → 추가/액션 시트(일정·할일·위젯·자세히 보기).
+        onDayTap: (date) => _handleDayTap(context, ref, date),
+        // 길게 누르면 동일 시트.
         onDayLongPress: (date) => _handleDayTap(context, ref, date),
         onMemoTap: (memoKey, current) =>
             _editMemo(context, ref, memoKey, current),
@@ -204,21 +216,30 @@ class _DayActionSheet extends StatelessWidget {
             },
           ),
           _ActionTile(
+            icon: Icons.check_circle_outline_rounded,
+            label: '할 일 추가',
+            color: sh.accent,
+            onTap: () {
+              Navigator.pop(context);
+              showAddTodoModal(context, dateKey: dateKey);
+            },
+          ),
+          _ActionTile(
+            icon: Icons.bar_chart_rounded,
+            label: '위젯 추가',
+            color: sh.ink,
+            onTap: () {
+              Navigator.pop(context);
+              showDayWidgetInputModal(context, dateKey);
+            },
+          ),
+          _ActionTile(
             icon: Icons.today_outlined,
             label: '이날 자세히 보기',
             color: sh.ink,
             onTap: () {
               Navigator.pop(context);
               ref.read(viewProvider.notifier).setDayView(dateKey);
-            },
-          ),
-          _ActionTile(
-            icon: Icons.bar_chart_rounded,
-            label: '위젯 입력',
-            color: sh.ink,
-            onTap: () {
-              Navigator.pop(context);
-              showDayWidgetInputModal(context, dateKey);
             },
           ),
           Builder(builder: (ctx) {
@@ -256,9 +277,49 @@ class _DayActionSheet extends StatelessWidget {
             );
           }),
           ..._buildEventList(context, sh),
+          ..._buildTodoList(context, sh),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildTodoList(BuildContext context, SpaceHourColors sh) {
+    final items = ref.read(todosProvider).where((t) => t.dateKey == dateKey).toList();
+    if (items.isEmpty) return [];
+    return [
+      const SizedBox(height: 8),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text('이 날의 할 일 (${items.length})',
+            style: AppType.label.copyWith(
+                fontWeight: FontWeight.w700, color: sh.inkSoft)),
+      ),
+      ...items.map((t) => ListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            leading: GestureDetector(
+              onTap: () => ref.read(todosProvider.notifier).toggleDone(t.id),
+              child: Icon(
+                t.done
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: 20,
+                color: t.done ? sh.accent : sh.inkFaint,
+              ),
+            ),
+            title: Text(t.title,
+                style: AppType.body.copyWith(
+                    color: t.done ? sh.inkFaint : sh.ink,
+                    decoration: t.done ? TextDecoration.lineThrough : null),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+            trailing: Icon(Icons.edit_outlined, size: 16, color: sh.inkFaint),
+            onTap: () {
+              Navigator.pop(context);
+              showAddTodoModal(context, edit: t);
+            },
+          )),
+    ];
   }
 
   List<Widget> _buildEventList(BuildContext context, SpaceHourColors sh) {

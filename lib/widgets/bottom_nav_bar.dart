@@ -41,7 +41,7 @@ class SpaceHourBottomNav extends ConsumerWidget {
       _Tab(
         active: Icons.grid_view_rounded,
         inactive: Icons.grid_view_outlined,
-        label: '시간표',
+        label: '스케줄표',
         isActive: view.mode == ViewMode.timetable,
         onTap: () => notifier.setMode(ViewMode.timetable),
         coachKey: coachKeyTabTimetable,
@@ -54,11 +54,12 @@ class SpaceHourBottomNav extends ConsumerWidget {
         onTap: () => notifier.setMode(ViewMode.themes),
       ),
       _Tab(
-        active: Icons.settings_rounded,
-        inactive: Icons.settings_outlined,
-        label: '설정',
-        isActive: view.mode == ViewMode.settings,
-        onTap: () => notifier.setMode(ViewMode.settings),
+        active: Icons.person_rounded,
+        inactive: Icons.person_outline_rounded,
+        label: '프로필',
+        // 설정은 프로필 안에서 진입하므로 두 모드 모두 프로필 탭을 활성으로.
+        isActive: view.mode == ViewMode.profile || view.mode == ViewMode.settings,
+        onTap: () => notifier.setMode(ViewMode.profile),
         coachKey: coachKeyTabProfile,
       ),
     ];

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
@@ -7,7 +6,11 @@ import '../../core/utils/date_utils.dart' as du;
 import '../../storage/local_store.dart';
 import '../../core/constants/storage_keys.dart';
 import '../../providers/recurring_provider.dart';
-import '../../supabase/neis_service.dart';
+import '../../providers/cell_design_provider.dart';
+import '../../providers/neis_cache_provider.dart';
+import '../../modals/add_todo_modal.dart';
+import '../../modals/neis_setup_modal.dart';
+import 'dart:convert';
 
 // ─── Row definition ───────────────────────────────────────────────
 
@@ -25,11 +28,11 @@ class _RowDef {
 // ─── Merge group ──────────────────────────────────────────────────
 
 class _MergeGroup {
-  final int col;       // 0..6 (Mon..Sun)
-  final int startRow;  // row index in rows list
-  final int span;      // number of rows merged (>= 2)
+  final int col;
+  final int startRow;
+  final int span;
   final String text;
-  final double topOffset; // pixel offset from grid top
+  final double topOffset;
 
   const _MergeGroup({
     required this.col,
@@ -38,37 +41,6 @@ class _MergeGroup {
     required this.text,
     required this.topOffset,
   });
-}
-
-// ─── Cell design ─────────────────────────────────────────────────
-
-class _CellDesign {
-  final Color? bg;
-  final Color? textColor;
-  final bool bold;
-  const _CellDesign({this.bg, this.textColor, this.bold = false});
-
-  static _CellDesign fromJson(Map<String, dynamic> j) => _CellDesign(
-    bg: j['bg'] != null ? _hex(j['bg'] as String) : null,
-    textColor: j['color'] != null ? _hex(j['color'] as String) : null,
-    bold: j['bold'] == true,
-  );
-
-  Map<String, dynamic> toJson() => {
-    if (bg != null) 'bg': _toHex(bg!),
-    if (textColor != null) 'color': _toHex(textColor!),
-    if (bold) 'bold': true,
-  };
-
-  bool get isEmpty => bg == null && textColor == null && !bold;
-
-  static Color _hex(String h) {
-    final s = h.replaceAll('#', '');
-    return Color(int.parse(s.length == 6 ? 'FF$s' : s, radix: 16));
-  }
-
-  static String _toHex(Color c) =>
-      '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
 }
 
 // ─── Main widget ──────────────────────────────────────────────────
@@ -84,123 +56,17 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   static const _dowNames = ['월', '화', '수', '목', '금', '토', '일'];
   static const _rowH    = 42.0;
   static const _timeLblW = 52.0;
-  static const _divH   = 3.0;  // wk-divider height
+  static const _divH   = 3.0;
 
-  // NEIS cache: di(0=Mon..6=Sun) → period → subject
-  final Map<int, Map<int, String>> _neisData = {};
-  final Map<int, String> _neisLunch = {};
-  bool _neisFetching = false;
-
-  // Design mode
+  // 디자인 모드(셀 꾸미기) — 화면 로컬 UI 상태.
   bool _designMode = false;
-  final Map<String, _CellDesign> _designs = {};
 
-  // 반복 일정은 recurringProvider(요일×시각)로 관리 — 주간/일간과 공유.
-
-  // ── Design color presets ──────────────────────────────────────
   static const _palette = [
-    Color(0xFFFFE4E4), // red tint
-    Color(0xFFFFF3CD), // yellow tint
-    Color(0xFFD4EDDA), // green tint
-    Color(0xFFD1ECF1), // blue tint
-    Color(0xFFE2D9F3), // purple tint
-    Color(0xFFFFF5EE), // cream
-    Color(0xFFF0F0F0), // gray tint
-    Color(0xFFFFE8D6), // orange tint
+    Color(0xFFFFE4E4), Color(0xFFFFF3CD), Color(0xFFD4EDDA), Color(0xFFD1ECF1),
+    Color(0xFFE2D9F3), Color(0xFFFFF5EE), Color(0xFFF0F0F0), Color(0xFFFFE8D6),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadDesigns();
-    _loadNeisCache();      // 로컬 캐시 먼저 불러옴
-    _fetchNeisIfNeeded();  // 이번 주 캐시가 없을 때만 네트워크 요청
-  }
-
-  // ── NEIS 로컬 캐시 (주 단위) ───────────────────────────────────
-  String _weekKey() => du.toDateKey(_weekDays().first); // 이번 주 월요일
-
-  void _loadNeisCache() {
-    final raw = LocalStore.instance.getString(StorageKeys.neisCache);
-    if (raw == null) return;
-    try {
-      final j = jsonDecode(raw) as Map<String, dynamic>;
-      if (j['week'] != _weekKey()) return; // 다른 주 캐시 → 무시(재요청)
-      final data = j['data'] as Map<String, dynamic>? ?? {};
-      data.forEach((di, pm) {
-        final m = <int, String>{};
-        (pm as Map<String, dynamic>).forEach((p, s) {
-          m[int.parse(p)] = s.toString();
-        });
-        _neisData[int.parse(di)] = m;
-      });
-      final lunch = j['lunch'] as Map<String, dynamic>? ?? {};
-      lunch.forEach((di, s) => _neisLunch[int.parse(di)] = s.toString());
-    } catch (_) {}
-  }
-
-  void _saveNeisCache() {
-    final j = {
-      'week': _weekKey(),
-      'data': _neisData.map((di, pm) =>
-          MapEntry('$di', pm.map((p, s) => MapEntry('$p', s)))),
-      'lunch': _neisLunch.map((di, s) => MapEntry('$di', s)),
-    };
-    LocalStore.instance.setString(StorageKeys.neisCache, jsonEncode(j));
-  }
-
-  // ── Design persistence ────────────────────────────────────────
-
-  void _loadDesigns() {
-    final raw = LocalStore.instance.getString(StorageKeys.cellDesign);
-    if (raw == null) return;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      for (final e in map.entries) {
-        if (e.value is Map<String, dynamic>) {
-          _designs[e.key] = _CellDesign.fromJson(e.value as Map<String, dynamic>);
-        }
-      }
-    } catch (_) {}
-  }
-
-  void _saveDesigns() {
-    LocalStore.instance.setString(
-      StorageKeys.cellDesign,
-      jsonEncode(_designs.map((k, v) => MapEntry(k, v.toJson()))),
-    );
-  }
-
-  String _dKey(int col, int hour) => '${col}_$hour';
-  _CellDesign _getDesign(int col, int hour) =>
-      _designs[_dKey(col, hour)] ?? const _CellDesign();
-
-  // ── NEIS fetching ─────────────────────────────────────────────
-
-  Future<void> _fetchNeisIfNeeded() async {
-    final school = NeisSchool.load();
-    if (school == null) return;
-    if (_neisFetching) return;
-    // 이번 주 캐시가 이미 로컬에서 로드됐으면 네트워크 생략(1회 로드 후 재사용).
-    if (_neisData.isNotEmpty) return;
-    _neisFetching = true;
-    final days = _weekDays();
-    for (int di = 0; di < 5; di++) {
-      final dk = du.toDateKey(days[di]);
-      final dateStr = dk.replaceAll('-', '');
-      try {
-        final tt = await fetchTimetable(school, dateStr);
-        if (tt != null && mounted) setState(() => _neisData[di] = tt);
-        final lunch = await fetchLunch(school, dateStr);
-        if (lunch != null && mounted) setState(() => _neisLunch[di] = lunch);
-      } catch (e) {
-        debugPrint('[NEIS] $dateStr error: $e');
-      }
-    }
-    _neisFetching = false;
-    // 성공적으로 받은 데이터는 로컬에 저장 → 다음부터 캐시 재사용.
-    if (_neisData.isNotEmpty) _saveNeisCache();
-  }
+  // ── Data builders ─────────────────────────────────────────────
 
   List<DateTime> _weekDays() {
     final today = DateTime.now();
@@ -208,11 +74,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return List.generate(7, (i) => DateTime(monday.year, monday.month, monday.day + i));
   }
 
-  // ── Data builders ─────────────────────────────────────────────
-
-  int _maxPeriod() {
+  int _maxPeriod(Map<int, Map<int, String>> neis) {
     int mp = 7;
-    for (final pm in _neisData.values) {
+    for (final pm in neis.values) {
       for (final p in pm.keys) {
         if (p > mp) mp = p;
       }
@@ -222,26 +86,19 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
   List<_RowDef> _buildRows(int maxPeriod) {
     final rows = <_RowDef>[];
-    // 0:00 ~ 8:00
     for (int h = 0; h <= 8; h++) {
       rows.add(_RowDef(type: _RType.free, label: '$h:00', hour: h));
     }
-    // Divider (wk-divider)
     rows.add(const _RowDef(type: _RType.divider));
-    // 1~4교시 (hour = 8+p = 9..12)
     final topPeriods = maxPeriod < 4 ? maxPeriod : 4;
     for (int p = 1; p <= topPeriods; p++) {
       rows.add(_RowDef(type: _RType.school, label: '$p교시', hour: 8 + p, period: p));
     }
-    // 점심 (hour = 13)
     rows.add(const _RowDef(type: _RType.lunch, label: '점심', hour: 13));
-    // 5~maxPeriod교시 (hour = 9+p = 14..)
     for (int p = 5; p <= maxPeriod; p++) {
       rows.add(_RowDef(type: _RType.school, label: '$p교시', hour: 9 + p, period: p));
     }
-    // Divider
     rows.add(const _RowDef(type: _RType.divider));
-    // afterSchool ~ 23:00
     final afterSchool = 10 + maxPeriod;
     for (int h = afterSchool; h <= 23; h++) {
       rows.add(_RowDef(type: _RType.free, label: '$h:00', hour: h));
@@ -249,7 +106,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return rows;
   }
 
-  // Returns [offset0, offset1, ..., totalHeight]
   List<double> _rowOffsets(List<_RowDef> rows) {
     final offsets = <double>[];
     double acc = 0;
@@ -320,9 +176,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return result;
   }
 
-  Map<int, Map<int, String>> _buildNeisHourData() {
+  Map<int, Map<int, String>> _buildNeisHourData(Map<int, Map<int, String>> neis) {
     final result = <int, Map<int, String>>{};
-    _neisData.forEach((di, periodMap) {
+    neis.forEach((di, periodMap) {
       result[di] = {};
       periodMap.forEach((period, subject) {
         final h = period <= 4 ? 8 + period : 9 + period;
@@ -332,13 +188,11 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return result;
   }
 
-  // Priority: school rows → NEIS > template > user.
-  //           lunch row   → user > NEIS lunch.
-  //           free rows   → user > template.
   Map<int, Map<int, String>> _buildDisplayData(
     Map<int, Map<int, String>> neisData,
     Map<int, Map<int, String>> tplData,
     Map<int, Map<int, String>> freeData,
+    Map<int, String> neisLunch,
     List<_RowDef> rows,
   ) {
     final result = <int, Map<int, String>>{};
@@ -352,8 +206,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
         if (row.type == _RType.school) {
           result[col]![row.hour] = n.isNotEmpty ? n : t.isNotEmpty ? t : u;
         } else if (row.type == _RType.lunch) {
-          // user override shown; NEIS lunch rendered as text if no user override
-          final lunch = _neisLunch[col] ?? '';
+          final lunch = neisLunch[col] ?? '';
           result[col]![row.hour] =
               u.isNotEmpty ? u : lunch.isNotEmpty ? lunch.split('\n').first : '';
         } else {
@@ -363,8 +216,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     }
     return result;
   }
-
-  // ── Merge computation ─────────────────────────────────────────
 
   List<_MergeGroup> _computeMerges(
     List<_RowDef> rows,
@@ -397,7 +248,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return groups;
   }
 
-  // All (col, rowIdx) positions that are part of any merge group.
   Set<(int, int)> _buildMergeSet(List<_MergeGroup> groups) {
     final set = <(int, int)>{};
     for (final g in groups) {
@@ -410,7 +260,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
   // ── Cell edit / design handlers ───────────────────────────────
 
-  // col = 요일(0=월..6=일). 입력 내용은 해당 요일에 매주 반복된다.
   void _editCell(BuildContext ctx, int col, int hour, String current) {
     final ctrl = TextEditingController(text: current);
     showDialog(
@@ -455,13 +304,11 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
   void _saveCell(BuildContext ctx, int col, int hour, String text) {
     Navigator.pop(ctx);
-    // 반복 일정 provider에 저장 → 시간표/주간/일간에 반영.
     ref.read(recurringProvider.notifier).setCell(col, hour, text);
   }
 
   void _showDesignPanel(BuildContext ctx, int col, int hour, SpaceHourColors sh) {
-    final key = _dKey(col, hour);
-    final current = _designs[key] ?? const _CellDesign();
+    final current = ref.read(cellDesignProvider.notifier).forCell(col, hour);
     showModalBottomSheet(
       context: ctx,
       backgroundColor: Colors.transparent,
@@ -469,16 +316,65 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
         currentDesign: current,
         palette: _palette,
         sh: sh,
-        onApply: (design) {
-          setState(() {
-            if (design.isEmpty) {
-              _designs.remove(key);
-            } else {
-              _designs[key] = design;
-            }
-          });
-          _saveDesigns();
-        },
+        onApply: (design) =>
+            ref.read(cellDesignProvider.notifier).setDesign(col, hour, design),
+      ),
+    );
+  }
+
+  // 햄버거 메뉴 — 셀 디자인 토글 + 학교 연결 + 새로고침.
+  void _openMenu(BuildContext ctx, SpaceHourColors sh) {
+    showModalBottomSheet(
+      context: ctx,
+      builder: (mctx) => Container(
+        color: sh.card,
+        padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.lg, Gap.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.palette_outlined,
+                  color: _designMode ? sh.accent : sh.inkSoft),
+              title: Text('셀 디자인',
+                  style: AppType.body.copyWith(color: sh.ink)),
+              subtitle: Text(_designMode ? '켜짐 — 셀을 눌러 꾸미기' : '꺼짐',
+                  style: AppType.caption.copyWith(color: sh.inkSoft)),
+              trailing: Switch.adaptive(
+                value: _designMode,
+                activeThumbColor: sh.accent,
+                onChanged: (v) {
+                  setState(() => _designMode = v);
+                  Navigator.pop(mctx);
+                },
+              ),
+              onTap: () {
+                setState(() => _designMode = !_designMode);
+                Navigator.pop(mctx);
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.school_outlined, color: sh.inkSoft),
+              title: Text('학교 연결 (NEIS)',
+                  style: AppType.body.copyWith(color: sh.ink)),
+              onTap: () {
+                Navigator.pop(mctx);
+                showNeisSetupModal(context);
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.refresh_rounded, color: sh.inkSoft),
+              title: Text('시간표 새로고침',
+                  style: AppType.body.copyWith(color: sh.ink)),
+              onTap: () {
+                Navigator.pop(mctx);
+                ref.read(neisCacheProvider.notifier).refresh();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -491,275 +387,286 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     final days = _weekDays();
     final now = DateTime.now();
 
-    final maxPeriod = _maxPeriod();
+    final neis = ref.watch(neisCacheProvider);
+    final designs = ref.watch(cellDesignProvider);
+    CellDesign designOf(int col, int hour) =>
+        designs[cellDesignKey(col, hour)] ?? const CellDesign();
+
+    final maxPeriod = _maxPeriod(neis.timetable);
     final rows = _buildRows(maxPeriod);
     final offsets = _rowOffsets(rows);
     final totalH = offsets.last;
-    final neisHourData = _buildNeisHourData();
-    // 시간표 탭 = 매주 반복되는 내 일정. 요일(col) 기준 저장/표시.
+    final neisHourData = _buildNeisHourData(neis.timetable);
     final weekly = ref.watch(recurringProvider);
     final freeData = {
       for (int c = 0; c < 7; c++) c: Map<int, String>.from(weekly[c] ?? const {}),
     };
     final tplData = _buildTemplateData(days);
-    final displayData = _buildDisplayData(neisHourData, tplData, freeData, rows);
+    final displayData =
+        _buildDisplayData(neisHourData, tplData, freeData, neis.lunch, rows);
     final mergeGroups = _computeMerges(rows, offsets, displayData);
     final mergeSet = _buildMergeSet(mergeGroups);
 
-    return Column(
+    return Stack(
       children: [
-        // ── 제목 + 부제 + 셀 디자인 버튼 ─────────────────────────
-        // 시간표 탭은 "내 반복 일정" 작성 화면 — 학교명/날짜는 표시하지 않음.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('시간표',
-                        style: AppType.title.copyWith(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: sh.ink)),
-                    const SizedBox(height: 2),
-                    Text('매주 반복되는 내 일정을 배치해요',
-                        style: AppType.label.copyWith(color: sh.inkSoft)),
-                  ],
-                ),
-              ),
-              _DesignModeBtn(
-                active: _designMode,
-                onTap: () => setState(() => _designMode = !_designMode),
-              ),
-            ],
-          ),
-        ),
-        // ── 요일 헤더 (날짜 없음 — 요일 기반 반복) ───────────────
-        SizedBox(
-          height: 40,
-          child: Row(
-            children: [
-              SizedBox(
-                width: _timeLblW,
-                child: Container(
-                  color: sh.card2,
-                  alignment: Alignment.center,
-                  child: Icon(Icons.schedule_rounded,
-                      size: 15, color: sh.inkFaint),
-                ),
-              ),
-              ...List.generate(7, (i) {
-                // 오늘 요일만 강조(날짜 개념 없음).
-                final isTodayDow = now.weekday - 1 == i;
-                final isSat = i == 5;
-                final isSun = i == 6;
-                final labelColor = isTodayDow ? sh.accentInk
-                    : isSun ? sh.sun
-                    : isSat ? sh.sat
-                    : sh.inkSoft;
-                return Expanded(
-                  child: Container(
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: isTodayDow ? sh.accentBg : sh.card2,
-                      border: Border(
-                        left: BorderSide(color: _gridLine(sh), width: 1),
-                        bottom: BorderSide(color: _gridLine(sh), width: 1.5),
-                      ),
+        Column(
+          children: [
+            // ── 제목 + 햄버거 메뉴 ─────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('스케줄표',
+                            style: AppType.title.copyWith(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: sh.ink)),
+                        const SizedBox(height: 2),
+                        Text(
+                            _designMode
+                                ? '디자인 모드 — 셀을 눌러 꾸며요'
+                                : '매주 반복되는 내 일정을 배치해요',
+                            style: AppType.label.copyWith(
+                                color: _designMode ? sh.accent : sh.inkSoft)),
+                      ],
                     ),
-                    child: Text(_dowNames[i],
-                        style: AppType.body.copyWith(
-                            fontWeight: FontWeight.w700, color: labelColor)),
                   ),
-                );
-              }),
-            ],
-          ),
-        ),
+                  _HamburgerBtn(onTap: () => _openMenu(context, sh)),
+                ],
+              ),
+            ),
+            // ── 요일 헤더 (색 강화) ─────────────────────────────────
+            SizedBox(
+              height: 40,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: _timeLblW,
+                    child: Container(
+                      color: sh.card2,
+                      alignment: Alignment.center,
+                      child: Icon(Icons.schedule_rounded,
+                          size: 15, color: sh.inkSoft),
+                    ),
+                  ),
+                  ...List.generate(7, (i) {
+                    final isTodayDow = now.weekday - 1 == i;
+                    final isSat = i == 5;
+                    final isSun = i == 6;
+                    final labelColor = isTodayDow
+                        ? sh.accentInk
+                        : isSun
+                            ? sh.sun
+                            : isSat
+                                ? sh.sat
+                                : sh.ink; // 평일도 진하게
+                    return Expanded(
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isTodayDow
+                              ? sh.accentBg
+                              : sh.card2.withValues(alpha: sh.dark ? 1 : 0.7),
+                          border: Border(
+                            left: BorderSide(color: _gridLine(sh), width: 1),
+                            bottom: BorderSide(color: _gridLine(sh), width: 1.5),
+                          ),
+                        ),
+                        child: Text(_dowNames[i],
+                            style: AppType.body.copyWith(
+                                fontWeight: FontWeight.w800, color: labelColor)),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
 
-        // ── Scrollable grid (요일 헤더 바로 아래) ────────────────
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 110),
-            child: LayoutBuilder(builder: (ctx, constraints) {
-              final colW = (constraints.maxWidth - _timeLblW) / 7;
-              return SizedBox(
-                height: totalH,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // ── Main grid rows ────────────────────────────
-                    Positioned.fill(
-                      child: Column(
-                        children: List.generate(rows.length, (ri) {
-                          final row = rows[ri];
-
-                          // Divider row (wk-divider)
-                          if (row.isDivider) {
-                            return Container(
-                              height: _divH,
-                              color: sh.accent.withValues(alpha: 0.3),
-                            );
-                          }
-
-                          return SizedBox(
-                            height: _rowH,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // Time label column
-                                SizedBox(
-                                  width: _timeLblW,
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: _timeLblBg(row, sh),
-                                      border: Border(
-                                        right: BorderSide(color: _gridLine(sh), width: 1),
-                                        bottom: BorderSide(color: _gridLine(sh), width: 1),
-                                      ),
-                                    ),
-                                    child: Text(row.label, style: TextStyle(
-                                      fontSize: row.type == _RType.school ? 11 : 10,
-                                      color: row.type == _RType.school
-                                          ? sh.accentInk : sh.inkSoft,
-                                      fontWeight: row.type == _RType.school
-                                          ? FontWeight.w600 : FontWeight.w400,
-                                    )),
-                                  ),
-                                ),
-                                // 7 day cells
-                                ...List.generate(7, (col) {
-                                  final isMerged = mergeSet.contains((col, ri));
-                                  final isToday = du.isSameDay(days[col], now);
-                                  final text = displayData[col]?[row.hour] ?? '';
-                                  final design = _getDesign(col, row.hour);
-
-                                  // Whether this cell is the last row of a merge group
-                                  // (has bottom border)
-                                  final isLastInMerge = isMerged &&
-                                      mergeGroups.any((g) =>
-                                          g.col == col &&
-                                          ri == g.startRow + g.span - 1);
-                                  final hasBottomBorder =
-                                      !isMerged || isLastInMerge;
-
-                                  final isSchoolFilled = row.type == _RType.school
-                                      && text.isNotEmpty;
-
-                                  Color bgColor;
-                                  if (design.bg != null) {
-                                    bgColor = design.bg!;
-                                  } else if (row.type == _RType.lunch) {
-                                    bgColor = isToday
-                                        ? sh.accentBg.withValues(alpha: 0.5)
-                                        : (sh.dark
-                                            ? sh.card2
-                                            : const Color(0xFFFFF5EE));
-                                  } else if (isSchoolFilled) {
-                                    bgColor = sh.accentBg.withValues(
-                                        alpha: isToday ? 0.5 : 0.3);
-                                  } else if (row.type == _RType.school) {
-                                    bgColor = isToday
-                                        ? sh.accentBg.withValues(alpha: 0.2)
-                                        : sh.card2;
-                                  } else {
-                                    // free row
-                                    bgColor = isToday
-                                        ? sh.accentBg.withValues(alpha: 0.15)
-                                        : sh.card;
-                                  }
-
-                                  return Expanded(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        if (_designMode) {
-                                          _showDesignPanel(context, col, row.hour, sh);
-                                        } else {
-                                          _editCell(context, col, row.hour,
-                                              freeData[col]?[row.hour] ?? '');
-                                        }
-                                      },
+            // ── Scrollable grid ──────────────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 130),
+                child: LayoutBuilder(builder: (ctx, constraints) {
+                  final colW = (constraints.maxWidth - _timeLblW) / 7;
+                  return SizedBox(
+                    height: totalH,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          child: Column(
+                            children: List.generate(rows.length, (ri) {
+                              final row = rows[ri];
+                              if (row.isDivider) {
+                                return Container(
+                                  height: _divH,
+                                  color: sh.accent.withValues(alpha: 0.3),
+                                );
+                              }
+                              return SizedBox(
+                                height: _rowH,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    SizedBox(
+                                      width: _timeLblW,
                                       child: Container(
                                         alignment: Alignment.center,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 2, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: bgColor,
+                                          color: _timeLblBg(row, sh),
                                           border: Border(
-                                            left: BorderSide(color: _gridLine(sh), width: 1),
-                                            right: col == 6
-                                                ? BorderSide(color: _gridLine(sh), width: 1)
-                                                : BorderSide.none,
-                                            bottom: hasBottomBorder
-                                                ? BorderSide(color: _gridLine(sh), width: 1)
-                                                : BorderSide.none,
+                                            right: BorderSide(color: _gridLine(sh), width: 1),
+                                            bottom: BorderSide(color: _gridLine(sh), width: 1),
                                           ),
                                         ),
-                                        // Merged cells: hide individual text
-                                        // (merge label overlay will show it)
-                                        child: isMerged ? null : (text.isNotEmpty
-                                            ? Text(text, style: TextStyle(
-                                                fontSize: 10.5,
-                                                color: design.textColor ??
-                                                    (isSchoolFilled || row.type == _RType.lunch
-                                                        ? sh.accentInk : sh.ink),
-                                                fontWeight: design.bold || isSchoolFilled
-                                                    ? FontWeight.w600 : FontWeight.w400,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ) : null),
+                                        child: Text(row.label, style: TextStyle(
+                                          fontSize: row.type == _RType.school ? 11 : 10,
+                                          color: row.type == _RType.school
+                                              ? sh.accentInk : sh.inkSoft,
+                                          fontWeight: row.type == _RType.school
+                                              ? FontWeight.w600 : FontWeight.w400,
+                                        )),
                                       ),
                                     ),
-                                  );
-                                }),
-                              ],
+                                    ...List.generate(7, (col) {
+                                      final isMerged = mergeSet.contains((col, ri));
+                                      final isToday = du.isSameDay(days[col], now);
+                                      final text = displayData[col]?[row.hour] ?? '';
+                                      final design = designOf(col, row.hour);
+
+                                      final isLastInMerge = isMerged &&
+                                          mergeGroups.any((g) =>
+                                              g.col == col &&
+                                              ri == g.startRow + g.span - 1);
+                                      final hasBottomBorder =
+                                          !isMerged || isLastInMerge;
+
+                                      final isSchoolFilled = row.type == _RType.school
+                                          && text.isNotEmpty;
+
+                                      Color bgColor;
+                                      if (design.bg != null) {
+                                        bgColor = design.bg!;
+                                      } else if (row.type == _RType.lunch) {
+                                        bgColor = isToday
+                                            ? sh.accentBg.withValues(alpha: 0.5)
+                                            : (sh.dark
+                                                ? sh.card2
+                                                : const Color(0xFFFFF5EE));
+                                      } else if (isSchoolFilled) {
+                                        bgColor = sh.accentBg.withValues(
+                                            alpha: isToday ? 0.5 : 0.3);
+                                      } else if (row.type == _RType.school) {
+                                        bgColor = isToday
+                                            ? sh.accentBg.withValues(alpha: 0.2)
+                                            : sh.card2;
+                                      } else {
+                                        bgColor = isToday
+                                            ? sh.accentBg.withValues(alpha: 0.15)
+                                            : sh.card;
+                                      }
+
+                                      return Expanded(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            if (_designMode) {
+                                              _showDesignPanel(context, col, row.hour, sh);
+                                            } else {
+                                              _editCell(context, col, row.hour,
+                                                  freeData[col]?[row.hour] ?? '');
+                                            }
+                                          },
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 2, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: bgColor,
+                                              border: Border(
+                                                left: BorderSide(color: _gridLine(sh), width: 1),
+                                                right: col == 6
+                                                    ? BorderSide(color: _gridLine(sh), width: 1)
+                                                    : BorderSide.none,
+                                                bottom: hasBottomBorder
+                                                    ? BorderSide(color: _gridLine(sh), width: 1)
+                                                    : BorderSide.none,
+                                              ),
+                                            ),
+                                            child: isMerged ? null : (text.isNotEmpty
+                                                ? Text(text, style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    color: design.textColor ??
+                                                        (isSchoolFilled || row.type == _RType.lunch
+                                                            ? sh.accentInk : sh.ink),
+                                                    fontWeight: design.bold || isSchoolFilled
+                                                        ? FontWeight.w600 : FontWeight.w400,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ) : null),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+
+                        ...mergeGroups.map((mg) {
+                          final row = rows[mg.startRow];
+                          final design = designOf(mg.col, row.hour);
+                          final isSchoolFilled = row.type == _RType.school;
+                          final textColor = design.textColor ??
+                              (isSchoolFilled || row.type == _RType.lunch
+                                  ? sh.accentInk : sh.ink);
+                          return Positioned(
+                            top: mg.topOffset,
+                            left: _timeLblW + mg.col * colW,
+                            width: colW,
+                            height: mg.span * _rowH,
+                            child: IgnorePointer(
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(mg.text, style: TextStyle(
+                                  fontSize: 10.5,
+                                  color: textColor,
+                                  fontWeight: design.bold || isSchoolFilled
+                                      ? FontWeight.w600 : FontWeight.w400,
+                                ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 4,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
                           );
                         }),
-                      ),
+                      ],
                     ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
 
-                    // ── Merge label overlays ──────────────────────
-                    ...mergeGroups.map((mg) {
-                      final row = rows[mg.startRow];
-                      final design = _getDesign(mg.col, row.hour);
-                      final isSchoolFilled = row.type == _RType.school;
-                      final textColor = design.textColor ??
-                          (isSchoolFilled || row.type == _RType.lunch
-                              ? sh.accentInk : sh.ink);
-                      return Positioned(
-                        top: mg.topOffset,
-                        left: _timeLblW + mg.col * colW,
-                        width: colW,
-                        height: mg.span * _rowH,
-                        child: IgnorePointer(
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(mg.text, style: TextStyle(
-                              fontSize: 10.5,
-                              color: textColor,
-                              fontWeight: design.bold || isSchoolFilled
-                                  ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                              textAlign: TextAlign.center,
-                              maxLines: 4,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              );
-            }),
+        // ── 가운데 하단 원형 + 버튼 (할 일 추가) ─────────────────────
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 92,
+          child: Center(
+            child: _AddTodoFab(onTap: () => showAddTodoModal(context)),
           ),
         ),
       ],
@@ -772,56 +679,59 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return sh.card2;
   }
 
-  // 격자선: ink 색 12% — hairline보다 진하고 배경과 대비 보장.
   Color _gridLine(SpaceHourColors sh) =>
       sh.ink.withValues(alpha: sh.dark ? 0.20 : 0.12);
 }
 
-// ─── Design mode button ───────────────────────────────────────────
-
-class _DesignModeBtn extends StatelessWidget {
-  final bool active;
+// ─── 햄버거 버튼 ──────────────────────────────────────────────────
+class _HamburgerBtn extends StatelessWidget {
   final VoidCallback onTap;
-  const _DesignModeBtn({required this.active, required this.onTap});
+  const _HamburgerBtn({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final sh = context.sh;
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Container(
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          color: active ? sh.accent : sh.card2,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-              color: active ? sh.accent : sh.ink.withValues(alpha: 0.06)),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: sh.accent.withValues(alpha: 0.28),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
+          color: sh.card2,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sh.ink.withValues(alpha: 0.06)),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.palette_outlined,
-                size: 14, color: active ? Colors.white : sh.inkSoft),
-            const SizedBox(width: 5),
-            Text(
-              active ? '디자인 켜짐' : '셀 디자인',
-              style: AppType.label.copyWith(
-                  color: active ? Colors.white : sh.inkSoft,
-                  fontWeight: FontWeight.w700),
+        child: Icon(Icons.menu_rounded, size: 20, color: sh.inkSoft),
+      ),
+    );
+  }
+}
+
+// ─── 가운데 + 버튼 ────────────────────────────────────────────────
+class _AddTodoFab extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddTodoFab({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final sh = context.sh;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: sh.accent,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: sh.accent.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
+        child: const Icon(Icons.add_rounded, size: 28, color: Colors.white),
       ),
     );
   }
@@ -830,10 +740,10 @@ class _DesignModeBtn extends StatelessWidget {
 // ─── Design panel bottom sheet ────────────────────────────────────
 
 class _DesignPanel extends StatefulWidget {
-  final _CellDesign currentDesign;
+  final CellDesign currentDesign;
   final List<Color> palette;
   final SpaceHourColors sh;
-  final void Function(_CellDesign) onApply;
+  final void Function(CellDesign) onApply;
 
   const _DesignPanel({
     required this.currentDesign,
@@ -870,7 +780,6 @@ class _DesignPanelState extends State<_DesignPanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 그랩 핸들
           Center(
             child: Container(
               width: 40,
@@ -888,7 +797,7 @@ class _DesignPanelState extends State<_DesignPanel> {
             const Spacer(),
             TextButton(
               onPressed: () {
-                widget.onApply(const _CellDesign());
+                widget.onApply(const CellDesign());
                 Navigator.pop(context);
               },
               style: TextButton.styleFrom(foregroundColor: sh.danger),
@@ -901,7 +810,6 @@ class _DesignPanelState extends State<_DesignPanel> {
           Wrap(
             spacing: Gap.sm,
             children: [
-              // No color (transparent) option
               GestureDetector(
                 onTap: () => setState(() => _bg = null),
                 child: Container(
@@ -947,7 +855,7 @@ class _DesignPanelState extends State<_DesignPanel> {
             width: double.infinity,
             child: FilledButton(
               onPressed: () {
-                widget.onApply(_CellDesign(bg: _bg, bold: _bold));
+                widget.onApply(CellDesign(bg: _bg, bold: _bold));
                 Navigator.pop(context);
               },
               style: FilledButton.styleFrom(

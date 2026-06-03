@@ -1,14 +1,20 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:gal/gal.dart';
+import '../app.dart' show scaffoldMessengerKey;
 
 // 전역 key — MainShell의 RepaintBoundary에 연결
 final screenshotKey = GlobalKey();
 
-Future<void> captureAndShare() async {
+void _snack(String msg) {
+  scaffoldMessengerKey.currentState
+    ?..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(msg)));
+}
+
+/// 현재 화면(RepaintBoundary)을 PNG로 캡처해 기기 갤러리에 저장한다.
+Future<void> captureAndSaveImage() async {
   final boundary = screenshotKey.currentContext?.findRenderObject()
       as RenderRepaintBoundary?;
   if (boundary == null) return;
@@ -16,11 +22,14 @@ Future<void> captureAndShare() async {
     final image = await boundary.toImage(pixelRatio: 2.5);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     if (bytes == null) return;
-    final dir = await getTemporaryDirectory();
     final now = DateTime.now();
-    final fname = '달력_${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}.png';
-    final file = File('${dir.path}/$fname');
-    await file.writeAsBytes(bytes.buffer.asUint8List());
-    await Share.shareXFiles([XFile(file.path)], text: 'HourSpace 달력');
-  } catch (_) {}
+    final name =
+        'HourSpace_${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.millisecondsSinceEpoch}';
+    await Gal.putImageBytes(bytes.buffer.asUint8List(), name: name);
+    _snack('이미지를 갤러리에 저장했어요');
+  } on GalException catch (e) {
+    _snack('저장 실패: ${e.type.message}');
+  } catch (_) {
+    _snack('이미지를 저장하지 못했어요');
+  }
 }

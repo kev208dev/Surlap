@@ -2,6 +2,11 @@
     <!-- NEIS 오픈API 등 네트워크 통신용 (release 빌드에서도 필요).
          debug/profile 매니페스트에는 이미 있으나 release 병합용으로 main에도 추가. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 음성 인식(할 일 음성 입력) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- 갤러리 저장(gal) — Android 9 이하에서만 필요 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
     <application
         android:label="HourSpace"
         android:name="${applicationName}"
@@ -68,6 +73,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- 음성 인식 서비스(speech_to_text) 가시성 -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
+import '../../core/utils/todo_style.dart';
 import '../../models/event_item.dart';
+import '../../models/todo_item.dart';
 import '../../models/calendar_theme.dart';
 import '../../models/day_template.dart';
 import '../../day_widgets/widget_cell_renderer.dart';
@@ -12,6 +14,7 @@ class DayCell extends StatelessWidget {
   final DateTime date;
   final DateTime viewMonth;
   final List<EventItem> events;
+  final List<TodoItem> todos;
   final List<CalendarTheme> themes;
   final SpaceHourColors sh;
   final bool showPast;
@@ -30,6 +33,7 @@ class DayCell extends StatelessWidget {
     required this.date,
     required this.viewMonth,
     required this.events,
+    this.todos = const [],
     required this.themes,
     required this.sh,
     required this.showPast,
@@ -64,12 +68,10 @@ class DayCell extends StatelessWidget {
       dayNumColor = dimmed ? sh.ink.withValues(alpha: 0.30) : sh.ink;
     }
 
-    final visible = events.where((e) => !e.isTimetable).toList();
-
     // 오늘: 브랜드 퍼플 원 + 은은한 글로우 / 선택 동그라미: 브랜드 테두리
     Widget dayNumber = Container(
-      width: 26,
-      height: 26,
+      width: 30,
+      height: 30,
       alignment: Alignment.center,
       decoration: hasCircle
           ? BoxDecoration(
@@ -93,8 +95,8 @@ class DayCell extends StatelessWidget {
       child: Text(
         '${date.day}',
         style: AppType.label.copyWith(
-          fontSize: isToday ? 13 : 12,
-          fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+          fontSize: isToday ? 16 : 15,
+          fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
           color: dayNumColor,
         ),
       ),
@@ -144,19 +146,12 @@ class DayCell extends StatelessWidget {
                 dayNumber,
               ],
             ),
-            // 이벤트 + 위젯 (남은 공간 채움, 오버플로우 클립)
+            // 이벤트 + 할 일 + 위젯 (남은 공간 채움, 오버플로우 클립)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ...visible.take(3).map((e) => EventChip(
-                        item: e,
-                        themes: themes,
-                        sh: sh,
-                      )),
-                  if (visible.length > 3)
-                    Text('+${visible.length - 3}',
-                        style: TextStyle(fontSize: 9, color: sh.inkSoft)),
+                  ..._buildEntries(),
                   if (applicableTemplates.isNotEmpty)
                     ..._buildWidgetRows(dimmed),
                 ],
@@ -166,6 +161,29 @@ class DayCell extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // 이벤트 + 할 일 합쳐 최대 3줄, 초과분은 +N.
+  List<Widget> _buildEntries() {
+    final visible = events.where((e) => !e.isTimetable).toList();
+    final out = <Widget>[];
+    int shown = 0;
+    for (final e in visible) {
+      if (shown >= 3) break;
+      out.add(EventChip(item: e, themes: themes, sh: sh));
+      shown++;
+    }
+    for (final t in todos) {
+      if (shown >= 3) break;
+      out.add(_TodoLine(todo: t, sh: sh));
+      shown++;
+    }
+    final total = visible.length + todos.length;
+    if (total > shown) {
+      out.add(Text('+${total - shown}',
+          style: TextStyle(fontSize: 9, color: sh.inkSoft)));
+    }
+    return out;
   }
 
   List<Widget> _buildWidgetRows(bool dimmed) {
@@ -192,5 +210,45 @@ class DayCell extends StatelessWidget {
       if (rows.length >= 3) break;
     }
     return rows;
+  }
+}
+
+// 월간 셀의 할 일 한 줄: 우선순위 점 + 제목(완료 시 취소선).
+class _TodoLine extends StatelessWidget {
+  final TodoItem todo;
+  final SpaceHourColors sh;
+  const _TodoLine({required this.todo, required this.sh});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = todoPriorityColor(todo.priority, sh);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 1),
+      child: Row(
+        children: [
+          Icon(
+            todo.done
+                ? Icons.check_circle_rounded
+                : Icons.circle_outlined,
+            size: 8,
+            color: todo.done ? sh.inkFaint : c,
+          ),
+          const SizedBox(width: 3),
+          Expanded(
+            child: Text(
+              todo.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9.5,
+                color: todo.done ? sh.inkFaint : sh.ink,
+                decoration:
+                    todo.done ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

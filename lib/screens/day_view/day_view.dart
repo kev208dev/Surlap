@@ -7,9 +7,13 @@ import '../../providers/events_provider.dart';
 import '../../providers/themes_provider.dart';
 import '../../providers/view_provider.dart';
 import '../../providers/recurring_provider.dart';
+import '../../providers/todos_provider.dart';
+import '../../core/utils/todo_style.dart';
 import '../../models/event_item.dart';
+import '../../models/todo_item.dart';
 import '../../models/calendar_theme.dart';
 import '../../modals/add_edit_event_modal.dart';
+import '../../modals/add_todo_modal.dart';
 
 /// 일별 뷰 — 주간 뷰의 하루를 확대한 형태.
 /// 왼쪽에 시간대(0~23시) 축을 두고, 시간 일정은 해당 시각에 블록으로 배치한다.
@@ -58,6 +62,15 @@ class _DayViewState extends ConsumerState<DayView> {
     final allDay = items.where((e) => !e.hasTime && !e.isTimetable).toList();
     final timed = items.where((e) => e.hasTime && !e.isTimetable).toList()
       ..sort((a, b) => (a.tm ?? '').compareTo(b.tm ?? ''));
+    final dayTodos = ref
+        .watch(todosProvider)
+        .where((t) => t.dateKey == widget.dateKey)
+        .toList()
+      ..sort((a, b) {
+        int rank(TodoItem t) => t.hasPriority ? t.priority : 99;
+        final r = rank(a).compareTo(rank(b));
+        return r != 0 ? r : (a.createdAt ?? '').compareTo(b.createdAt ?? '');
+      });
     // 이 날짜의 요일에 해당하는 반복 일정(시간표 탭에서 작성).
     final recurringForDay =
         ref.watch(recurringProvider)[weekdayIndex(date)] ?? const {};
@@ -96,10 +109,9 @@ class _DayViewState extends ConsumerState<DayView> {
                 ),
               ),
               const Spacer(),
-              // 추가 — soft accent 원형 버튼.
+              // 추가 — soft accent 원형 버튼(일정/할 일 선택).
               GestureDetector(
-                onTap: () =>
-                    showAddEditEventModal(context, dateKey: widget.dateKey),
+                onTap: _showAddChooser,
                 child: Container(
                   width: 34,
                   height: 34,
@@ -115,6 +127,14 @@ class _DayViewState extends ConsumerState<DayView> {
         ),
         // 종일 일정
         if (allDay.isNotEmpty) _AllDayBar(items: allDay, themes: themes, sh: sh),
+        // 할 일
+        if (dayTodos.isNotEmpty)
+          _TodoBar(
+            todos: dayTodos,
+            sh: sh,
+            onToggle: (id) => ref.read(todosProvider.notifier).toggleDone(id),
+            onTapTodo: (t) => showAddTodoModal(context, edit: t),
+          ),
         // 시간 축 + 하루 타임라인
         Expanded(
           child: LayoutBuilder(builder: (context, constraints) {
@@ -322,6 +342,133 @@ class _DayViewState extends ConsumerState<DayView> {
   }
 
   String _dowName(int w) => ['월', '화', '수', '목', '금', '토', '일'][w - 1];
+
+  // + 버튼 → 일정/할 일 선택.
+  void _showAddChooser() {
+    final sh = context.sh;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Container(
+        color: sh.card,
+        padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.lg, Gap.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.event_rounded, color: sh.accent),
+              title: Text('일정 추가', style: AppType.body.copyWith(color: sh.ink)),
+              onTap: () {
+                Navigator.pop(ctx);
+                showAddEditEventModal(context, dateKey: widget.dateKey);
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading:
+                  Icon(Icons.check_circle_outline_rounded, color: sh.accent),
+              title: Text('할 일 추가', style: AppType.body.copyWith(color: sh.ink)),
+              onTap: () {
+                Navigator.pop(ctx);
+                showAddTodoModal(context, dateKey: widget.dateKey);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 할 일 바 ────────────────────────────────────────────────────
+class _TodoBar extends StatelessWidget {
+  final List<TodoItem> todos;
+  final SpaceHourColors sh;
+  final void Function(String id) onToggle;
+  final void Function(TodoItem) onTapTodo;
+  const _TodoBar(
+      {required this.todos,
+      required this.sh,
+      required this.onToggle,
+      required this.onTapTodo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.sm),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: Gap.sm),
+      decoration: BoxDecoration(
+        color: sh.card2,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: sh.ink.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('할 일 (${todos.length})',
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: sh.inkSoft,
+                  letterSpacing: 0.4)),
+          const SizedBox(height: 4),
+          ...todos.map((t) {
+            final c = todoPriorityColor(t.priority, sh);
+            return InkWell(
+              onTap: () => onTapTodo(t),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => onToggle(t.id),
+                      child: Icon(
+                        t.done
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        size: 18,
+                        color: t.done ? sh.accent : c,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (t.hasPriority) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: c.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text('P${t.priority}',
+                            style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: c)),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Expanded(
+                      child: Text(
+                        t.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.body.copyWith(
+                          color: t.done ? sh.inkFaint : sh.ink,
+                          decoration:
+                              t.done ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
 }
 
 class _AllDayBar extends StatelessWidget {

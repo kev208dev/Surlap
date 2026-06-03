@@ -1,0 +1,453 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:uuid/uuid.dart';
+import '../core/theme/app_theme.dart';
+import '../core/theme/design_tokens.dart';
+import '../core/utils/date_utils.dart' as du;
+import '../core/utils/todo_parser.dart';
+import '../core/utils/todo_style.dart';
+import '../models/todo_item.dart';
+import '../providers/todos_provider.dart';
+
+/// 할 일 추가/편집 모달. dateKey가 주어지면 기본 날짜로 사용.
+Future<void> showAddTodoModal(
+  BuildContext context, {
+  String? dateKey,
+  TodoItem? edit,
+}) {
+  return showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => AddTodoModal(initialDateKey: dateKey, edit: edit),
+  );
+}
+
+class AddTodoModal extends ConsumerStatefulWidget {
+  final String? initialDateKey;
+  final TodoItem? edit;
+  const AddTodoModal({super.key, this.initialDateKey, this.edit});
+
+  @override
+  ConsumerState<AddTodoModal> createState() => _AddTodoModalState();
+}
+
+class _AddTodoModalState extends ConsumerState<AddTodoModal> {
+  final _textCtrl = TextEditingController();
+  final _speech = SpeechToText();
+
+  // 수동 override (null이면 자연어 파싱값 사용)
+  String? _dateOverride;
+  int? _prioOverride;
+  bool _dateTouched = false;
+  bool _prioTouched = false;
+
+  bool _listening = false;
+  bool _speechReady = false;
+
+  bool get isEdit => widget.edit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (isEdit) {
+      final e = widget.edit!;
+      _textCtrl.text = e.title;
+      _dateOverride = e.dateKey;
+      _prioOverride = e.priority == 0 ? null : e.priority;
+      _dateTouched = e.dateKey != null;
+      _prioTouched = e.priority != 0;
+    } else if (widget.initialDateKey != null) {
+      _dateOverride = widget.initialDateKey;
+      _dateTouched = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _speech.stop();
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  ParsedTodo get _parsed => parseTodoInput(_textCtrl.text);
+  String? get _effDate => _dateTouched ? _dateOverride : _parsed.dateKey;
+  int get _effPriority => _prioTouched ? (_prioOverride ?? 0) : _parsed.priority;
+
+  // ── 음성 입력 ──────────────────────────────────────────────────
+  Future<void> _toggleListen() async {
+    if (_listening) {
+      await _speech.stop();
+      setState(() => _listening = false);
+      return;
+    }
+    if (!_speechReady) {
+      _speechReady = await _speech.initialize(
+        onStatus: (s) {
+          if (s == 'done' || s == 'notListening') {
+            if (mounted) setState(() => _listening = false);
+          }
+        },
+        onError: (_) {
+          if (mounted) setState(() => _listening = false);
+        },
+      );
+    }
+    if (!_speechReady) {
+      if (mounted) {
+        _snack('음성 인식을 사용할 수 없어요. 마이크 권한을 확인해 주세요.');
+      }
+      return;
+    }
+    setState(() => _listening = true);
+    await _speech.listen(
+      listenOptions:
+          SpeechListenOptions(partialResults: true, localeId: 'ko_KR'),
+      onResult: (res) {
+        if (!mounted) return;
+        setState(() {
+          _textCtrl.text = res.recognizedWords;
+          _textCtrl.selection =
+              TextSelection.collapsed(offset: _textCtrl.text.length);
+          // 음성으로 채울 땐 파싱값을 다시 따르도록 override 해제.
+          _dateTouched = false;
+          _prioTouched = false;
+        });
+        // 최종 인식 결과면 녹음 내용대로 곧바로 추가(저절로).
+        if (res.finalResult && _textCtrl.text.trim().isNotEmpty) {
+          _listening = false;
+          _save();
+        }
+      },
+    );
+  }
+
+  void _snack(String m) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+
+  void _save() {
+    final parsed = _parsed;
+    final title = parsed.content.isNotEmpty ? parsed.content : _textCtrl.text.trim();
+    if (title.isEmpty) return;
+    final notifier = ref.read(todosProvider.notifier);
+    if (isEdit) {
+      notifier.update(
+        widget.edit!.id,
+        widget.edit!.copyWith(
+          title: title,
+          dateKey: _effDate,
+          priority: _effPriority,
+        ),
+      );
+    } else {
+      notifier.add(TodoItem(
+        id: const Uuid().v4(),
+        title: title,
+        dateKey: _effDate,
+        priority: _effPriority,
+        createdAt: DateTime.now().toIso8601String(),
+      ));
+    }
+    Navigator.pop(context);
+  }
+
+  Future<void> _pickDate() async {
+    final initial =
+        _effDate != null ? du.fromDateKey(_effDate!) : DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme:
+              Theme.of(ctx).colorScheme.copyWith(primary: context.sh.accent),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _dateOverride = du.toDateKey(picked);
+        _dateTouched = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sh = context.sh;
+    final parsed = _parsed;
+    final effDate = _effDate;
+    final effPrio = _effPriority;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: sh.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: sh.ink.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Text(isEdit ? '할 일 편집' : '할 일 추가',
+                    style: AppType.title.copyWith(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        color: sh.ink)),
+                const Spacer(),
+                if (isEdit)
+                  TextButton(
+                    onPressed: () {
+                      ref.read(todosProvider.notifier).remove(widget.edit!.id);
+                      Navigator.pop(context);
+                    },
+                    style: TextButton.styleFrom(
+                        foregroundColor: sh.danger, padding: EdgeInsets.zero),
+                    child: const Text('삭제', style: TextStyle(fontSize: 13)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // ── 제목 + 마이크 ──────────────────────────────────────
+            Text('할 일 (예: 내일 p1 빨래하기)',
+                style: AppType.label.copyWith(color: sh.inkSoft)),
+            const SizedBox(height: Gap.xs),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: Gap.md, vertical: 4),
+              decoration: BoxDecoration(
+                color: sh.card2,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: sh.ink.withValues(alpha: 0.06)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _textCtrl,
+                      autofocus: true,
+                      style: AppType.body.copyWith(color: sh.ink),
+                      decoration: InputDecoration(
+                        hintText: '내일 p1 빨래하기',
+                        hintStyle: TextStyle(color: sh.inkFaint),
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      onSubmitted: (_) => _save(),
+                    ),
+                  ),
+                  _MicButton(
+                    listening: _listening,
+                    sh: sh,
+                    onTap: _toggleListen,
+                  ),
+                ],
+              ),
+            ),
+            if (parsed.content.isNotEmpty &&
+                parsed.content != _textCtrl.text.trim())
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 4),
+                child: Text('내용: ${parsed.content}',
+                    style: AppType.caption.copyWith(color: sh.accent)),
+              ),
+            const SizedBox(height: 16),
+
+            // ── 날짜 ──────────────────────────────────────────────
+            Row(
+              children: [
+                Icon(Icons.event_outlined, size: 18, color: sh.inkSoft),
+                const SizedBox(width: 8),
+                Text('날짜', style: AppType.body.copyWith(color: sh.inkSoft)),
+                const Spacer(),
+                if (effDate != null)
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _dateOverride = null;
+                      _dateTouched = true;
+                    }),
+                    style: TextButton.styleFrom(
+                        foregroundColor: sh.inkFaint, padding: EdgeInsets.zero),
+                    child: const Text('지움', style: TextStyle(fontSize: 12)),
+                  ),
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: _pickDate,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: effDate != null
+                          ? sh.accent.withValues(alpha: 0.12)
+                          : sh.card2,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: effDate != null
+                              ? sh.accent.withValues(alpha: 0.4)
+                              : sh.ink.withValues(alpha: 0.1)),
+                    ),
+                    child: Text(
+                      effDate ?? '날짜 없음',
+                      style: AppType.body.copyWith(
+                          color: effDate != null ? sh.accentInk : sh.inkFaint,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // ── 우선순위 ──────────────────────────────────────────
+            Text('우선순위', style: AppType.label.copyWith(color: sh.inkSoft)),
+            const SizedBox(height: Gap.sm),
+            Row(
+              children: [
+                for (final p in const [0, 1, 2, 3])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _PrioChip(
+                      priority: p,
+                      selected: effPrio == p,
+                      sh: sh,
+                      onTap: () => setState(() {
+                        _prioOverride = p;
+                        _prioTouched = true;
+                      }),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ── 저장/취소 ─────────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: sh.inkSoft,
+                        side: BorderSide(color: sh.ink.withValues(alpha: 0.12)),
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16))),
+                    child: const Text('취소',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(width: Gap.md),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton(
+                    onPressed: _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: sh.accent,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(isEdit ? '저장' : '추가',
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 마이크 버튼 ────────────────────────────────────────────────────
+class _MicButton extends StatelessWidget {
+  final bool listening;
+  final SpaceHourColors sh;
+  final VoidCallback onTap;
+  const _MicButton(
+      {required this.listening, required this.sh, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: listening ? sh.danger : sh.accent.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          listening ? Icons.stop_rounded : Icons.mic_rounded,
+          size: 20,
+          color: listening ? Colors.white : sh.accent,
+        ),
+      ),
+    );
+  }
+}
+
+// ── 우선순위 칩 ────────────────────────────────────────────────────
+class _PrioChip extends StatelessWidget {
+  final int priority; // 0=없음
+  final bool selected;
+  final SpaceHourColors sh;
+  final VoidCallback onTap;
+  const _PrioChip(
+      {required this.priority,
+      required this.selected,
+      required this.sh,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = todoPriorityColor(priority, sh);
+    final label = priority == 0 ? '없음' : 'P$priority';
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? c.withValues(alpha: 0.16) : sh.card2,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+              color: selected ? c : sh.ink.withValues(alpha: 0.08),
+              width: selected ? 1.5 : 1),
+        ),
+        child: Text(label,
+            style: AppType.label.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: selected ? c : sh.inkSoft)),
+      ),
+    );
+  }
+}

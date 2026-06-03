@@ -4,6 +4,14 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- 음성 인식(할 일 음성 입력) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>할 일을 음성으로 받아쓰기 위해 마이크를 사용합니다.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>말한 내용을 할 일로 변환하기 위해 음성 인식을 사용합니다.</string>
+	<!-- 달력 이미지 갤러리 저장(gal) -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>달력 이미지를 사진 앨범에 저장합니다.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

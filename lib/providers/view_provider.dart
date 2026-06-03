@@ -1,18 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum ViewMode { home, events, year, planner, day, timetable, study, settings, themes }
+enum ViewMode { home, events, year, planner, day, timetable, settings, themes, profile }
 
-// 슬라이드 순서: home/timetable/study/settings/themes는 방향 없음(-1)
+// 슬라이드 순서: home/timetable/settings/themes/profile은 방향 없음(-1)
+// 연간↔월간↔주간↔일간 전환은 슬라이드 없이(0) 즉시 전환.
 const _viewOrder = {
   ViewMode.home: -1,
-  ViewMode.year: 0,
-  ViewMode.events: 1,
-  ViewMode.planner: 2,
-  ViewMode.day: 3,
+  ViewMode.year: -1,
+  ViewMode.events: -1,
+  ViewMode.planner: -1,
+  ViewMode.day: -1,
   ViewMode.timetable: -1,
-  ViewMode.study: -1,
   ViewMode.settings: -1,
   ViewMode.themes: -1,
+  ViewMode.profile: -1,
 };
 
 int viewIndex(ViewMode m) => _viewOrder[m] ?? -1;
