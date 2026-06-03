@@ -15,6 +15,7 @@ class GlassContainer extends StatelessWidget {
     this.borderColor = const Color(0x47FFFFFF), // white @ 0.28
     this.shadowColor = const Color(0x14000000), // black @ 0.08
     this.shadowBlur = 20,
+    this.shadowOffset = const Offset(0, 8),
   });
 
   final Widget child;
@@ -25,6 +26,7 @@ class GlassContainer extends StatelessWidget {
   final Color borderColor;
   final Color shadowColor;
   final double shadowBlur;
+  final Offset shadowOffset;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +39,7 @@ class GlassContainer extends StatelessWidget {
           BoxShadow(
             color: shadowColor,
             blurRadius: shadowBlur,
-            offset: const Offset(0, 8),
+            offset: shadowOffset,
           ),
         ],
       ),

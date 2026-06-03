@@ -72,6 +72,8 @@ class MainShell extends ConsumerWidget {
           ),
           // ── 투명 overlay 상단 헤더 (status bar 위까지) ──
           const AppOverlayTopBar(),
+          // ── nav 뒤 하단 scrim (nav보다 아래 레이어) ──
+          const BottomNavScrim(),
           // ── glass 플로팅 하단 바 (콘텐츠 위 overlay) ──
           const SpaceHourBottomNav(),
         ],

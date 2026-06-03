@@ -75,65 +75,74 @@ class SpaceHourBottomNav extends ConsumerWidget {
     ];
 
     // ── glass 색상 (다크/라이트 분기) ──────────────────────────
-    // 밝은 배경: 흰 frost + 밝은 border + 넓은 shadow → 뒤 scrim과 함께 floating
+    // 밝은 배경에서도 사라지지 않도록 frost·border·shadow를 강하게.
     final tint = dark
-        ? Colors.black.withValues(alpha: 0.50)
-        : Colors.white.withValues(alpha: 0.58);
+        ? Colors.black.withValues(alpha: 0.58)
+        : Colors.white.withValues(alpha: 0.62);
     final borderColor = dark
-        ? Colors.white.withValues(alpha: 0.16)
-        : Colors.white.withValues(alpha: 0.55);
-    final shadowColor = Colors.black.withValues(alpha: dark ? 0.50 : 0.14);
+        ? Colors.white.withValues(alpha: 0.20)
+        : Colors.white.withValues(alpha: 0.82);
+    final shadowColor = Colors.black.withValues(alpha: dark ? 0.50 : 0.12);
 
     return Positioned(
       left: 0,
       right: 0,
+      bottom: 12,
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: GlassContainer(
+            key: coachKeyBottomNav,
+            borderRadius: 34,
+            blur: 24,
+            tint: tint,
+            borderColor: borderColor,
+            shadowColor: shadowColor,
+            shadowBlur: 34,
+            shadowOffset: const Offset(0, 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: SizedBox(
+              height: 56,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: tabs.map((t) => _NavBtn(tab: t, dark: dark)).toList(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── nav 뒤 하단 scrim ───────────────────────────────────────────
+// nav가 콘텐츠 위에 떠 있는 느낌을 강화. nav보다 아래 레이어에 두고,
+// IgnorePointer로 터치를 막지 않는다.
+class BottomNavScrim extends ConsumerWidget {
+  const BottomNavScrim({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sh = context.sh;
+    return Positioned(
+      left: 0,
+      right: 0,
       bottom: 0,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // nav 뒤 약한 scrim — 콘텐츠 위에 떠 있는 느낌 강화
-          IgnorePointer(
-            child: Container(
-              height: 120,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    sh.bg.withValues(alpha: 0.92),
-                    sh.bg.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
+      child: IgnorePointer(
+        child: Container(
+          height: 170,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                sh.bg.withValues(alpha: 0.94),
+                sh.bg.withValues(alpha: 0.55),
+                sh.bg.withValues(alpha: 0.0),
+              ],
             ),
           ),
-          // ── glass capsule nav ──
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: SafeArea(
-              top: false,
-              child: Center(
-                child: GlassContainer(
-                  key: coachKeyBottomNav,
-                  borderRadius: 32,
-                  blur: 22,
-                  tint: tint,
-                  borderColor: borderColor,
-                  shadowColor: shadowColor,
-                  shadowBlur: 28,
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: SizedBox(
-                    height: 58,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: tabs.map((t) => _NavBtn(tab: t, dark: dark)).toList(),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -169,14 +178,14 @@ class _NavBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = tab.isActive;
 
-    // Active: glass 위에서 더 밝은 capsule로 강조
+    // Active: glass 위에서 거의 흰 capsule로 또렷하게 강조
     final activePillColor = dark
         ? Colors.white.withValues(alpha: 0.90)
-        : Colors.white.withValues(alpha: 0.95);
-    final activeIconColor = Colors.black.withValues(alpha: 0.90);
+        : Colors.white.withValues(alpha: 0.92);
+    final activeIconColor = Colors.black.withValues(alpha: 0.92);
     final inactiveIconColor = dark
         ? Colors.white.withValues(alpha: 0.55)
-        : Colors.black.withValues(alpha: 0.48);
+        : Colors.black.withValues(alpha: 0.45);
 
     return Semantics(
       label: tab.label,
