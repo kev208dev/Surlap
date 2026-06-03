@@ -113,7 +113,40 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   void initState() {
     super.initState();
     _loadDesigns();
-    _fetchNeisIfNeeded();
+    _loadNeisCache();      // 로컬 캐시 먼저 불러옴
+    _fetchNeisIfNeeded();  // 이번 주 캐시가 없을 때만 네트워크 요청
+  }
+
+  // ── NEIS 로컬 캐시 (주 단위) ───────────────────────────────────
+  String _weekKey() => du.toDateKey(_weekDays().first); // 이번 주 월요일
+
+  void _loadNeisCache() {
+    final raw = LocalStore.instance.getString(StorageKeys.neisCache);
+    if (raw == null) return;
+    try {
+      final j = jsonDecode(raw) as Map<String, dynamic>;
+      if (j['week'] != _weekKey()) return; // 다른 주 캐시 → 무시(재요청)
+      final data = j['data'] as Map<String, dynamic>? ?? {};
+      data.forEach((di, pm) {
+        final m = <int, String>{};
+        (pm as Map<String, dynamic>).forEach((p, s) {
+          m[int.parse(p)] = s.toString();
+        });
+        _neisData[int.parse(di)] = m;
+      });
+      final lunch = j['lunch'] as Map<String, dynamic>? ?? {};
+      lunch.forEach((di, s) => _neisLunch[int.parse(di)] = s.toString());
+    } catch (_) {}
+  }
+
+  void _saveNeisCache() {
+    final j = {
+      'week': _weekKey(),
+      'data': _neisData.map((di, pm) =>
+          MapEntry('$di', pm.map((p, s) => MapEntry('$p', s)))),
+      'lunch': _neisLunch.map((di, s) => MapEntry('$di', s)),
+    };
+    LocalStore.instance.setString(StorageKeys.neisCache, jsonEncode(j));
   }
 
   // ── Design persistence ────────────────────────────────────────
@@ -148,6 +181,8 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     final school = NeisSchool.load();
     if (school == null) return;
     if (_neisFetching) return;
+    // 이번 주 캐시가 이미 로컬에서 로드됐으면 네트워크 생략(1회 로드 후 재사용).
+    if (_neisData.isNotEmpty) return;
     _neisFetching = true;
     final days = _weekDays();
     for (int di = 0; di < 5; di++) {
@@ -163,6 +198,8 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
       }
     }
     _neisFetching = false;
+    // 성공적으로 받은 데이터는 로컬에 저장 → 다음부터 캐시 재사용.
+    if (_neisData.isNotEmpty) _saveNeisCache();
   }
 
   List<DateTime> _weekDays() {
