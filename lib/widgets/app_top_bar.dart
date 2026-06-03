@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../widgets/coach_mark.dart';
-import '../widgets/sidebar_drawer.dart';
+import '../widgets/calendar_settings_sheet.dart';
 import '../modals/theme_manager_modal.dart';
 import '../modals/profile_modal.dart';
 import '../utils/screenshot_util.dart';
@@ -112,14 +112,7 @@ class AppOverlayTopBar extends ConsumerWidget {
         case _MoreAction.category:
           showThemeManagerModal(context);
         case _MoreAction.settings:
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            builder: (_) => const FractionallySizedBox(
-              heightFactor: 0.85,
-              child: SidebarDrawer(),
-            ),
-          );
+          showCalendarSettingsSheet(context);
         case _MoreAction.profile:
           showProfileModal(context);
       }

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/date_utils.dart' as du;
 import '../providers/view_provider.dart';
-import '../widgets/sidebar_drawer.dart';
+import '../widgets/calendar_settings_sheet.dart';
 import '../widgets/glass_container.dart';
 import 'coach_mark.dart';
 
@@ -62,14 +62,7 @@ class SpaceHourBottomNav extends ConsumerWidget {
         inactive: Icons.settings_outlined,
         label: '설정',
         isActive: false,
-        onTap: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (_) => const FractionallySizedBox(
-            heightFactor: 0.85,
-            child: SidebarDrawer(),
-          ),
-        ),
+        onTap: () => showCalendarSettingsSheet(context),
         coachKey: coachKeyTabProfile,
       ),
     ];
