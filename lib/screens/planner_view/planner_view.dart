@@ -124,7 +124,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                   child: Container(
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: isToday ? sh.accentBg : sh.card,
+                                      color: sh.card,
                                       border: Border(
                                         right: BorderSide(color: sh.border, width: 0.5),
                                         bottom: BorderSide(color: sh.border),
@@ -136,9 +136,9 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                         Text(
                                           _dowNames[i],
                                           style: AppType.label.copyWith(
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w700,
                                             color: isToday
-                                                ? sh.accentInk
+                                                ? sh.accent
                                                 : isSun
                                                     ? sh.danger
                                                     : isSat
@@ -146,13 +146,29 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                                         : sh.inkSoft,
                                           ),
                                         ),
-                                        Text(
-                                          '${d.month}/${d.day}',
-                                          style: AppType.body.copyWith(
-                                            fontWeight: isToday
-                                                ? FontWeight.w700
-                                                : FontWeight.w500,
-                                            color: isToday ? sh.accentInk : sh.ink,
+                                        const SizedBox(height: 3),
+                                        // 오늘은 브랜드 accent pill로 강조(홈·월간과 통일).
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: isToday ? 8 : 0,
+                                              vertical: isToday ? 2 : 0),
+                                          decoration: isToday
+                                              ? BoxDecoration(
+                                                  color: sh.accent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(999),
+                                                )
+                                              : null,
+                                          child: Text(
+                                            '${d.month}/${d.day}',
+                                            style: AppType.label.copyWith(
+                                              fontSize: 12.5,
+                                              fontWeight: isToday
+                                                  ? FontWeight.w800
+                                                  : FontWeight.w600,
+                                              color:
+                                                  isToday ? Colors.white : sh.ink,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -303,8 +319,8 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
             margin: const EdgeInsets.symmetric(horizontal: 1),
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
             decoration: BoxDecoration(
-              color: sh.accent.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(4),
+              color: sh.accent.withValues(alpha: 0.09),
+              borderRadius: BorderRadius.circular(6),
               border: Border(
                   left: BorderSide(
                       color: sh.accent.withValues(alpha: 0.5), width: 3)),
@@ -377,15 +393,16 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 1),
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
-                color: thColor.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(4),
+                color: thColor.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(7),
                 border: Border(left: BorderSide(color: thColor, width: 3)),
               ),
               child: Text(
                 e.t,
-                style: TextStyle(fontSize: 10, color: sh.ink),
+                style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.w500, color: sh.ink),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -431,14 +448,16 @@ class _WeekNav extends StatelessWidget {
           const SizedBox(width: Gap.xs + 2),
           InkWell(
             onTap: onToday,
-            borderRadius: BorderRadius.circular(Radii.small),
+            borderRadius: BorderRadius.circular(999),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: Gap.sm + 2, vertical: Gap.xs),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                border: Border.all(color: sh.border),
-                borderRadius: BorderRadius.circular(Radii.small),
+                color: sh.accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(999),
               ),
-              child: Text('오늘', style: AppType.caption.copyWith(color: sh.inkSoft)),
+              child: Text('오늘',
+                  style: AppType.caption.copyWith(
+                      fontWeight: FontWeight.w700, color: sh.accent)),
             ),
           ),
         ],

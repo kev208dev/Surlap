@@ -67,7 +67,7 @@ class _DayViewState extends ConsumerState<DayView> {
       children: [
         // 날짜 헤더
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.xs),
+          padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.sm),
           child: Row(
             children: [
               GestureDetector(
@@ -76,16 +76,39 @@ class _DayViewState extends ConsumerState<DayView> {
                 child: Icon(Icons.arrow_back_ios_rounded,
                     size: 16, color: sh.inkSoft),
               ),
-              const SizedBox(width: Gap.sm),
+              const SizedBox(width: Gap.md),
               Text(
-                '${date.month}월 ${date.day}일 (${_dowName(date.weekday)})',
-                style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink),
+                '${date.month}월 ${date.day}일',
+                style: AppType.title.copyWith(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: sh.ink),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  _dowName(date.weekday),
+                  style: AppType.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isToday ? sh.accent : sh.inkSoft),
+                ),
               ),
               const Spacer(),
+              // 추가 — soft accent 원형 버튼.
               GestureDetector(
                 onTap: () =>
                     showAddEditEventModal(context, dateKey: widget.dateKey),
-                child: Icon(Icons.add_rounded, size: 22, color: sh.accent),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: sh.accent.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.add_rounded, size: 20, color: sh.accent),
+                ),
               ),
             ],
           ),
@@ -192,8 +215,8 @@ class _DayViewState extends ConsumerState<DayView> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: Gap.xs),
           decoration: BoxDecoration(
-            color: sh.accent.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
+            color: sh.accent.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(8),
             border: Border(
                 left: BorderSide(
                     color: sh.accent.withValues(alpha: 0.5), width: 3)),
@@ -262,7 +285,7 @@ class _DayViewState extends ConsumerState<DayView> {
             padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: Gap.xs),
             decoration: BoxDecoration(
               color: thColor.withValues(alpha: sh.dark ? 0.20 : 0.16),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
               border: Border(left: BorderSide(color: thColor, width: 3)),
               boxShadow: sh.dark
                   ? [BoxShadow(
@@ -312,12 +335,12 @@ class _AllDayBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.xs),
-      padding: const EdgeInsets.symmetric(horizontal: Gap.sm + 2, vertical: Gap.xs),
+      margin: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.sm),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: Gap.sm),
       decoration: BoxDecoration(
-        color: sh.card2,
-        borderRadius: BorderRadius.circular(Radii.small),
-        border: Border.all(color: sh.border, width: 0.5),
+        color: sh.accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: sh.accent.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
