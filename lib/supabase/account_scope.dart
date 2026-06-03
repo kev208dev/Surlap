@@ -13,6 +13,7 @@ import '../providers/filter_provider.dart';
 import '../providers/day_widget_provider.dart';
 import '../providers/birthdays_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/recurring_provider.dart';
 import 'events_sync.dart';
 import 'user_data_sync.dart';
 
@@ -77,5 +78,6 @@ class AccountScope {
     ref.invalidate(widgetValuesProvider);
     ref.invalidate(birthdaysProvider);
     ref.invalidate(settingsProvider); // 모토(계정) 재읽기
+    ref.invalidate(recurringProvider); // 반복 일정(계정) 재읽기
   }
 }

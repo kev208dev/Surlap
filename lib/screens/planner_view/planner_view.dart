@@ -8,6 +8,7 @@ import '../../models/calendar_theme.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/themes_provider.dart';
 import '../../providers/view_provider.dart';
+import '../../providers/recurring_provider.dart';
 import '../../modals/add_edit_event_modal.dart';
 
 class PlannerView extends ConsumerStatefulWidget {
@@ -34,9 +35,11 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
   }
 
   List<DateTime> _weekDays() {
-    final today = DateTime.now();
-    final dow = today.weekday; // 1=월…7=일
-    final monday = today.subtract(Duration(days: dow - 1 - _weekOffset * 7));
+    // 기준 날짜: 월간에서 넘어온 viewDay(anchor)가 있으면 그 주, 없으면 이번 주.
+    final anchorKey = ref.read(viewProvider).viewDay;
+    final anchor = anchorKey != null ? du.fromDateKey(anchorKey) : DateTime.now();
+    final dow = anchor.weekday; // 1=월…7=일
+    final monday = anchor.subtract(Duration(days: dow - 1 - _weekOffset * 7));
     return List.generate(7, (i) => DateTime(monday.year, monday.month, monday.day + i));
   }
 
@@ -256,7 +259,9 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                       );
                                     }),
                                   ),
-                                  // 이벤트 오버레이
+                                  // 반복 일정 오버레이(시간표 탭에서 작성)
+                                  ..._buildRecurringOverlays(sh),
+                                  // 일반 이벤트 오버레이
                                   ..._buildEventOverlays(
                                       days, dayKeys, events, themes, sh),
                                   // 현재 시각 선
@@ -278,6 +283,52 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
         ),
       ],
     );
+  }
+
+  // 반복 일정(요일 기준) — 모든 주에 동일하게 표시, soft tint + 반복 아이콘.
+  List<Widget> _buildRecurringOverlays(SpaceHourColors sh) {
+    final recurring = ref.watch(recurringProvider);
+    final colW = (MediaQuery.of(context).size.width - _timeColW) / 7;
+    final overlays = <Widget>[];
+    for (int i = 0; i < 7; i++) {
+      final byHour = recurring[i];
+      if (byHour == null) continue;
+      byHour.forEach((hour, title) {
+        overlays.add(Positioned(
+          left: i * colW + 1,
+          top: hour * _rowH + 1,
+          width: colW - 2,
+          height: _rowH - 2,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+            decoration: BoxDecoration(
+              color: sh.accent.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(4),
+              border: Border(
+                  left: BorderSide(
+                      color: sh.accent.withValues(alpha: 0.5), width: 3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.repeat_rounded, size: 9, color: sh.accent),
+                const SizedBox(width: 2),
+                Expanded(
+                  child: Text(title,
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: sh.accentInk),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          ),
+        ));
+      });
+    }
+    return overlays;
   }
 
   List<Widget> _buildEventOverlays(

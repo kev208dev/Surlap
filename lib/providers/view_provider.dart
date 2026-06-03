@@ -66,6 +66,12 @@ class ViewNotifier extends Notifier<ViewState> {
     state = state.copyWith(mode: ViewMode.day, viewDay: dateKey, prevMode: state.mode);
   }
 
+  /// 주간 뷰로 이동하며 기준 날짜(주 anchor)를 전달.
+  void setWeekView(String dateKey) {
+    state = state.copyWith(
+        mode: ViewMode.planner, viewDay: dateKey, prevMode: state.mode);
+  }
+
   void goToToday() {
     final now = DateTime.now();
     state = state.copyWith(viewYear: now.year, viewMonth: now.month);

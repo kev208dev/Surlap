@@ -131,11 +131,9 @@ class _ViewSegment extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isActive(ViewMode m) => view.mode == m;
 
-    void goToDay() {
+    String todayKey() {
       final n = DateTime.now();
-      final key =
-          '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
-      notifier.setDayView(key);
+      return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
     }
 
     final tabs = [
@@ -143,9 +141,11 @@ class _ViewSegment extends StatelessWidget {
           onTap: () => notifier.setMode(ViewMode.year)),
       (label: '월간', mode: ViewMode.events,
           onTap: () => notifier.setMode(ViewMode.events)),
+      // 주간 진입은 이번 주를 기준으로.
       (label: '주간', mode: ViewMode.planner,
-          onTap: () => notifier.setMode(ViewMode.planner)),
-      (label: '일별', mode: ViewMode.day, onTap: goToDay),
+          onTap: () => notifier.setWeekView(todayKey())),
+      (label: '일별', mode: ViewMode.day,
+          onTap: () => notifier.setDayView(todayKey())),
     ];
 
     return Container(

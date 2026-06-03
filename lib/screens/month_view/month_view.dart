@@ -75,7 +75,10 @@ class MonthView extends ConsumerWidget {
         memos: memos,
         dayTemplates: dayTemplates,
         widgetValues: widgetValues,
-        onDayTap: (date) => _handleDayTap(context, ref, date),
+        // 월간: 날짜 탭 → 해당 주(주간 뷰)로 이동. (일정 추가는 주간/일간에서)
+        onDayTap: (date) =>
+            ref.read(viewProvider.notifier).setWeekView(du.toDateKey(date)),
+        // 길게 누르면 별표/메모/위젯 등 부가 액션 시트(추가 포함).
         onDayLongPress: (date) => _handleDayTap(context, ref, date),
         onMemoTap: (memoKey, current) =>
             _editMemo(context, ref, memoKey, current),

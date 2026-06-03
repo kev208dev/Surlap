@@ -6,6 +6,7 @@ import '../../core/utils/date_utils.dart' as du;
 import '../../providers/events_provider.dart';
 import '../../providers/themes_provider.dart';
 import '../../providers/view_provider.dart';
+import '../../providers/recurring_provider.dart';
 import '../../models/event_item.dart';
 import '../../models/calendar_theme.dart';
 import '../../modals/add_edit_event_modal.dart';
@@ -57,6 +58,9 @@ class _DayViewState extends ConsumerState<DayView> {
     final allDay = items.where((e) => !e.hasTime && !e.isTimetable).toList();
     final timed = items.where((e) => e.hasTime && !e.isTimetable).toList()
       ..sort((a, b) => (a.tm ?? '').compareTo(b.tm ?? ''));
+    // 이 날짜의 요일에 해당하는 반복 일정(시간표 탭에서 작성).
+    final recurringForDay =
+        ref.watch(recurringProvider)[weekdayIndex(date)] ?? const {};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,6 +158,8 @@ class _DayViewState extends ConsumerState<DayView> {
                               ),
                             ),
                           ),
+                          // 반복 일정(시간표 탭에서 작성) — 해당 요일에만 표시
+                          ..._recurringBlocks(recurringForDay, dayColW, sh),
                           // 시간 일정 블록
                           ..._eventBlocks(timed, dayColW, themes, sh, events),
                           // 현재 시각 선
@@ -171,6 +177,44 @@ class _DayViewState extends ConsumerState<DayView> {
         ),
       ],
     );
+  }
+
+  // 반복 일정 블록 — soft tint + 반복 아이콘으로 일반 일정과 구분.
+  List<Widget> _recurringBlocks(
+      Map<int, String> byHour, double colW, SpaceHourColors sh) {
+    final blocks = <Widget>[];
+    byHour.forEach((hour, title) {
+      blocks.add(Positioned(
+        top: hour * _rowH + 1,
+        left: 4,
+        right: 6,
+        height: _rowH - 2,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: Gap.xs),
+          decoration: BoxDecoration(
+            color: sh.accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(6),
+            border: Border(
+                left: BorderSide(
+                    color: sh.accent.withValues(alpha: 0.5), width: 3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.repeat_rounded, size: 12, color: sh.accent),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(title,
+                    style: AppType.caption.copyWith(
+                        fontWeight: FontWeight.w600, color: sh.accentInk),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+        ),
+      ));
+    });
+    return blocks;
   }
 
   List<Widget> _eventBlocks(

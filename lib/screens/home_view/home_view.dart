@@ -22,6 +22,7 @@ class HomeView extends ConsumerStatefulWidget {
 class _HomeViewState extends ConsumerState<HomeView> {
   String? _mealText;
   bool _mealLoaded = false;
+  bool _mealError = false; // fetch 실패(네트워크 등) — 미연결과 구분
 
   static const _dowKr = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -34,9 +35,16 @@ class _HomeViewState extends ConsumerState<HomeView> {
   Future<void> _loadMeal() async {
     final school = NeisSchool.load();
     if (school == null) {
-      setState(() => _mealLoaded = true);
+      setState(() {
+        _mealLoaded = true;
+        _mealError = false;
+      });
       return;
     }
+    setState(() {
+      _mealLoaded = false;
+      _mealError = false;
+    });
     final dateStr = du.toDateKey(DateTime.now()).replaceAll('-', '');
     try {
       final meal = await fetchLunch(school, dateStr);
@@ -46,8 +54,15 @@ class _HomeViewState extends ConsumerState<HomeView> {
           _mealLoaded = true;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _mealLoaded = true);
+    } catch (e, st) {
+      // 조용히 삼키지 말고 로그 남기고 UI로 부드럽게 안내.
+      debugPrint('[Home] 급식 불러오기 실패: $e\n$st');
+      if (mounted) {
+        setState(() {
+          _mealLoaded = true;
+          _mealError = true;
+        });
+      }
     }
   }
 
@@ -112,6 +127,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       sh: sh,
                       meal: _mealText,
                       loaded: _mealLoaded,
+                      error: _mealError,
+                      onRetry: _loadMeal,
                     ),
                   ),
                   const SizedBox(width: Gap.sm),
@@ -305,8 +322,16 @@ class _MealCard extends StatelessWidget {
   final SpaceHourColors sh;
   final String? meal;
   final bool loaded;
+  final bool error;
+  final VoidCallback onRetry;
 
-  const _MealCard({required this.sh, required this.meal, required this.loaded});
+  const _MealCard({
+    required this.sh,
+    required this.meal,
+    required this.loaded,
+    required this.error,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -349,17 +374,29 @@ class _MealCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis)
           else if (NeisSchool.load() == null) ...[
-            Text('NEIS 미연결',
+            // NEIS 같은 기술 용어 대신 친근한 문구.
+            Text('학교 미연결',
                 style: AppType.body.copyWith(color: sh.inkFaint)),
             const SizedBox(height: 4),
             GestureDetector(
               onTap: () => showNeisSetupModal(context),
-              child: Text('연결하러 가기 →',
+              child: Text('학교 연결하기 →',
                   style: AppType.label.copyWith(
                       color: sh.accent, fontWeight: FontWeight.w600)),
             ),
+          ] else if (error) ...[
+            Text('급식 정보를 불러오지 못했어요',
+                style: AppType.label.copyWith(color: sh.inkFaint, height: 1.3),
+                maxLines: 2),
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: onRetry,
+              child: Text('다시 시도',
+                  style: AppType.label.copyWith(
+                      color: sh.accent, fontWeight: FontWeight.w700)),
+            ),
           ] else
-            Text('정보 없음',
+            Text('오늘 급식 정보가 없어요',
                 style: AppType.body.copyWith(color: sh.inkFaint)),
         ],
       ),

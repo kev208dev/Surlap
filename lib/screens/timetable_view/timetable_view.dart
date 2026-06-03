@@ -6,6 +6,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../storage/local_store.dart';
 import '../../core/constants/storage_keys.dart';
+import '../../providers/recurring_provider.dart';
 import '../../supabase/neis_service.dart';
 
 // ─── Row definition ───────────────────────────────────────────────
@@ -84,7 +85,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   static const _rowH    = 42.0;
   static const _timeLblW = 52.0;
   static const _divH   = 3.0;  // wk-divider height
-  static const _hdrH   = 48.0; // day header height (shows dow + date)
 
   // NEIS cache: di(0=Mon..6=Sun) → period → subject
   final Map<int, Map<int, String>> _neisData = {};
@@ -95,8 +95,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   bool _designMode = false;
   final Map<String, _CellDesign> _designs = {};
 
-  // 시간표 직접 입력 — 요일(col 0=월..6=일) → 시각 → 텍스트. 매주 반복.
-  final Map<int, Map<int, String>> _weekly = {};
+  // 반복 일정은 recurringProvider(요일×시각)로 관리 — 주간/일간과 공유.
 
   // ── Design color presets ──────────────────────────────────────
   static const _palette = [
@@ -114,48 +113,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
   void initState() {
     super.initState();
     _loadDesigns();
-    _loadWeekly();
     _fetchNeisIfNeeded();
-  }
-
-  // ── 주간 반복 시간표 persistence ──────────────────────────────
-  void _loadWeekly() {
-    final raw = LocalStore.instance.getString(StorageKeys.timetableWeekly);
-    if (raw == null) return;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      for (final colEntry in map.entries) {
-        final col = int.tryParse(colEntry.key);
-        if (col == null) continue;
-        final hours = <int, String>{};
-        if (colEntry.value is Map) {
-          (colEntry.value as Map).forEach((h, t) {
-            final hi = int.tryParse(h.toString());
-            if (hi != null) hours[hi] = t.toString();
-          });
-        }
-        _weekly[col] = hours;
-      }
-    } catch (_) {}
-  }
-
-  void _saveWeekly() {
-    final out = <String, dynamic>{};
-    _weekly.forEach((col, hours) {
-      if (hours.isEmpty) return;
-      out['$col'] = hours.map((h, t) => MapEntry('$h', t));
-    });
-    LocalStore.instance
-        .setString(StorageKeys.timetableWeekly, jsonEncode(out));
-  }
-
-  // col(요일) → 시각 → 텍스트 (모든 주에 동일하게 반복).
-  Map<int, Map<int, String>> _buildWeeklyData() {
-    final result = <int, Map<int, String>>{};
-    for (int col = 0; col < 7; col++) {
-      result[col] = Map<int, String>.from(_weekly[col] ?? const {});
-    }
-    return result;
   }
 
   // ── Design persistence ────────────────────────────────────────
@@ -459,14 +417,8 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
   void _saveCell(BuildContext ctx, int col, int hour, String text) {
     Navigator.pop(ctx);
-    final hours = _weekly.putIfAbsent(col, () => <int, String>{});
-    if (text.isEmpty) {
-      hours.remove(hour);
-    } else {
-      hours[hour] = text;
-    }
-    _saveWeekly();
-    setState(() {});
+    // 반복 일정 provider에 저장 → 시간표/주간/일간에 반영.
+    ref.read(recurringProvider.notifier).setCell(col, hour, text);
   }
 
   void _showDesignPanel(BuildContext ctx, int col, int hour, SpaceHourColors sh) {
@@ -505,56 +457,50 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     final offsets = _rowOffsets(rows);
     final totalH = offsets.last;
     final neisHourData = _buildNeisHourData();
-    // 직접 입력한 셀은 요일 기준으로 매주 반복.
-    final freeData = _buildWeeklyData();
+    // 시간표 탭 = 매주 반복되는 내 일정. 요일(col) 기준 저장/표시.
+    final weekly = ref.watch(recurringProvider);
+    final freeData = {
+      for (int c = 0; c < 7; c++) c: Map<int, String>.from(weekly[c] ?? const {}),
+    };
     final tplData = _buildTemplateData(days);
     final displayData = _buildDisplayData(neisHourData, tplData, freeData, rows);
     final mergeGroups = _computeMerges(rows, offsets, displayData);
     final mergeSet = _buildMergeSet(mergeGroups);
 
-    final school = NeisSchool.load();
-
     return Column(
       children: [
-        // ── 제목 + 셀 디자인 버튼 (상단 액션 영역) ───────────────
-        SizedBox(
-          height: 48,
-          child: Stack(
-            alignment: Alignment.center,
+        // ── 제목 + 부제 + 셀 디자인 버튼 ─────────────────────────
+        // 시간표 탭은 "내 반복 일정" 작성 화면 — 학교명/날짜는 표시하지 않음.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Center(
-                child: Text('시간표',
-                    style: AppType.title.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: sh.ink)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('시간표',
+                        style: AppType.title.copyWith(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: sh.ink)),
+                    const SizedBox(height: 2),
+                    Text('매주 반복되는 내 일정을 배치해요',
+                        style: AppType.label.copyWith(color: sh.inkSoft)),
+                  ],
+                ),
               ),
-              if (school != null)
-                Positioned(
-                  left: Gap.lg,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.school_outlined, size: 13, color: sh.inkFaint),
-                      const SizedBox(width: Gap.xs),
-                      Text('${school.name} ${school.grade}학년',
-                          style: AppType.label.copyWith(color: sh.inkFaint)),
-                    ],
-                  ),
-                ),
-              Positioned(
-                right: Gap.lg,
-                child: _DesignModeBtn(
-                  active: _designMode,
-                  onTap: () => setState(() => _designMode = !_designMode),
-                ),
+              _DesignModeBtn(
+                active: _designMode,
+                onTap: () => setState(() => _designMode = !_designMode),
               ),
             ],
           ),
         ),
-        // ── Day header (요일 + 날짜) ─────────────────────────────
+        // ── 요일 헤더 (날짜 없음 — 요일 기반 반복) ───────────────
         SizedBox(
-          height: _hdrH,
+          height: 40,
           child: Row(
             children: [
               SizedBox(
@@ -562,37 +508,32 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                 child: Container(
                   color: sh.card2,
                   alignment: Alignment.center,
-                  child: Text('시간표', style: AppType.label.copyWith(color: sh.inkFaint)),
+                  child: Icon(Icons.schedule_rounded,
+                      size: 15, color: sh.inkFaint),
                 ),
               ),
               ...List.generate(7, (i) {
-                final d = days[i];
-                final isToday = du.isSameDay(d, now);
-                final isSat = d.weekday == DateTime.saturday;
-                final isSun = d.weekday == DateTime.sunday;
-                final labelColor = isToday ? sh.accentInk
-                    : isSun ? sh.danger
+                // 오늘 요일만 강조(날짜 개념 없음).
+                final isTodayDow = now.weekday - 1 == i;
+                final isSat = i == 5;
+                final isSun = i == 6;
+                final labelColor = isTodayDow ? sh.accentInk
+                    : isSun ? sh.sun
                     : isSat ? sh.sat
                     : sh.inkSoft;
                 return Expanded(
                   child: Container(
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isToday ? sh.accentBg : sh.card2,
+                      color: isTodayDow ? sh.accentBg : sh.card2,
                       border: Border(
                         left: BorderSide(color: _gridLine(sh), width: 1),
                         bottom: BorderSide(color: _gridLine(sh), width: 1.5),
                       ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_dowNames[i], style: AppType.caption.copyWith(
-                          fontWeight: FontWeight.w600, color: labelColor)),
-                        Text('${d.month}/${d.day}', style: AppType.label.copyWith(
-                          color: isToday ? sh.accentInk : sh.inkFaint)),
-                      ],
-                    ),
+                    child: Text(_dowNames[i],
+                        style: AppType.body.copyWith(
+                            fontWeight: FontWeight.w700, color: labelColor)),
                   ),
                 );
               }),

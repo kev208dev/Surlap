@@ -2,405 +2,272 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../models/calendar_theme.dart';
 import '../providers/themes_provider.dart';
 import '../supabase/theme_share_service.dart';
 import '../modals/theme_manager_modal.dart';
-import '../modals/timetable_template_modal.dart';
 import '../widgets/app_page_scaffold.dart';
 
-/// 테마 공유 — 독립 페이지 (bottom sheet 아님).
-/// 색상 테마가 아니라 일정 테마(카테고리)·시간표 템플릿 공유.
-/// 기존 ThemeManager / TimetableTemplate / ThemeShareService 로직을 재사용.
-class ThemeSharePage extends ConsumerWidget {
+/// 테마 공유 — 일정/루틴 테마를 공유받기·공유하기·비공개 보관으로 분류.
+/// 색상 테마·학교 시간표 템플릿·추천 템플릿은 다루지 않는다.
+class ThemeSharePage extends ConsumerStatefulWidget {
   const ThemeSharePage({super.key});
 
-  // 추천 일정 템플릿 (placeholder — 적용 로직은 준비 중)
-  static const _templates = [
-    (title: '시험기간 루틴', sub: '공부 집중형',
-        lines: ['19:00  국어', '20:30  수학', '22:00  영어']),
-    (title: '학교 시간표', sub: '학생 기본형',
-        lines: ['1교시  국어', '2교시  수학', '3교시  영어']),
-    (title: '방학 루틴', sub: '자율 계획형',
-        lines: ['09:00  공부', '14:00  운동', '21:00  복습']),
-    (title: '운동 루틴', sub: '반복 일정형',
-        lines: ['06:00  러닝', '18:00  헬스', '22:00  스트레칭']),
-  ];
+  @override
+  ConsumerState<ThemeSharePage> createState() => _ThemeSharePageState();
+}
+
+enum _Tab { received, shared, private }
+
+class _ThemeSharePageState extends ConsumerState<ThemeSharePage> {
+  _Tab _tab = _Tab.received;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final sh = context.sh;
     final themes = ref.watch(themesProvider);
-    final mine = themes.where((t) => t.shareRole != 'subscriber').toList();
-    final subbed = themes.where((t) => t.shareRole == 'subscriber').toList();
+
+    final received =
+        themes.where((t) => t.shareRole == 'subscriber').toList();
+    final shared = themes
+        .where((t) => t.shareCode != null && t.shareRole == 'owner')
+        .toList();
+    final private = themes.where((t) => t.shareCode == null).toList();
+
+    final list = switch (_tab) {
+      _Tab.received => received,
+      _Tab.shared => shared,
+      _Tab.private => private,
+    };
 
     return AppPageScaffold(
       title: '테마 공유',
-      subtitle: '일정 루틴과 시간표 템플릿을 공유해요',
+      subtitle: '일정·루틴 테마를 공유하고 받아요',
       children: [
-        // ── 빠른 액션 ──
+        // ── 세그먼트 ──
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: sh.card2,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            children: [
+              _seg('공유받은', _Tab.received, received.length, sh),
+              _seg('내가 공유한', _Tab.shared, shared.length, sh),
+              _seg('비공개', _Tab.private, private.length, sh),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 작은 보조 액션(가져오기/테마 관리) — 큰 버튼 대신 텍스트 링크.
         Row(
           children: [
-            Expanded(
-              child: _ShareAction(
-                sh: sh,
-                icon: Icons.bookmark_add_outlined,
-                label: '테마 관리',
-                solid: true,
-                onTap: () => showThemeManagerModal(context),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _ShareAction(
-                sh: sh,
-                icon: Icons.grid_view_rounded,
-                label: '시간표 템플릿',
-                solid: false,
-                onTap: () => showTimetableTemplateModal(context),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _ShareAction(
-                sh: sh,
-                icon: Icons.download_rounded,
-                label: '가져오기',
-                solid: false,
-                onTap: () => showDialog(
-                  context: context,
-                  builder: (_) => const _ImportThemeDialog(),
-                ),
-              ),
-            ),
+            _miniLink(sh, Icons.download_rounded, '코드로 가져오기', () {
+              showDialog(
+                  context: context, builder: (_) => const _ImportThemeDialog());
+            }),
+            const SizedBox(width: 16),
+            _miniLink(sh, Icons.tune_rounded, '테마 관리', () {
+              showThemeManagerModal(context);
+            }),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
-        // ── 내 일정 테마 ──
-        _Section(
-          sh: sh,
-          title: '내 일정 테마',
-          child: mine.isEmpty
-              ? _EmptyHint(sh: sh, text: '아직 만든 일정 테마가 없어요')
-              : Column(
-                  children: [
-                    for (final t in mine)
-                      _ThemeRow(
-                        sh: sh,
-                        color: t.colorValue,
-                        name: t.name,
-                        shared: t.shareCode != null,
-                        onTap: () => showThemeManagerModal(context),
-                      ),
-                  ],
-                ),
-        ),
-
-        if (subbed.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _Section(
-            sh: sh,
-            title: '공유받은 테마',
-            child: Column(
-              children: [
-                for (final t in subbed)
-                  _ThemeRow(
-                    sh: sh,
-                    color: t.colorValue,
-                    name: t.name,
-                    shared: false,
-                    subscribed: true,
-                    onTap: () => showThemeManagerModal(context),
-                  ),
-              ],
+        // ── 리스트 ──
+        if (list.isEmpty)
+          _empty(sh, _tab)
+        else
+          for (final t in list)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _ThemeCard(
+                theme: t,
+                tab: _tab,
+                sh: sh,
+                onManage: () => showThemeManagerModal(context),
+                onShare: () => _share(t),
+              ),
             ),
+      ],
+    );
+  }
+
+  Widget _seg(String label, _Tab tab, int count, SpaceHourColors sh) {
+    final active = _tab == tab;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _tab = tab),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: active ? sh.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text('$label${count > 0 ? ' $count' : ''}',
+              textAlign: TextAlign.center,
+              style: AppType.label.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: active ? Colors.white : sh.inkSoft)),
+        ),
+      ),
+    );
+  }
+
+  Widget _miniLink(
+      SpaceHourColors sh, IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: sh.accent),
+          const SizedBox(width: 4),
+          Text(label,
+              style: AppType.label.copyWith(
+                  fontSize: 12, fontWeight: FontWeight.w700, color: sh.accent)),
+        ],
+      ),
+    );
+  }
+
+  Widget _empty(SpaceHourColors sh, _Tab tab) {
+    final msg = switch (tab) {
+      _Tab.received => '공유받은 테마가 없어요\n코드로 가져오기로 받아보세요',
+      _Tab.shared => '아직 공유한 테마가 없어요\n비공개 테마에서 공유해보세요',
+      _Tab.private => '저장한 일정 테마가 없어요',
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Text(msg,
+            textAlign: TextAlign.center,
+            style: AppType.body.copyWith(color: sh.inkFaint, height: 1.5)),
+      ),
+    );
+  }
+
+  Future<void> _share(CalendarTheme theme) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final code = await ThemeShareService.shareTheme(theme);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('공유 코드: $code — 친구에게 알려주세요')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('공유하려면 로그인이 필요해요')),
+      );
+    }
+  }
+}
+
+// ─── 테마 카드 ───────────────────────────────────────────────────
+class _ThemeCard extends StatelessWidget {
+  final CalendarTheme theme;
+  final _Tab tab;
+  final SpaceHourColors sh;
+  final VoidCallback onManage;
+  final VoidCallback onShare;
+
+  const _ThemeCard({
+    required this.theme,
+    required this.tab,
+    required this.sh,
+    required this.onManage,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+      decoration: BoxDecoration(
+        color: sh.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: sh.ink.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                    color: theme.colorValue, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(theme.name,
+                    style: AppType.body.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: sh.ink),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+              if (tab == _Tab.shared)
+                _badge(sh, '공개 중', sh.accent)
+              else if (tab == _Tab.received)
+                _badge(sh, '구독 중', sh.inkSoft)
+              else
+                _badge(sh, '개인 저장', sh.inkSoft),
+            ],
+          ),
+          if (theme.shareCode != null) ...[
+            const SizedBox(height: 6),
+            Text('코드 ${theme.shareCode}',
+                style: AppType.label.copyWith(
+                    fontSize: 11, color: sh.inkFaint)),
+          ],
+          const SizedBox(height: 12),
+          // 작은 액션들
+          Row(
+            children: [
+              if (tab == _Tab.private)
+                _action(sh, '공유하기', filled: true, onTap: onShare),
+              if (tab == _Tab.private) const SizedBox(width: 8),
+              _action(sh, tab == _Tab.shared ? '수정 · 공유중지' : '관리',
+                  filled: false, onTap: onManage),
+            ],
           ),
         ],
-        const SizedBox(height: 16),
-
-        // ── 추천 템플릿 ──
-        Padding(
-          padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
-          child: Text('추천 템플릿',
-              style: AppType.label.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: sh.ink.withValues(alpha: 0.42))),
-        ),
-        SizedBox(
-          height: 150,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            itemCount: _templates.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 10),
-            itemBuilder: (_, i) {
-              final t = _templates[i];
-              return _TemplatePreviewCard(
-                sh: sh,
-                title: t.title,
-                sub: t.sub,
-                lines: t.lines,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('템플릿 적용 기능은 준비 중입니다.'),
-                        duration: Duration(seconds: 2)),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
-}
 
-// ─── 섹션 카드 ───────────────────────────────────────────────────
-class _Section extends StatelessWidget {
-  final SpaceHourColors sh;
-  final String title;
-  final Widget child;
-  const _Section({required this.sh, required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
-          child: Text(title,
-              style: AppType.label.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: sh.ink.withValues(alpha: 0.42))),
-        ),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: sh.card,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: sh.ink.withValues(alpha: 0.04)),
-          ),
-          child: child,
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyHint extends StatelessWidget {
-  final SpaceHourColors sh;
-  final String text;
-  const _EmptyHint({required this.sh, required this.text});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Center(
-            child: Text(text,
-                style: AppType.body.copyWith(color: sh.inkFaint))),
+  Widget _badge(SpaceHourColors sh, String text, Color c) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+            color: c.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(999)),
+        child: Text(text,
+            style: AppType.label.copyWith(
+                fontSize: 11, fontWeight: FontWeight.w700, color: c)),
       );
-}
 
-// ─── 일정 테마 행 ────────────────────────────────────────────────
-class _ThemeRow extends StatelessWidget {
-  final SpaceHourColors sh;
-  final Color color;
-  final String name;
-  final bool shared;
-  final bool subscribed;
-  final VoidCallback onTap;
-  const _ThemeRow({
-    required this.sh,
-    required this.color,
-    required this.name,
-    required this.shared,
-    this.subscribed = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
-        child: Row(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(name,
-                  style: AppType.body.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: sh.ink),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-            ),
-            if (shared) _Badge(sh: sh, text: '공유 중', accent: true),
-            if (subscribed) _Badge(sh: sh, text: '구독 중', accent: false),
-            const SizedBox(width: 4),
-            Icon(Icons.chevron_right_rounded, size: 20, color: sh.inkFaint),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  final SpaceHourColors sh;
-  final String text;
-  final bool accent;
-  const _Badge({required this.sh, required this.text, required this.accent});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = accent ? sh.accent : sh.inkSoft;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(text,
-          style: AppType.label.copyWith(
-              fontSize: 11, fontWeight: FontWeight.w700, color: c)),
-    );
-  }
-}
-
-// ─── 빠른 액션 버튼 ──────────────────────────────────────────────
-class _ShareAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool solid;
-  final VoidCallback onTap;
-  final SpaceHourColors sh;
-
-  const _ShareAction({
-    required this.icon,
-    required this.label,
-    required this.solid,
-    required this.onTap,
-    required this.sh,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = solid ? Colors.white : sh.ink;
+  Widget _action(SpaceHourColors sh, String label,
+      {required bool filled, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: solid ? sh.accent : sh.card,
-          borderRadius: BorderRadius.circular(16),
-          border:
-              solid ? null : Border.all(color: sh.ink.withValues(alpha: 0.06)),
-          boxShadow: solid
-              ? [
-                  BoxShadow(
-                    color: sh.accent.withValues(alpha: 0.28),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
+          color: filled ? sh.accent : sh.ink.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 20, color: fg),
-            const SizedBox(height: 6),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: AppType.label.copyWith(
-                    fontSize: 11.5, fontWeight: FontWeight.w700, color: fg)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── 추천 템플릿 미리보기 카드 ───────────────────────────────────
-class _TemplatePreviewCard extends StatelessWidget {
-  final SpaceHourColors sh;
-  final String title;
-  final String sub;
-  final List<String> lines;
-  final VoidCallback onTap;
-
-  const _TemplatePreviewCard({
-    required this.sh,
-    required this.title,
-    required this.sub,
-    required this.lines,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 156,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: sh.card,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: sh.ink.withValues(alpha: 0.05)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: AppType.body.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: sh.ink)),
-            Text(sub,
-                style: AppType.label.copyWith(
-                    fontSize: 11,
-                    color: sh.accent,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            for (final l in lines)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 4,
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: BoxDecoration(
-                        color: sh.accent.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(l,
-                          style: AppType.label
-                              .copyWith(fontSize: 11, color: sh.inkSoft),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+        child: Text(label,
+            style: AppType.label.copyWith(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: filled ? Colors.white : sh.ink.withValues(alpha: 0.7))),
       ),
     );
   }
@@ -498,8 +365,7 @@ class _ImportThemeDialogState extends ConsumerState<_ImportThemeDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소')),
+            onPressed: () => Navigator.pop(context), child: const Text('취소')),
         FilledButton(
           onPressed: _loading ? null : _import,
           child: _loading
