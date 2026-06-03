@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
-import '../core/utils/date_utils.dart' as du;
 import '../providers/view_provider.dart';
 import '../widgets/calendar_settings_sheet.dart';
+import '../widgets/theme_share_sheet.dart';
 import '../widgets/glass_container.dart';
 import 'coach_mark.dart';
 
@@ -19,8 +19,6 @@ class SpaceHourBottomNav extends ConsumerWidget {
     final notifier = ref.read(viewProvider.notifier);
     final sh       = context.sh;
     final dark     = sh.dark;
-
-    String todayKey() => du.toDateKey(DateTime.now());
 
     // ── 탭 정의 ────────────────────────────────────────────────
     final tabs = [
@@ -51,11 +49,11 @@ class SpaceHourBottomNav extends ConsumerWidget {
         coachKey: coachKeyTabTimetable,
       ),
       _Tab(
-        active: Icons.edit_note_rounded,
-        inactive: Icons.edit_note_rounded,
-        label: '기록',
-        isActive: view.mode == ViewMode.day,
-        onTap: () => notifier.setDayView(todayKey()),
+        active: Icons.ios_share_rounded,
+        inactive: Icons.ios_share_rounded,
+        label: '테마 공유',
+        isActive: false,
+        onTap: () => showThemeShareSheet(context),
       ),
       _Tab(
         active: Icons.settings_rounded,
