@@ -94,7 +94,7 @@ class _DayViewState extends ConsumerState<DayView> {
             final dayColW = constraints.maxWidth - _timeColW;
             return SingleChildScrollView(
               controller: _scroll,
-              padding: const EdgeInsets.only(bottom: 80),
+              padding: const EdgeInsets.only(bottom: 110),
               child: SizedBox(
                 height: _rowH * 24,
                 child: Row(

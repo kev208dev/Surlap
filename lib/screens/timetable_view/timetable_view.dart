@@ -587,7 +587,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
         // ── Scrollable grid ──────────────────────────────────────
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 80),
+            padding: const EdgeInsets.only(bottom: 110),
             child: LayoutBuilder(builder: (ctx, constraints) {
               final colW = (constraints.maxWidth - _timeLblW) / 7;
               return SizedBox(

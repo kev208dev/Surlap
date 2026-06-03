@@ -91,7 +91,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
           child: _buildGreeting(sh, now),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, 80),
+          padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, 110),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               // 다음 일정 카드 (large)

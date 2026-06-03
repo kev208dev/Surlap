@@ -2,15 +2,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
-import '../core/theme/design_tokens.dart';
 import '../core/utils/date_utils.dart' as du;
 import '../providers/view_provider.dart';
-import '../providers/color_preset_provider.dart';
 import '../widgets/sidebar_drawer.dart';
 import 'coach_mark.dart';
 
-// ─── 하단 네비 (5탭) — 스킬셋 2026 구조 ─────────────────────────
-// 홈 / 캘린더 / 시간표 / 기록 / 설정
+// ─── Floating Pill Bottom Navigation ────────────────────────────
+// 화면 중앙에 떠 있는 작은 capsule 형태. 아이콘만 표시.
+// Active: 흰 pill 안에 어두운 아이콘 / Inactive: 흐린 아이콘
 class SpaceHourBottomNav extends ConsumerWidget {
   const SpaceHourBottomNav({super.key});
 
@@ -18,106 +17,105 @@ class SpaceHourBottomNav extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final view     = ref.watch(viewProvider);
     final notifier = ref.read(viewProvider.notifier);
-    final preset   = ref.watch(colorPresetProvider);
     final sh       = context.sh;
 
-    final accent = preset.accent;
+    String todayKey() => du.toDateKey(DateTime.now());
 
-    final isHome       = view.mode == ViewMode.home;
-    final isCalendar   = const {
-      ViewMode.events, ViewMode.year, ViewMode.planner
-    }.contains(view.mode);
-    final isTimetable  = view.mode == ViewMode.timetable;
-    final isRecord     = view.mode == ViewMode.day;
+    // ── 탭 정의 ────────────────────────────────────────────────
+    final tabs = [
+      _Tab(
+        active: Icons.home_rounded,
+        inactive: Icons.home_outlined,
+        label: '홈',
+        isActive: view.mode == ViewMode.home,
+        onTap: () => notifier.setMode(ViewMode.home),
+      ),
+      _Tab(
+        active: Icons.calendar_month_rounded,
+        inactive: Icons.calendar_month_outlined,
+        label: '캘린더',
+        isActive: const {ViewMode.events, ViewMode.year, ViewMode.planner}.contains(view.mode),
+        onTap: () {
+          if (!const {ViewMode.events, ViewMode.year, ViewMode.planner}.contains(view.mode)) {
+            notifier.setMode(ViewMode.events);
+          }
+        },
+      ),
+      _Tab(
+        active: Icons.grid_view_rounded,
+        inactive: Icons.grid_view_outlined,
+        label: '시간표',
+        isActive: view.mode == ViewMode.timetable,
+        onTap: () => notifier.setMode(ViewMode.timetable),
+        coachKey: coachKeyTabTimetable,
+      ),
+      _Tab(
+        active: Icons.edit_note_rounded,
+        inactive: Icons.edit_note_rounded,
+        label: '기록',
+        isActive: view.mode == ViewMode.day,
+        onTap: () => notifier.setDayView(todayKey()),
+      ),
+      _Tab(
+        active: Icons.settings_rounded,
+        inactive: Icons.settings_outlined,
+        label: '설정',
+        isActive: false,
+        onTap: () => showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (_) => const FractionallySizedBox(
+            heightFactor: 0.85,
+            child: SidebarDrawer(),
+          ),
+        ),
+        coachKey: coachKeyTabProfile,
+      ),
+    ];
 
-    String todayKey() {
-      final n = DateTime.now();
-      return du.toDateKey(n);
-    }
+    // ── 컨테이너 색상 (다크/라이트 분기) ─────────────────────
+    final containerColor = sh.dark
+        ? Colors.black.withValues(alpha: 0.70)
+        : Colors.white.withValues(alpha: 0.85);
+    final borderColor = sh.dark
+        ? Colors.white.withValues(alpha: 0.10)
+        : Colors.white.withValues(alpha: 0.70);
+    final shadowColor = Colors.black.withValues(alpha: sh.dark ? 0.45 : 0.14);
 
     return Positioned(
-      left: 0, right: 0, bottom: 16,
-      child: Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Container(
-              key: coachKeyBottomNav,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-              decoration: BoxDecoration(
-                color: sh.dark
-                    ? Colors.black.withValues(alpha: 0.72)
-                    : Colors.white.withValues(alpha: 0.82),
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                    color: Colors.black.withValues(alpha: 0.06), width: 0.5),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x24000000),
-                      blurRadius: 28,
-                      offset: Offset(0, 8)),
-                  BoxShadow(
-                      color: Color(0x0D000000),
-                      blurRadius: 6,
-                      offset: Offset(0, 2)),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ─── 홈 ───
-                  _NavTab(
-                    icon: const Icon(Icons.home_outlined, size: 22),
-                    label: '홈',
-                    active: isHome,
-                    accent: accent,
-                    onTap: () => notifier.setMode(ViewMode.home),
-                  ),
-                  // ─── 캘린더 ───
-                  _NavTab(
-                    icon: const Icon(Icons.calendar_month_outlined, size: 22),
-                    label: '캘린더',
-                    active: isCalendar,
-                    accent: accent,
-                    onTap: () {
-                      if (!isCalendar) notifier.setMode(ViewMode.events);
-                    },
-                  ),
-                  // ─── 시간표 ───
-                  _NavTab(
-                    key: coachKeyTabTimetable,
-                    icon: const Icon(Icons.grid_view_rounded, size: 22),
-                    label: '시간표',
-                    active: isTimetable,
-                    accent: accent,
-                    onTap: () => notifier.setMode(ViewMode.timetable),
-                  ),
-                  // ─── 기록 (오늘 일별 뷰) ───
-                  _NavTab(
-                    key: coachKeyTabProfile,
-                    icon: const Icon(Icons.edit_note_rounded, size: 22),
-                    label: '기록',
-                    active: isRecord,
-                    accent: accent,
-                    onTap: () => notifier.setDayView(todayKey()),
-                  ),
-                  // ─── 설정 ───
-                  _NavTab(
-                    icon: const Icon(Icons.settings_outlined, size: 22),
-                    label: '설정',
-                    active: false,
-                    accent: accent,
-                    onTap: () => showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => const FractionallySizedBox(
-                        heightFactor: 0.85,
-                        child: SidebarDrawer(),
-                      ),
+      left: 0,
+      right: 0,
+      bottom: 12,
+      child: SafeArea(
+        child: Center(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(40),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                key: coachKeyBottomNav,
+                height: 58,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: BoxDecoration(
+                  color: containerColor,
+                  borderRadius: BorderRadius.circular(40),
+                  border: Border.all(color: borderColor, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: shadowColor,
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: tabs.map((t) => _NavBtn(
+                    tab: t,
+                    dark: sh.dark,
+                    // 라이트 다크 모두 accent 색 힌트를 미사용 — 흰 pill로 통일
+                  )).toList(),
+                ),
               ),
             ),
           ),
@@ -127,50 +125,79 @@ class SpaceHourBottomNav extends ConsumerWidget {
   }
 }
 
-// ─── 탭 아이템 ───────────────────────────────────────────────────
-class _NavTab extends StatelessWidget {
-  final Widget icon;
+// ─── 탭 데이터 모델 ──────────────────────────────────────────────
+class _Tab {
+  final IconData active;
+  final IconData inactive;
   final String label;
-  final bool active;
-  final Color accent;
+  final bool isActive;
   final VoidCallback onTap;
+  final GlobalKey? coachKey;
 
-  const _NavTab({
-    super.key,
-    required this.icon,
-    required this.label,
+  const _Tab({
     required this.active,
-    required this.accent,
+    required this.inactive,
+    required this.label,
+    required this.isActive,
     required this.onTap,
+    this.coachKey,
   });
+}
 
-  static const _inactive = Color(0xFF82828A);
+// ─── 개별 탭 버튼 ────────────────────────────────────────────────
+class _NavBtn extends StatelessWidget {
+  final _Tab tab;
+  final bool dark;
+
+  const _NavBtn({required this.tab, required this.dark});
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? accent : _inactive;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        constraints: const BoxConstraints(minWidth: 58),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: active ? accent.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconTheme(
-              data: IconThemeData(color: color, size: 22),
-              child: icon,
+    final active = tab.isActive;
+
+    // Active pill: 항상 흰색 → 라이트/다크 모두 선명하게
+    const activePillColor = Colors.white;
+    final activeIconColor = dark ? Colors.black87 : Colors.black;
+    final inactiveIconColor = dark
+        ? Colors.white.withValues(alpha: 0.45)
+        : Colors.black.withValues(alpha: 0.40);
+
+    return Semantics(
+      label: tab.label,
+      button: true,
+      child: GestureDetector(
+        key: tab.coachKey,
+        onTap: tab.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 54,
+          height: 58,
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: active ? 46 : 38,
+              height: active ? 42 : 38,
+              decoration: BoxDecoration(
+                color: active ? activePillColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(23),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: dark ? 0.22 : 0.10),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                active ? tab.active : tab.inactive,
+                size: 22,
+                color: active ? activeIconColor : inactiveIconColor,
+              ),
             ),
-            const SizedBox(height: 3),
-            Text(label,
-                style: AppType.label.copyWith(
-                    fontWeight: FontWeight.w600, color: color, height: 1)),
-          ],
+          ),
         ),
       ),
     );

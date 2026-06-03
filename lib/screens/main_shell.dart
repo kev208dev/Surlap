@@ -60,7 +60,7 @@ class MainShell extends ConsumerWidget {
                   ),
                 ),
                 // 하단 바 높이만큼 패딩 (플로팅 바에 가려지지 않도록)
-                const SizedBox(height: 84),
+                const SizedBox(height: 100),
               ],
             ),
             // ── 플로팅 하단 바 (Positioned) ──
