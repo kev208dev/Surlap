@@ -54,7 +54,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
       final meal = await fetchLunch(school, dateStr);
       if (mounted) {
         setState(() {
-          _mealText = meal?.split('\n').first;
+          // 한 줄로 자르지 않고 전체 메뉴를 그대로.
+          _mealText = meal;
           _mealLoaded = true;
         });
       }
@@ -154,9 +155,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         // 직접 조회가 실패해도 스케줄표가 캐시한 오늘 급식을 사용.
                         final neis = ref.watch(neisCacheProvider);
                         final di = now.weekday - 1;
-                        final cached = (di >= 0 && di <= 6)
-                            ? neis.lunch[di]?.split('\n').first
-                            : null;
+                        final cached =
+                            (di >= 0 && di <= 6) ? neis.lunch[di] : null;
                         return _MealCard(
                           sh: sh,
                           meal: _mealText ?? cached,
@@ -439,11 +439,10 @@ class _MealCard extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           else if (meal != null)
+            // 전체 메뉴를 줄바꿈 그대로 다 보여줌(자르지 않음).
             Text(meal!,
                 style: AppType.body.copyWith(
-                    fontWeight: FontWeight.w600, color: sh.ink),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis)
+                    fontWeight: FontWeight.w600, color: sh.ink, height: 1.45))
           else if (NeisSchool.load() == null) ...[
             // NEIS 같은 기술 용어 대신 친근한 문구.
             Text('학교 미연결',

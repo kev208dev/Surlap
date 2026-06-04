@@ -135,9 +135,9 @@ class _GlobalAddTodoButton extends StatelessWidget {
     final sh = context.sh;
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Positioned(
-      right: 18,
-      // 하단 floating 내비게이션 바와 같은 높이에 맞춤.
-      bottom: bottomInset + 14,
+      right: 16,
+      // 가운데 내비 캡슐과 겹치지 않도록 그 위쪽에 배치.
+      bottom: bottomInset + 80,
       child: Semantics(
         label: '할 일 추가',
         button: true,
