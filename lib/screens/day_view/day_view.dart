@@ -12,6 +12,7 @@ import '../../providers/academic_schedule_provider.dart';
 import '../../providers/birthdays_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../core/utils/todo_style.dart';
+import '../../widgets/mascot/mascot_feedback.dart';
 import '../../models/event_item.dart';
 import '../../models/todo_item.dart';
 import '../../models/calendar_theme.dart';
@@ -150,7 +151,12 @@ class _DayViewState extends ConsumerState<DayView> {
           _TodoBar(
             todos: dayTodos,
             sh: sh,
-            onToggle: (id) => ref.read(todosProvider.notifier).toggleDone(id),
+            onToggle: (id) {
+              final wasDone =
+                  ref.read(todosProvider).any((t) => t.id == id && t.done);
+              ref.read(todosProvider.notifier).toggleDone(id);
+              if (!wasDone) MascotToast.success(context, '좋아요! 하나 끝냈어요');
+            },
             onTapTodo: (t) => showAddTodoModal(context, edit: t),
           ),
         // 시간 축 + 하루 타임라인

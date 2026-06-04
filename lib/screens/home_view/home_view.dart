@@ -18,6 +18,7 @@ import '../../modals/add_todo_modal.dart';
 import '../../modals/birthday_manager_modal.dart';
 import '../../modals/neis_setup_modal.dart';
 import '../../widgets/mascot/mascot.dart';
+import '../../widgets/mascot/mascot_feedback.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -157,8 +158,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
               _TodayTodosCard(
                 sh: sh,
                 todos: todayTodos,
-                onToggle: (id) =>
-                    ref.read(todosProvider.notifier).toggleDone(id),
+                onToggle: (id) {
+                  final wasDone = ref
+                      .read(todosProvider)
+                      .any((t) => t.id == id && t.done);
+                  ref.read(todosProvider.notifier).toggleDone(id);
+                  if (!wasDone) MascotToast.success(context, '좋아요! 하나 끝냈어요');
+                },
                 onTapTodo: (t) => showAddTodoModal(context, edit: t),
                 onAdd: () => showAddTodoModal(context, dateKey: todayKey),
               ),

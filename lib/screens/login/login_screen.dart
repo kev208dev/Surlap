@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../supabase/auth_service.dart';
 import '../../modals/login_modal.dart';
 import '../../widgets/mascot/mascot.dart';
+import '../../widgets/mascot/mascot_feedback.dart';
 
 /// 전체화면 로그인 — 스플래시/온보딩과 같은 보라→블루 그라데이션 톤.
 /// 기존 인증 로직(signInGoogle / 아이디 폼)을 그대로 재사용한다.
@@ -38,9 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('로그인에 실패했어요. 잠시 후 다시 시도해주세요')),
-        );
+        MascotToast.error(context, '로그인에 실패했어요. 잠시 후 다시 시도해주세요');
       }
     }
   }
