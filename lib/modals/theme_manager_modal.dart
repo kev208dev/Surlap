@@ -7,6 +7,7 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../models/calendar_theme.dart';
 import '../providers/themes_provider.dart';
+import '../supabase/auth_service.dart';
 import '../supabase/theme_share_service.dart';
 
 Future<void> showThemeManagerModal(BuildContext context) {
@@ -484,6 +485,13 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
   }
 
   Future<void> _shareTheme(BuildContext context) async {
+    // 로그인 안 된 경우: 예외 대신 친절한 안내.
+    if (ref.read(authProvider) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인해야 이용할 수 있는 서비스입니다')),
+      );
+      return;
+    }
     try {
       final code = await ThemeShareService.shareTheme(widget.theme);
       ref.read(themesProvider.notifier).update(
@@ -492,7 +500,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('공유 실패: $e')),
+          const SnackBar(content: Text('로그인해야 이용할 수 있는 서비스입니다')),
         );
       }
     }
@@ -504,10 +512,10 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     final httpsLink = ThemeShareService.httpsLinkForCode(code);
     Clipboard.setData(ClipboardData(text: httpsLink));
     Share.share(
-      '"$name" 테마를 공유했어요.\n'
-      '링크로 열기: $httpsLink\n'
-      '앱에서 바로 열기: ${ThemeShareService.linkForCode(code)}\n'
-      '또는 코드 입력: $code',
+      '📅 HourSpace에서 "$name" 테마를 공유했어요!\n\n'
+      '아래 링크를 누르면 앱에서 바로 추가돼요 👇\n'
+      '$httpsLink\n\n'
+      '(앱이 안 열리면 코드 입력: $code)',
       subject: 'HourSpace 테마 공유',
     );
   }

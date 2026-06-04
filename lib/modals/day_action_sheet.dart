@@ -5,7 +5,6 @@ import '../core/theme/design_tokens.dart';
 import '../core/utils/todo_style.dart';
 import '../providers/events_provider.dart';
 import '../providers/todos_provider.dart';
-import '../providers/extras_provider.dart';
 import '../providers/day_widget_provider.dart';
 import '../providers/view_provider.dart';
 import 'add_edit_event_modal.dart';
@@ -30,17 +29,9 @@ class DayActionSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sh = context.sh;
-    final starCount = ref.watch(starredProvider)[dateKey] ?? 0;
-    final hasCircle = ref.watch(circlesProvider).contains(dateKey);
     final events =
         (ref.watch(eventsProvider)[dateKey] ?? []).where((e) => !e.isTimetable).toList();
     final todos = ref.watch(todosProvider).where((t) => t.dateKey == dateKey).toList();
-
-    final starLabel = starCount == 0
-        ? '별표 표시'
-        : starCount < 3
-            ? '별표 추가 ($starCount/3)'
-            : '별표 해제';
 
     return Container(
       color: sh.card,
@@ -89,22 +80,6 @@ class DayActionSheet extends ConsumerWidget {
                 Navigator.pop(context);
                 ref.read(viewProvider.notifier).setDayView(dateKey);
               },
-            ),
-            _Tile(
-              icon: starCount >= 3
-                  ? Icons.star_rounded
-                  : Icons.star_border_rounded,
-              label: starLabel,
-              color: starCount > 0 ? const Color(0xFFF39C12) : sh.ink,
-              onTap: () => ref.read(starredProvider.notifier).toggle(dateKey),
-            ),
-            _Tile(
-              icon: hasCircle
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              label: hasCircle ? '동그라미 해제' : '동그라미 표시',
-              color: sh.ink,
-              onTap: () => ref.read(circlesProvider.notifier).toggle(dateKey),
             ),
 
             // 이 날의 일정

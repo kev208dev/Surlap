@@ -53,7 +53,7 @@ class TimetableView extends ConsumerStatefulWidget {
 
 class _TimetableViewState extends ConsumerState<TimetableView> {
   static const _dowNames = ['월', '화', '수', '목', '금', '토', '일'];
-  static const _rowH    = 42.0;
+  static const _rowH    = 48.0;
   static const _timeLblW = 52.0;
   static const _divH   = 3.0;
 
@@ -105,16 +105,42 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return rows;
   }
 
-  List<double> _rowOffsets(List<_RowDef> rows) {
+  // 행별 높이: divider는 _divH, 그 외엔 내용 최대 길이에 따라 가변.
+  List<double> _rowHeights(
+      List<_RowDef> rows, Map<int, Map<int, String>> displayData) {
+    return [
+      for (final row in rows)
+        if (row.isDivider)
+          _divH
+        else
+          _cellHeightFor(row, displayData),
+    ];
+  }
+
+  double _cellHeightFor(_RowDef row, Map<int, Map<int, String>> displayData) {
+    if (row.hour < 0) return _rowH;
+    int maxLen = 0;
+    for (int c = 0; c < 7; c++) {
+      final t = displayData[c]?[row.hour] ?? '';
+      if (t.length > maxLen) maxLen = t.length;
+    }
+    if (maxLen <= 5) return _rowH;        // 한 줄
+    if (maxLen <= 11) return _rowH + 16;  // 두 줄
+    return _rowH + 34;                    // 세 줄 이상
+  }
+
+  List<double> _rowOffsets(List<double> heights) {
     final offsets = <double>[];
     double acc = 0;
-    for (final row in rows) {
+    for (final h in heights) {
       offsets.add(acc);
-      acc += row.isDivider ? _divH : _rowH;
+      acc += h;
     }
     offsets.add(acc);
     return offsets;
   }
+
+  int _maxLinesForHeight(double h) => ((h - 10) / 14).floor().clamp(1, 4);
 
   Map<int, Map<int, String>> _buildTemplateData(List<DateTime> days) {
     final result = <int, Map<int, String>>{};
@@ -393,8 +419,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
 
     final maxPeriod = _maxPeriod(neis.timetable);
     final rows = _buildRows(maxPeriod);
-    final offsets = _rowOffsets(rows);
-    final totalH = offsets.last;
     final neisHourData = _buildNeisHourData(neis.timetable);
     final weekly = ref.watch(recurringProvider);
     final freeData = {
@@ -403,6 +427,10 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     final tplData = _buildTemplateData(days);
     final displayData =
         _buildDisplayData(neisHourData, tplData, freeData, neis.lunch, rows);
+    // 내용 길이에 따라 행 높이를 가변으로 — 긴 내용은 칸을 더 크게.
+    final rowHeights = _rowHeights(rows, displayData);
+    final offsets = _rowOffsets(rowHeights);
+    final totalH = offsets.last;
     final mergeGroups = _computeMerges(rows, offsets, displayData);
     final mergeSet = _buildMergeSet(mergeGroups);
 
@@ -484,13 +512,17 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
               ),
             ),
 
-            // ── Scrollable grid ──────────────────────────────────
+            // ── Zoomable + scrollable grid (핀치 확대/축소) ─────────
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 130),
-                child: LayoutBuilder(builder: (ctx, constraints) {
+              child: LayoutBuilder(builder: (ctx, constraints) {
                   final colW = (constraints.maxWidth - _timeLblW) / 7;
-                  return SizedBox(
+                  return InteractiveViewer(
+                    constrained: false,
+                    minScale: 1.0,
+                    maxScale: 3.0,
+                    boundaryMargin: const EdgeInsets.only(bottom: 130),
+                    child: SizedBox(
+                    width: constraints.maxWidth,
                     height: totalH,
                     child: Stack(
                       clipBehavior: Clip.none,
@@ -506,7 +538,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                                 );
                               }
                               return SizedBox(
-                                height: _rowH,
+                                height: rowHeights[ri],
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
@@ -594,9 +626,11 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                                                     : BorderSide.none,
                                               ),
                                             ),
+                                            // 칸 높이에 맞춰 줄 수를 늘려 내용이 잘 보이도록.
                                             child: isMerged ? null : (text.isNotEmpty
                                                 ? Text(text, style: TextStyle(
-                                                    fontSize: 10.5,
+                                                    fontSize: 11.5,
+                                                    height: 1.15,
                                                     color: design.textColor ??
                                                         (isSchoolFilled || row.type == _RType.lunch
                                                             ? sh.accentInk : sh.ink),
@@ -604,7 +638,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                                                         ? FontWeight.w600 : FontWeight.w400,
                                                   ),
                                                   textAlign: TextAlign.center,
-                                                  maxLines: 2,
+                                                  maxLines: _maxLinesForHeight(rowHeights[ri]),
                                                   overflow: TextOverflow.ellipsis,
                                                 ) : null),
                                           ),
@@ -629,7 +663,8 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                             top: mg.topOffset,
                             left: _timeLblW + mg.col * colW,
                             width: colW,
-                            height: mg.span * _rowH,
+                            height: offsets[mg.startRow + mg.span] -
+                                offsets[mg.startRow],
                             child: IgnorePointer(
                               child: Container(
                                 alignment: Alignment.center,
@@ -650,9 +685,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                         }),
                       ],
                     ),
-                  );
-                }),
-              ),
+                  ),
+                );
+              }),
             ),
           ],
     );

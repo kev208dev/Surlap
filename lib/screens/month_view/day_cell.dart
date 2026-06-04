@@ -18,12 +18,13 @@ class DayCell extends StatelessWidget {
   final List<CalendarTheme> themes;
   final SpaceHourColors sh;
   final bool showPast;
-  final int starCount;
   final bool hasCircle;
   final List<DayTemplate> applicableTemplates;
   final Map<String, Map<String, dynamic>> dateWidgetValues;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  /// 더블탭 → 동그라미 토글.
+  final VoidCallback? onDoubleTap;
   /// 셀 탭 시 날짜 숫자가 액션 시트 헤더로 줌인되는 Hero 전환.
   /// 연속 보기는 같은 날짜가 여러 그리드에 중복 렌더되어 태그가 충돌하므로 끈다.
   final bool heroDateNumber;
@@ -37,12 +38,12 @@ class DayCell extends StatelessWidget {
     required this.themes,
     required this.sh,
     required this.showPast,
-    this.starCount = 0,
     this.hasCircle = false,
     this.applicableTemplates = const [],
     this.dateWidgetValues = const {},
     required this.onTap,
     required this.onLongPress,
+    this.onDoubleTap,
     this.heroDateNumber = false,
   });
 
@@ -111,6 +112,7 @@ class DayCell extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
+      onDoubleTap: onDoubleTap,
       child: Container(
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
@@ -132,22 +134,8 @@ class DayCell extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 날짜 숫자(좌측) + 별표(우측)
-            Row(
-              children: [
-                dayNumber,
-                const Spacer(),
-                if (starCount > 0)
-                  Text(
-                    List.filled(starCount, '★').join(),
-                    style: TextStyle(
-                        fontSize: 8,
-                        color: const Color(0xFFF39C12)
-                            .withValues(alpha: dimmed ? 0.4 : 1.0),
-                        height: 1.2),
-                  ),
-              ],
-            ),
+            // 날짜 숫자(좌측 정렬)
+            Align(alignment: Alignment.centerLeft, child: dayNumber),
             const SizedBox(height: 2),
             // 이벤트 + 할 일 + 위젯 (남은 공간 채움, 오버플로우 클립)
             Expanded(

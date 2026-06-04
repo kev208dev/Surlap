@@ -63,6 +63,26 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
       _dateOverride = widget.initialDateKey;
       _dateTouched = true;
     }
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      _speechReady = await _speech.initialize(
+        onStatus: (s) {
+          // 인식이 끝났을 때만 듣기 상태 해제.
+          if ((s == 'done' || s == 'notListening') && mounted) {
+            setState(() => _listening = false);
+          }
+        },
+        onError: (e) {
+          if (mounted) setState(() => _listening = false);
+        },
+      );
+    } catch (_) {
+      _speechReady = false;
+    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -80,20 +100,11 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
   Future<void> _toggleListen() async {
     if (_listening) {
       await _speech.stop();
-      setState(() => _listening = false);
+      if (mounted) setState(() => _listening = false);
       return;
     }
     if (!_speechReady) {
-      _speechReady = await _speech.initialize(
-        onStatus: (s) {
-          if (s == 'done' || s == 'notListening') {
-            if (mounted) setState(() => _listening = false);
-          }
-        },
-        onError: (_) {
-          if (mounted) setState(() => _listening = false);
-        },
-      );
+      await _initSpeech();
     }
     if (!_speechReady) {
       if (mounted) {
@@ -103,8 +114,13 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
     }
     setState(() => _listening = true);
     await _speech.listen(
-      listenOptions:
-          SpeechListenOptions(partialResults: true, localeId: 'ko_KR'),
+      // 충분히 듣도록 시간을 넉넉히 — 바로 끊기지 않게.
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        localeId: 'ko_KR',
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 5),
+      ),
       onResult: (res) {
         if (!mounted) return;
         setState(() {
@@ -114,12 +130,9 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
           // 음성으로 채울 땐 파싱값을 다시 따르도록 override 해제.
           _dateTouched = false;
           _prioTouched = false;
+          // 인식이 끝나면 듣기 종료(자동 추가하지 않고 확인 후 '추가').
+          if (res.finalResult) _listening = false;
         });
-        // 최종 인식 결과면 녹음 내용대로 곧바로 추가(저절로).
-        if (res.finalResult && _textCtrl.text.trim().isNotEmpty) {
-          _listening = false;
-          _save();
-        }
       },
     );
   }
@@ -271,10 +284,11 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
                 _listening
-                    ? '🎤 듣고 있어요… 말하면 자동으로 추가돼요'
-                    : '🎤 마이크를 누르면 음성으로 입력돼요',
+                    ? '🎤 듣고 있어요… 말한 뒤 잠시 기다리면 입력돼요'
+                    : '🎤 마이크를 누르고 말하면 자동으로 받아써요 (예: "내일 p1 빨래하기"). 첫 사용 시 권한 허용 필요',
                 style: AppType.caption.copyWith(
-                    color: _listening ? sh.accent : sh.inkFaint),
+                    color: _listening ? sh.accent : sh.inkFaint,
+                    height: 1.3),
               ),
             ),
             if (parsed.content.isNotEmpty &&

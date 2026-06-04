@@ -136,15 +136,16 @@ class _GlobalAddTodoButton extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Positioned(
       right: 18,
-      bottom: bottomInset + 78,
+      // 하단 floating 내비게이션 바와 같은 높이에 맞춤.
+      bottom: bottomInset + 14,
       child: Semantics(
         label: '할 일 추가',
         button: true,
         child: GestureDetector(
           onTap: () => showAddTodoModal(context),
           child: Container(
-            width: 56,
-            height: 56,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               color: sh.accent,
               shape: BoxShape.circle,

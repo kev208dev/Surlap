@@ -24,6 +24,7 @@ class MonthGrid extends StatelessWidget {
   final Map<String, Map<String, Map<String, dynamic>>> widgetValues;
   final void Function(DateTime) onDayTap;
   final void Function(DateTime) onDayLongPress;
+  final void Function(DateTime)? onDayDoubleTap;
   final void Function(String memoKey, String current)? onMemoTap;
   /// 날짜 셀 Hero 줌인 활성화 (단일 월 그리드에서만 — 연속 보기는 끔).
   final bool heroCells;
@@ -45,6 +46,7 @@ class MonthGrid extends StatelessWidget {
     this.widgetValues = const {},
     required this.onDayTap,
     required this.onDayLongPress,
+    this.onDayDoubleTap,
     this.onMemoTap,
     this.heroCells = false,
   });
@@ -178,12 +180,14 @@ class MonthGrid extends StatelessWidget {
         themes: themes,
         sh: sh,
         showPast: showPast,
-        starCount: starred[key] ?? 0,
         hasCircle: circles.contains(key),
         applicableTemplates: applicable,
         dateWidgetValues: dateWidgetValues,
         onTap: () => onDayTap(cellDate),
         onLongPress: () => onDayLongPress(cellDate),
+        onDoubleTap: onDayDoubleTap == null
+            ? null
+            : () => onDayDoubleTap!(cellDate),
         heroDateNumber: heroCells,
       ),
     );

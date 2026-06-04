@@ -152,7 +152,8 @@ class _ContinuousWeekViewState extends ConsumerState<ContinuousWeekView> {
           Expanded(
             child: ListView.builder(
               controller: _ctrl,
-              physics: const _WeekSnapPhysics(itemExtent: _rowH),
+              // 자유 스크롤 — 주 단위 강제 스냅 제거(스냅 위치 어긋남 해결).
+              physics: const AlwaysScrollableScrollPhysics(),
               itemExtent: _rowH,
               itemBuilder: (context, index) {
                 final ws = _weekStartForIndex(index);
@@ -173,47 +174,6 @@ class _ContinuousWeekViewState extends ConsumerState<ContinuousWeekView> {
   }
 }
 
-/// 주 행 높이에 자석처럼 스냅하는 ScrollPhysics.
-class _WeekSnapPhysics extends ScrollPhysics {
-  final double itemExtent;
-  const _WeekSnapPhysics({required this.itemExtent, super.parent});
-
-  @override
-  _WeekSnapPhysics applyTo(ScrollPhysics? ancestor) =>
-      _WeekSnapPhysics(itemExtent: itemExtent, parent: buildParent(ancestor));
-
-  double _snapTarget(ScrollMetrics position, double velocity, Tolerance tol) {
-    final current = position.pixels / itemExtent;
-    double target;
-    if (velocity < -tol.velocity) {
-      target = current.floor() * itemExtent;
-    } else if (velocity > tol.velocity) {
-      target = current.ceil() * itemExtent;
-    } else {
-      target = current.round() * itemExtent;
-    }
-    return target.clamp(position.minScrollExtent, position.maxScrollExtent);
-  }
-
-  @override
-  Simulation? createBallisticSimulation(
-      ScrollMetrics position, double velocity) {
-    // 경계 밖이면 부모(범위 복귀)에 위임
-    if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
-        (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
-      return super.createBallisticSimulation(position, velocity);
-    }
-    final tol = toleranceFor(position);
-    final target = _snapTarget(position, velocity, tol);
-    if ((target - position.pixels).abs() < tol.distance) return null;
-    return ScrollSpringSimulation(spring, position.pixels, target, velocity,
-        tolerance: tol);
-  }
-
-  @override
-  bool get allowImplicitScrolling => false;
-}
-
 class _WeekRow extends ConsumerWidget {
   final DateTime weekStart;
   final bool showTopBorder;
@@ -224,7 +184,6 @@ class _WeekRow extends ConsumerWidget {
     final events = ref.watch(eventsProvider);
     final themes = ref.watch(themesProvider);
     final hiddenThemes = ref.watch(filterProvider);
-    final starred = ref.watch(starredProvider);
     final circles = ref.watch(circlesProvider);
     final widgetValues = ref.watch(widgetValuesProvider);
     final dayTemplates = ref.watch(dayTemplatesProvider);
@@ -263,12 +222,13 @@ class _WeekRow extends ConsumerWidget {
           themes: themes,
           sh: sh,
           showPast: true,
-          starCount: starred[key] ?? 0,
           hasCircle: circles.contains(key),
           applicableTemplates: applicable,
           dateWidgetValues: widgetValues[key] ?? {},
           onTap: () => _handleDayTap(context, ref, date),
           onLongPress: () => _handleDayTap(context, ref, date),
+          onDoubleTap: () =>
+              ref.read(circlesProvider.notifier).toggle(key),
         );
 
         // 매월 1일 셀에 월 라벨 오버레이 (달 경계 표시)

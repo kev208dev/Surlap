@@ -98,6 +98,9 @@ class MonthView extends ConsumerWidget {
         onDayTap: (date) => _handleDayTap(context, ref, date),
         // 길게 누르면 동일 시트.
         onDayLongPress: (date) => _handleDayTap(context, ref, date),
+        // 더블탭 → 동그라미 토글.
+        onDayDoubleTap: (date) =>
+            ref.read(circlesProvider.notifier).toggle(du.toDateKey(date)),
         onMemoTap: (memoKey, current) =>
             _editMemo(context, ref, memoKey, current),
         heroCells: true,

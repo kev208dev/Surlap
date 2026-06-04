@@ -60,15 +60,17 @@ class AppOverlayTopBar extends ConsumerWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // ── 왼쪽: 이미지로 저장 ─────────────────────────
+                  // ── 왼쪽: 이미지로 저장 (스케줄표에서만) ──────────
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: _TopIconBtn(
-                      key: coachKeyBtnCategory,
-                      icon: Icons.save_alt_rounded,
-                      sh: sh,
-                      onTap: captureAndSaveImage,
-                    ),
+                    child: mode == ViewMode.timetable
+                        ? _TopIconBtn(
+                            key: coachKeyBtnCategory,
+                            icon: Icons.save_alt_rounded,
+                            sh: sh,
+                            onTap: captureAndSaveImage,
+                          )
+                        : const SizedBox(width: kMinTouch),
                   ),
                   // ── 중앙: 로고 ───────────────────────────────
                   Center(

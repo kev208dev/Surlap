@@ -5,11 +5,15 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
 import '../../models/calendar_theme.dart';
+import '../../models/todo_item.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/themes_provider.dart';
+import '../../providers/todos_provider.dart';
+import '../../providers/neis_cache_provider.dart';
 import '../../providers/view_provider.dart';
+import '../../core/utils/todo_style.dart';
 import '../../supabase/neis_service.dart';
-import '../../modals/add_edit_event_modal.dart';
+import '../../modals/add_todo_modal.dart';
 import '../../modals/neis_setup_modal.dart';
 
 class HomeView extends ConsumerStatefulWidget {
@@ -79,6 +83,18 @@ class _HomeViewState extends ConsumerState<HomeView> {
         .where((e) => !e.isTimetable)
         .toList();
 
+    // 오늘 할 일: 오늘 날짜 + 날짜 미지정(인박스)을 함께 표시.
+    final todayTodos = ref
+        .watch(todosProvider)
+        .where((t) => t.dateKey == todayKey || t.dateKey == null)
+        .toList()
+      ..sort((a, b) {
+        if (a.done != b.done) return a.done ? 1 : -1; // 미완료 먼저
+        int rank(TodoItem t) => t.hasPriority ? t.priority : 99;
+        final r = rank(a).compareTo(rank(b));
+        return r != 0 ? r : (a.createdAt ?? '').compareTo(b.createdAt ?? '');
+      });
+
     // 다음 일정: 현재 시각 이후 시간 지정 이벤트
     final upcoming = todayAll.where((e) {
       if (!e.hasTime) return false;
@@ -116,7 +132,16 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 allToday: todayAll,
                 themes: themes,
                 onTap: () => notifier.setDayView(todayKey),
-                onAdd: () => showAddEditEventModal(context, dateKey: todayKey),
+              ),
+              const SizedBox(height: _cardGap),
+              // 오늘 할 일
+              _TodayTodosCard(
+                sh: sh,
+                todos: todayTodos,
+                onToggle: (id) =>
+                    ref.read(todosProvider.notifier).toggleDone(id),
+                onTapTodo: (t) => showAddTodoModal(context, edit: t),
+                onAdd: () => showAddTodoModal(context, dateKey: todayKey),
               ),
               const SizedBox(height: _cardGap),
               // 두 번째 행: 급식 + 오늘 통계
@@ -125,13 +150,21 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
-                      child: _MealCard(
-                        sh: sh,
-                        meal: _mealText,
-                        loaded: _mealLoaded,
-                        error: _mealError,
-                        onRetry: _loadMeal,
-                      ),
+                      child: Builder(builder: (_) {
+                        // 직접 조회가 실패해도 스케줄표가 캐시한 오늘 급식을 사용.
+                        final neis = ref.watch(neisCacheProvider);
+                        final di = now.weekday - 1;
+                        final cached = (di >= 0 && di <= 6)
+                            ? neis.lunch[di]?.split('\n').first
+                            : null;
+                        return _MealCard(
+                          sh: sh,
+                          meal: _mealText ?? cached,
+                          loaded: _mealLoaded || cached != null,
+                          error: _mealError && cached == null,
+                          onRetry: _loadMeal,
+                        );
+                      }),
                     ),
                     const SizedBox(width: _cardGap),
                     Expanded(
@@ -152,13 +185,9 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 weekKeys: weekKeys,
                 eventCounts: weekEventCounts,
                 today: todayKey,
-                onDayTap: (key) {
-                  ref.read(viewProvider.notifier).setYearMonth(
-                    int.parse(key.split('-')[0]),
-                    int.parse(key.split('-')[1]),
-                  );
-                  ref.read(viewProvider.notifier).setMode(ViewMode.events);
-                },
+                // 주를 누르면 주간 뷰로 이동(누른 날짜를 기준 주로).
+                onDayTap: (key) =>
+                    ref.read(viewProvider.notifier).setWeekView(key),
               ),
             ]),
           ),
@@ -255,7 +284,6 @@ class _NextEventCard extends StatelessWidget {
   final List<EventItem> allToday;
   final List<CalendarTheme> themes;
   final VoidCallback onTap;
-  final VoidCallback onAdd;
 
   const _NextEventCard({
     required this.sh,
@@ -263,7 +291,6 @@ class _NextEventCard extends StatelessWidget {
     required this.allToday,
     required this.themes,
     required this.onTap,
-    required this.onAdd,
   });
 
   @override
@@ -359,33 +386,6 @@ class _NextEventCard extends StatelessWidget {
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: sh.inkFaint),
-              ),
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: onAdd,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: sh.accent,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.add_rounded,
-                          size: 16, color: Colors.white),
-                      const SizedBox(width: 4),
-                      Text(
-                        '일정 추가하기',
-                        style: AppType.label.copyWith(
-                            fontSize: 13,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ],
@@ -548,13 +548,23 @@ class _WeekStripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      // 카드 빈 영역 탭 → 이번 주 주간 뷰로.
+      onTap: () => onDayTap(today),
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: _softCard(sh, radius: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _badgeLabel(sh, '🗓️', '이번 주', sh.accent.withValues(alpha: 0.10)),
+          Row(
+            children: [
+              _badgeLabel(sh, '🗓️', '이번 주', sh.accent.withValues(alpha: 0.10)),
+              const Spacer(),
+              Icon(Icons.chevron_right_rounded,
+                  size: 18, color: sh.inkFaint),
+            ],
+          ),
           const SizedBox(height: 14),
           Row(
             children: List.generate(7, (i) {
@@ -619,6 +629,118 @@ class _WeekStripCard extends StatelessWidget {
               );
             }),
           ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
+// ─── 오늘 할 일 카드 ─────────────────────────────────────────────
+class _TodayTodosCard extends StatelessWidget {
+  final SpaceHourColors sh;
+  final List<TodoItem> todos;
+  final void Function(String id) onToggle;
+  final void Function(TodoItem) onTapTodo;
+  final VoidCallback onAdd;
+
+  const _TodayTodosCard({
+    required this.sh,
+    required this.todos,
+    required this.onToggle,
+    required this.onTapTodo,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = todos.where((t) => !t.done).length;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _softCard(sh, radius: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _badgeLabel(sh, '✅', '오늘 할 일', sh.accent.withValues(alpha: 0.10)),
+              const Spacer(),
+              if (todos.isNotEmpty)
+                Text('$remaining / ${todos.length}',
+                    style: AppType.label.copyWith(
+                        fontSize: 12, color: sh.inkSoft)),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onAdd,
+                child: Icon(Icons.add_circle_outline_rounded,
+                    size: 22, color: sh.accent),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (todos.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text('오늘 할 일이 없어요. + 로 추가해보세요.',
+                  style: AppType.body.copyWith(color: sh.inkFaint)),
+            )
+          else
+            ...todos.map((t) {
+              final c = todoPriorityColor(t.priority, sh);
+              return InkWell(
+                onTap: () => onTapTodo(t),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => onToggle(t.id),
+                        behavior: HitTestBehavior.opaque,
+                        child: Icon(
+                          t.done
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          size: 22,
+                          color: t.done ? sh.accent : c,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      if (t.hasPriority) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: c.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text('P${t.priority}',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: c)),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: Text(
+                          t.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.body.copyWith(
+                            fontSize: 15,
+                            color: t.done ? sh.inkFaint : sh.ink,
+                            decoration: t.done
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
         ],
       ),
     );
