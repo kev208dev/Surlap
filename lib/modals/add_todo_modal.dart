@@ -9,6 +9,7 @@ import '../core/utils/todo_parser.dart';
 import '../core/utils/todo_style.dart';
 import '../models/todo_item.dart';
 import '../providers/todos_provider.dart';
+import '../widgets/mascot/mascot_feedback.dart';
 
 /// 할 일 추가/편집 모달. dateKey가 주어지면 기본 날짜로 사용.
 Future<void> showAddTodoModal(
@@ -143,7 +144,10 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
   void _save() {
     final parsed = _parsed;
     final title = parsed.content.isNotEmpty ? parsed.content : _textCtrl.text.trim();
-    if (title.isEmpty) return;
+    if (title.isEmpty) {
+      MascotToast.error(context, '할 일을 입력해주세요');
+      return;
+    }
     final notifier = ref.read(todosProvider.notifier);
     if (isEdit) {
       notifier.update(
@@ -163,6 +167,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
         createdAt: DateTime.now().toIso8601String(),
       ));
     }
+    MascotToast.success(context, isEdit ? '할 일을 수정했어요' : '좋아요! 할 일을 추가했어요');
     Navigator.pop(context);
   }
 

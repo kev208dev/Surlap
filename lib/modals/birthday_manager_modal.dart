@@ -5,6 +5,8 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../providers/birthdays_provider.dart';
 import '../providers/birthday_notify_provider.dart';
+import '../widgets/mascot/mascot.dart';
+import '../widgets/mascot/mascot_feedback.dart';
 
 Future<void> showBirthdayManagerModal(BuildContext context) => showModalBottomSheet(
       context: context,
@@ -72,7 +74,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
       _nameCtrl.clear();
       _picked = null;
     });
-    _snack('$name 생일을 추가했어요');
+    MascotToast.success(context, '$name 생일을 추가했어요');
   }
 
   Future<void> _importFromContacts() async {
@@ -117,7 +119,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
       if (picked != null && picked.isNotEmpty) {
         ref.read(birthdaysProvider.notifier).addAll(picked);
         ref.read(birthdayNotifyProvider.notifier).reschedule();
-        if (mounted) _snack('${picked.length}명 생일을 가져왔어요');
+        if (mounted) MascotToast.success(context, '${picked.length}명 생일을 가져왔어요');
       }
     } catch (e) {
       if (mounted) _snack('연락처를 불러오지 못했어요');
@@ -318,10 +320,15 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                     ]),
                     const SizedBox(height: 8),
                     if (birthdays.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text('아직 등록된 생일이 없어요',
-                            style: AppType.body.copyWith(color: sh.inkFaint)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: MascotEmptyState(
+                          expression: MascotExpression.neutral,
+                          title: '아직 등록된 생일이 없어요',
+                          message: '직접 추가하거나 연락처에서 가져와요',
+                          mascotSize: 88,
+                          showStars: false,
+                        ),
                       )
                     else
                       ...birthdays.map((b) => _BirthdayRow(

@@ -151,7 +151,13 @@ class _SearchSheetState extends ConsumerState<_SearchSheet> {
               const SizedBox(height: Gap.sm),
               Expanded(
                 child: _query.trim().isEmpty
-                    ? _Hint(sh: sh, text: '검색어를 입력하세요')
+                    ? const MascotEmptyState(
+                        expression: MascotExpression.neutral,
+                        title: '무엇을 찾고 있나요?',
+                        message: '일정과 할 일을 검색해요',
+                        mascotSize: 110,
+                        showStars: false,
+                      )
                     : hits.isEmpty
                         ? const MascotEmptyState(
                             expression: MascotExpression.thinking,
@@ -179,16 +185,6 @@ class _SearchSheetState extends ConsumerState<_SearchSheet> {
       ),
     );
   }
-}
-
-class _Hint extends StatelessWidget {
-  final SpaceHourColors sh;
-  final String text;
-  const _Hint({required this.sh, required this.text});
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Text(text, style: AppType.body.copyWith(color: sh.inkFaint)),
-      );
 }
 
 class _HitTile extends StatelessWidget {

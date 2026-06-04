@@ -8,6 +8,7 @@ import '../models/event_item.dart';
 import '../models/calendar_theme.dart';
 import '../providers/events_provider.dart';
 import '../providers/themes_provider.dart';
+import '../widgets/mascot/mascot_feedback.dart';
 
 /// 날짜·인덱스가 있으면 편집, 없으면 추가.
 Future<void> showAddEditEventModal(
@@ -310,7 +311,10 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
 
   void _save() {
     final text = _textCtrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      MascotToast.error(context, '제목을 입력해주세요');
+      return;
+    }
 
     final eventsNotifier = ref.read(eventsProvider.notifier);
     final ids = _selectedThemes.toList();
@@ -341,6 +345,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
       eventsNotifier.addEvent(_dateKey, item);
     }
 
+    MascotToast.success(context, isEdit ? '일정을 수정했어요' : '일정을 추가했어요');
     Navigator.pop(context);
   }
 

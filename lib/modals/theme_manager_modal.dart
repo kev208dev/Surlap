@@ -9,6 +9,7 @@ import '../models/calendar_theme.dart';
 import '../providers/themes_provider.dart';
 import '../supabase/auth_service.dart';
 import '../supabase/theme_share_service.dart';
+import '../widgets/mascot/mascot.dart';
 
 Future<void> showThemeManagerModal(BuildContext context) {
   return showModalBottomSheet(
@@ -101,10 +102,19 @@ class ThemeManagerBody extends ConsumerWidget {
         .where((t) => t.shareCode != null && t.shareRole == 'subscriber')
         .toList();
 
+    final allEmpty = local.isEmpty && owned.isEmpty && subbed.isEmpty;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (allEmpty)
+          const MascotEmptyState(
+            expression: MascotExpression.neutral,
+            title: '아직 만든 테마가 없어요',
+            message: '카테고리를 만들어 일정을 색으로 구분해요',
+            mascotSize: 92,
+            showStars: false,
+          ),
         if (local.isNotEmpty) ...[
           _GroupLabel('내 카테고리', sh),
           ...local.map((t) => _ThemeRow(

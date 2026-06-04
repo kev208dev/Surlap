@@ -17,6 +17,7 @@ import '../../supabase/neis_service.dart';
 import '../../modals/add_todo_modal.dart';
 import '../../modals/birthday_manager_modal.dart';
 import '../../modals/neis_setup_modal.dart';
+import '../../widgets/mascot/mascot.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -108,6 +109,14 @@ class _HomeViewState extends ConsumerState<HomeView> {
     }).toList()
       ..sort((a, b) => (a.tm ?? '').compareTo(b.tm ?? ''));
 
+    // 오늘 부담 정도 → 마스코트 메시지(여유/응원).
+    final busy = todayAll.length + todayTodos.where((t) => !t.done).length;
+    final (MascotExpression mascotExpr, String mascotMsg) = busy == 0
+        ? (MascotExpression.sleepy, '오늘은 여유로운 하루예요 🌙')
+        : busy >= 4
+            ? (MascotExpression.cheering, '오늘도 잘 해낼 수 있어요!')
+            : (MascotExpression.happy, '오늘 하루도 차근차근 해봐요 ☺️');
+
     // 다가오는 생일 (가까운 순)
     final upcomingBirthdays = [...ref.watch(birthdaysProvider)]
       ..sort((a, b) => a.daysUntilNext().compareTo(b.daysUntilNext()));
@@ -132,6 +141,9 @@ class _HomeViewState extends ConsumerState<HomeView> {
           padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, 110),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              // 마스코트 한마디(오늘 부담에 따라 표정/문구)
+              MascotMessageCard(expression: mascotExpr, message: mascotMsg),
+              const SizedBox(height: _cardGap),
               // 다음 일정 카드 (large)
               _NextEventCard(
                 sh: sh,

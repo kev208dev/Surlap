@@ -6,6 +6,7 @@ import '../core/utils/date_utils.dart' as du;
 import '../models/day_template.dart';
 import '../providers/day_widget_provider.dart';
 import '../day_widgets/widget_cell_renderer.dart';
+import '../widgets/mascot/mascot.dart';
 
 Future<void> showDayWidgetInputModal(BuildContext context, String dateKey) =>
     showModalBottomSheet(
@@ -47,18 +48,12 @@ class DayWidgetInputModal extends ConsumerWidget {
             Divider(color: sh.border, height: 1),
             Expanded(
               child: applicable.isEmpty
-                  ? Center(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.widgets_outlined, size: 48, color: sh.inkFaint),
-                        const SizedBox(height: 12),
-                        Text('이 날짜에 적용된 위젯 템플릿이 없어요',
-                            style: AppType.body.copyWith(color: sh.inkFaint)),
-                        const SizedBox(height: Gap.lg),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('닫기'),
-                        ),
-                      ]),
+                  ? MascotEmptyState(
+                      expression: MascotExpression.neutral,
+                      title: '이 날짜에 적용된 위젯이 없어요',
+                      message: '위젯을 만들어 하루를 기록해보세요',
+                      actionText: '닫기',
+                      onAction: () => Navigator.pop(context),
                     )
                   : ListView(
                       padding: const EdgeInsets.all(20),
