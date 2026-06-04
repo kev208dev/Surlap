@@ -15,16 +15,49 @@ class NeisSchool {
   final String kind;      // 학교 종류 (고등학교 etc.)
   final int grade;
   final int classNm;
+  /// 학교 홈페이지 주소 (NEIS HMPG_ADRES). 파비콘 로고 추출에 사용.
+  final String homepage;
+  /// 학교 슬로건/교훈 — 공식 API에 없어 사용자가 직접 입력.
+  final String slogan;
+  /// 로고 이미지 URL 직접 지정(override). 비어 있으면 [logoUrl]이 파비콘으로 대체.
+  final String logoOverride;
 
   const NeisSchool({
     required this.name, required this.code,
     required this.officeCode, required this.kind,
     required this.grade, required this.classNm,
+    this.homepage = '', this.slogan = '', this.logoOverride = '',
   });
+
+  /// 실제로 표시할 로고 URL. 직접 지정한 값이 있으면 그것을,
+  /// 없으면 홈페이지 도메인의 파비콘을 쓴다. 둘 다 없으면 null.
+  String? get logoUrl {
+    if (logoOverride.trim().isNotEmpty) return logoOverride.trim();
+    return faviconUrlFor(homepage);
+  }
+
+  NeisSchool copyWith({
+    String? name, String? code, String? officeCode, String? kind,
+    int? grade, int? classNm, String? homepage, String? slogan,
+    String? logoOverride,
+  }) => NeisSchool(
+    name: name ?? this.name,
+    code: code ?? this.code,
+    officeCode: officeCode ?? this.officeCode,
+    kind: kind ?? this.kind,
+    grade: grade ?? this.grade,
+    classNm: classNm ?? this.classNm,
+    homepage: homepage ?? this.homepage,
+    slogan: slogan ?? this.slogan,
+    logoOverride: logoOverride ?? this.logoOverride,
+  );
 
   Map<String, dynamic> toJson() => {
     'name': name, 'code': code, 'officeCode': officeCode,
     'kind': kind, 'grade': grade, 'classNm': classNm,
+    if (homepage.isNotEmpty) 'homepage': homepage,
+    if (slogan.isNotEmpty) 'slogan': slogan,
+    if (logoOverride.isNotEmpty) 'logoOverride': logoOverride,
   };
 
   factory NeisSchool.fromJson(Map<String, dynamic> j) => NeisSchool(
@@ -34,6 +67,9 @@ class NeisSchool {
     kind: j['kind'] as String? ?? '',
     grade: j['grade'] as int? ?? 1,
     classNm: j['classNm'] as int? ?? 1,
+    homepage: j['homepage'] as String? ?? '',
+    slogan: j['slogan'] as String? ?? '',
+    logoOverride: j['logoOverride'] as String? ?? '',
   );
 
   static NeisSchool? load() {
@@ -47,6 +83,19 @@ class NeisSchool {
   Future<void> save() async {
     await LocalStore.instance.setString(StorageKeys.neisSchool, jsonEncode(toJson()));
   }
+}
+
+/// 홈페이지 주소에서 도메인을 뽑아 파비콘 URL을 만든다.
+/// Google 파비콘 서비스(sz=128)를 쓰면 대부분의 학교 사이트에서 안정적으로
+/// 작은 로고를 얻을 수 있다. 주소가 비었거나 파싱 실패면 null.
+String? faviconUrlFor(String homepage) {
+  final raw = homepage.trim();
+  if (raw.isEmpty) return null;
+  // 스킴이 없으면 붙여서 파싱(예: 'www.school.kr').
+  final withScheme = raw.startsWith('http') ? raw : 'https://$raw';
+  final host = Uri.tryParse(withScheme)?.host ?? '';
+  if (host.isEmpty) return null;
+  return 'https://www.google.com/s2/favicons?domain=$host&sz=128';
 }
 
 // 학교 검색

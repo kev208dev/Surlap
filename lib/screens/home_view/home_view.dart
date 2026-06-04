@@ -12,6 +12,7 @@ import '../../providers/todos_provider.dart';
 import '../../providers/neis_cache_provider.dart';
 import '../../providers/birthdays_provider.dart';
 import '../../providers/view_provider.dart';
+import '../../providers/user_type_provider.dart';
 import '../../core/utils/todo_style.dart';
 import '../../supabase/neis_service.dart';
 import '../../modals/add_todo_modal.dart';
@@ -83,6 +84,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final events = ref.watch(eventsProvider);
     final themes = ref.watch(themesProvider);
     final notifier = ref.read(viewProvider.notifier);
+
+    // 급식은 초·중·고만 사용. 단, 유형 미선택(레거시)이거나 학교가 이미
+    // 연결돼 있으면 기존처럼 표시한다.
+    final userType = ref.watch(userTypeProvider);
+    final showMeal =
+        userType == null || userType.usesMeal || NeisSchool.load() != null;
 
     final todayAll = (events[todayKey] ?? [])
         .where((e) => !e.isTimetable)
@@ -169,38 +176,45 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 onAdd: () => showAddTodoModal(context, dateKey: todayKey),
               ),
               const SizedBox(height: _cardGap),
-              // 두 번째 행: 급식 + 오늘 통계
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Builder(builder: (_) {
-                        // 직접 조회가 실패해도 스케줄표가 캐시한 오늘 급식을 사용.
-                        final neis = ref.watch(neisCacheProvider);
-                        final di = now.weekday - 1;
-                        final cached =
-                            (di >= 0 && di <= 6) ? neis.lunch[di] : null;
-                        return _MealCard(
-                          sh: sh,
-                          meal: _mealText ?? cached,
-                          loaded: _mealLoaded || cached != null,
-                          error: _mealError && cached == null,
-                          onRetry: _loadMeal,
-                        );
-                      }),
-                    ),
-                    const SizedBox(width: _cardGap),
-                    Expanded(
-                      child: _TodayStatsCard(
-                        sh: sh,
-                        count: todayAll.length,
-                        onTap: () => notifier.setDayView(todayKey),
+              // 두 번째 행: (급식 +) 오늘 통계 — 급식은 초·중·고만 노출.
+              if (showMeal)
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Builder(builder: (_) {
+                          // 직접 조회가 실패해도 스케줄표가 캐시한 오늘 급식을 사용.
+                          final neis = ref.watch(neisCacheProvider);
+                          final di = now.weekday - 1;
+                          final cached =
+                              (di >= 0 && di <= 6) ? neis.lunch[di] : null;
+                          return _MealCard(
+                            sh: sh,
+                            meal: _mealText ?? cached,
+                            loaded: _mealLoaded || cached != null,
+                            error: _mealError && cached == null,
+                            onRetry: _loadMeal,
+                          );
+                        }),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: _cardGap),
+                      Expanded(
+                        child: _TodayStatsCard(
+                          sh: sh,
+                          count: todayAll.length,
+                          onTap: () => notifier.setDayView(todayKey),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                _TodayStatsCard(
+                  sh: sh,
+                  count: todayAll.length,
+                  onTap: () => notifier.setDayView(todayKey),
                 ),
-              ),
               // 다가오는 생일
               if (upcomingBirthdays.isNotEmpty) ...[
                 const SizedBox(height: _cardGap),

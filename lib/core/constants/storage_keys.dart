@@ -28,6 +28,8 @@ abstract final class StorageKeys {
   static const birthdayNotifyDaysBefore = 'calendar-bday-notify-days-v1';
   static const cellDesign    = 'calendar-cell-design-v1';
   static const neisSchool    = 'calendar-neis-school-v1';
+  // 사용자 유형(일반인/초·중·고·대) — 로그인 없이 기기에 저장. 온보딩에서 선택.
+  static const userType      = 'calendar-user-type-v1';
   // NEIS 시간표/급식 로컬 캐시(주 단위). 재요청 가능하므로 동기화 대상 아님.
   static const neisCache     = 'calendar-neis-cache-v1';
   // NEIS 학사일정 로컬 캐시(연 단위). 재요청 가능 — 동기화 대상 아님.

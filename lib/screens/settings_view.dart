@@ -8,7 +8,10 @@ import '../providers/filter_provider.dart';
 import '../providers/birthdays_provider.dart';
 import '../providers/view_provider.dart';
 import '../providers/academic_schedule_provider.dart';
+import '../providers/user_type_provider.dart';
+import '../models/user_type.dart';
 import '../supabase/auth_service.dart';
+import '../supabase/neis_service.dart';
 import '../modals/neis_setup_modal.dart';
 import '../modals/birthday_manager_modal.dart';
 import '../modals/profile_modal.dart';
@@ -30,6 +33,10 @@ class SettingsView extends ConsumerWidget {
     final birthdays = ref.watch(birthdaysProvider);
     final user = ref.watch(authProvider);
     final loggedIn = user != null;
+    final userType = ref.watch(userTypeProvider);
+    // 학교 연동(NEIS)은 초·중·고만. 유형 미선택(레거시)은 종전대로 노출.
+    final showSchool = userType == null || userType.isSchoolStudent;
+    final school = NeisSchool.load();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, 120),
@@ -76,6 +83,23 @@ class SettingsView extends ConsumerWidget {
               loggedIn ? showProfileModal(context) : showLoginScreen(context),
         ),
         const SizedBox(height: 18),
+
+        // ── 내 유형 ──
+        SettingsSectionCard(
+          sh: sh,
+          title: '내 정보',
+          child: SettingsRow(
+            sh: sh,
+            icon: Icons.badge_outlined,
+            title: '내 유형',
+            trailing: _TypePill(
+                type: userType,
+                sh: sh,
+                onTap: () => _showTypePicker(context, ref, userType)),
+            onTap: () => _showTypePicker(context, ref, userType),
+          ),
+        ),
+        const SizedBox(height: 12),
 
         // ── 카테고리 ──
         SettingsSectionCard(
@@ -199,12 +223,12 @@ class SettingsView extends ConsumerWidget {
                   showCoachMarks(rootCtx);
                 },
               ),
-              SettingsRow(
-                sh: sh,
-                icon: Icons.school_outlined,
-                title: '학교 연결 (NEIS)',
-                onTap: () => showNeisSetupModal(context),
-              ),
+              if (showSchool)
+                _SchoolRow(
+                  sh: sh,
+                  school: school,
+                  onTap: () => showNeisSetupModal(context),
+                ),
               SettingsRow(
                 sh: sh,
                 icon: Icons.cake_outlined,
@@ -502,6 +526,188 @@ class _IosSwitch extends StatelessWidget {
         inactiveThumbColor: Colors.white,
         inactiveTrackColor: sh.ink.withValues(alpha: 0.10),
         onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+// ─── 내 유형 pill ────────────────────────────────────────────────
+class _TypePill extends StatelessWidget {
+  final UserType? type;
+  final SpaceHourColors sh;
+  final VoidCallback onTap;
+  const _TypePill({required this.type, required this.sh, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = type;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: sh.ink.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (t != null) ...[
+              Text(t.emoji, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+            ],
+            Text(t?.label ?? '선택하기',
+                style: AppType.body.copyWith(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: sh.ink.withValues(alpha: 0.55)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 유형 선택 바텀시트.
+void _showTypePicker(BuildContext context, WidgetRef ref, UserType? current) {
+  const order = [
+    UserType.elementary,
+    UserType.middle,
+    UserType.high,
+    UserType.university,
+    UserType.general,
+  ];
+  final sh = context.sh;
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      decoration: BoxDecoration(
+        color: sh.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: sh.ink.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text('내 유형',
+              style: AppType.section.copyWith(
+                  fontSize: 18, fontWeight: FontWeight.w800, color: sh.ink)),
+          const SizedBox(height: 4),
+          Text('유형에 따라 급식·학교 연동 표시가 달라져요.',
+              style: AppType.caption.copyWith(color: sh.inkSoft)),
+          const SizedBox(height: 12),
+          ...order.map((t) {
+            final sel = t == current;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Text(t.emoji, style: const TextStyle(fontSize: 22)),
+              title: Text(t.label,
+                  style: AppType.body.copyWith(
+                      fontWeight: sel ? FontWeight.w800 : FontWeight.w600,
+                      color: sel ? sh.accentInk : sh.ink)),
+              subtitle: Text(t.tagline,
+                  style: AppType.label.copyWith(color: sh.inkSoft)),
+              trailing: sel
+                  ? Icon(Icons.check_circle_rounded, color: sh.accent, size: 20)
+                  : null,
+              onTap: () {
+                ref.read(userTypeProvider.notifier).set(t);
+                Navigator.pop(context);
+              },
+            );
+          }),
+        ],
+      ),
+    ),
+  );
+}
+
+// ─── 학교 연결 행(로고/슬로건 표시) ────────────────────────────────
+class _SchoolRow extends StatelessWidget {
+  final SpaceHourColors sh;
+  final NeisSchool? school;
+  final VoidCallback onTap;
+  const _SchoolRow({required this.sh, required this.school, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = school;
+    if (s == null) {
+      return SettingsRow(
+        sh: sh,
+        icon: Icons.school_outlined,
+        title: '학교 연결 (NEIS)',
+        onTap: onTap,
+      );
+    }
+    final logo = s.logoUrl;
+    final sub = s.slogan.isNotEmpty
+        ? s.slogan
+        : '${s.kind} · ${s.grade}학년 ${s.classNm}반';
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 9),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: sh.ink.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              clipBehavior: Clip.antiAlias,
+              alignment: Alignment.center,
+              child: (logo != null && logo.isNotEmpty)
+                  ? Image.network(logo,
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Icon(Icons.school_rounded,
+                          size: 18, color: sh.ink.withValues(alpha: 0.48)))
+                  : Icon(Icons.school_rounded,
+                      size: 18, color: sh.ink.withValues(alpha: 0.48)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.body.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                          color: sh.ink)),
+                  Text(sub,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.label.copyWith(
+                          fontSize: 12, color: sh.inkSoft)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 20, color: sh.inkFaint),
+          ],
+        ),
       ),
     );
   }

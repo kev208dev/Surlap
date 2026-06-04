@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/user_type.dart';
+import '../../providers/user_type_provider.dart';
 import '../../widgets/mascot/mascot.dart';
 
 /// 첫 실행(또는 온보딩 미시청) 시 1회 표시되는 전체화면 온보딩.
-/// PageView 3장 + 점 인디케이터 + 다음/시작하기 버튼. 스와이프 지원.
+/// PageView 3장(소개) + 1장(유형 선택) + 점 인디케이터 + 다음/시작하기 버튼.
+/// 유형 선택은 로그인 없이 진행되며, 선택값은 기기에 로컬 저장된다.
 /// 보라→블루 그라데이션(스플래시 톤)에 HourSpace 로고.
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   final VoidCallback onDone;
   const OnboardingScreen({super.key, required this.onDone});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _Slide {
@@ -21,9 +25,10 @@ class _Slide {
       {required this.expression, required this.headline, required this.sub});
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pc = PageController();
   int _page = 0;
+  UserType? _selectedType;
 
   static const _slides = [
     _Slide(
@@ -39,11 +44,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _Slide(
       expression: MascotExpression.cheering,
       headline: '이제 시작할 시간',
-      sub: '몇 번의 탭이면 하루가 정리됩니다.',
+      sub: '먼저, 나에게 맞게 맞춰볼게요.',
     ),
   ];
 
-  bool get _isLast => _page == _slides.length - 1;
+  // 마지막 페이지 = 유형 선택 페이지.
+  int get _pageCount => _slides.length + 1;
+  bool get _isPicker => _page == _slides.length;
 
   @override
   void dispose() {
@@ -52,7 +59,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _next() {
-    if (_isLast) {
+    if (_isPicker) {
+      final type = _selectedType;
+      if (type == null) return;
+      ref.read(userTypeProvider.notifier).set(type);
       widget.onDone();
     } else {
       _pc.nextPage(
@@ -64,6 +74,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 유형 선택 페이지에선 선택 전까진 버튼 비활성.
+    final canProceed = !_isPicker || _selectedType != null;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -121,19 +134,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ],
                       ),
                     ),
-                    // ── 슬라이드 ──
+                    // ── 슬라이드 + 유형 선택 ──
                     Expanded(
                       child: PageView.builder(
                         controller: _pc,
                         onPageChanged: (i) => setState(() => _page = i),
-                        itemCount: _slides.length,
-                        itemBuilder: (_, i) => _SlideView(slide: _slides[i]),
+                        itemCount: _pageCount,
+                        itemBuilder: (_, i) {
+                          if (i < _slides.length) {
+                            return _SlideView(slide: _slides[i]);
+                          }
+                          return _TypePickerView(
+                            selected: _selectedType,
+                            onSelect: (t) => setState(() => _selectedType = t),
+                          );
+                        },
                       ),
                     ),
                     // ── 점 인디케이터 ──
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(_slides.length, (i) {
+                      children: List.generate(_pageCount, (i) {
                         final active = i == _page;
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 240),
@@ -157,16 +178,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
-                          onPressed: _next,
+                          onPressed: canProceed ? _next : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: const Color(0xFF5A2DF4),
+                            disabledBackgroundColor:
+                                Colors.white.withValues(alpha: 0.45),
+                            disabledForegroundColor:
+                                const Color(0xFF5A2DF4).withValues(alpha: 0.5),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(999)),
                           ),
                           child: Text(
-                            _isLast ? '시작하기' : '다음',
+                            _isPicker ? '시작하기' : '다음',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
@@ -226,6 +251,136 @@ class _SlideView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── 유형 선택 페이지 ────────────────────────────────────────────
+class _TypePickerView extends StatelessWidget {
+  final UserType? selected;
+  final ValueChanged<UserType> onSelect;
+  const _TypePickerView({required this.selected, required this.onSelect});
+
+  // 노출 순서: 학생(초·중·고·대) → 일반.
+  static const _order = [
+    UserType.elementary,
+    UserType.middle,
+    UserType.high,
+    UserType.university,
+    UserType.general,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '어떤 분이세요?',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '유형에 맞춰 화면을 채워드려요. 나중에 설정에서 바꿀 수 있어요.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.45,
+              color: Colors.white.withValues(alpha: 0.72),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.only(bottom: 8),
+              itemCount: _order.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (_, i) {
+                final t = _order[i];
+                return _TypeCard(
+                  type: t,
+                  selected: selected == t,
+                  onTap: () => onSelect(t),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeCard extends StatelessWidget {
+  final UserType type;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TypeCard(
+      {required this.type, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected
+              ? Colors.white
+              : Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.22),
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(type.emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    type.label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                      color: selected
+                          ? const Color(0xFF5A2DF4)
+                          : Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    type.tagline,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: selected
+                          ? const Color(0xFF5A2DF4).withValues(alpha: 0.65)
+                          : Colors.white.withValues(alpha: 0.66),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(Icons.check_circle_rounded,
+                  color: Color(0xFF5A2DF4), size: 22),
+          ],
+        ),
       ),
     );
   }
