@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../supabase/neis_service.dart';
+import '../widgets/mascot/mascot_feedback.dart';
 
 Future<void> showNeisSetupModal(BuildContext context) =>
     showModalBottomSheet(
@@ -204,6 +205,9 @@ class _NeisSetupModalState extends State<NeisSetupModal> {
       classNm: _classNm,
     );
     await school.save();
-    if (mounted) { Navigator.pop(context); }
+    if (mounted) {
+      MascotToast.success(context, '${school.name} 연결 완료!');
+      Navigator.pop(context);
+    }
   }
 }

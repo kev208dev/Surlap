@@ -5,6 +5,8 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../models/day_template.dart';
 import '../providers/day_widget_provider.dart';
+import '../widgets/mascot/mascot.dart';
+import '../widgets/mascot/mascot_feedback.dart';
 
 Future<void> showDayTemplateManagerModal(BuildContext context) =>
     showModalBottomSheet(
@@ -90,14 +92,14 @@ class DayTemplateManagerModal extends ConsumerWidget {
                   Divider(color: sh.border, height: 24),
                   // 내 템플릿
                   if (templates.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: Text(
-                          '템플릿이 없습니다.\n추천 시안에서 가져오거나 새로 만들어보세요.',
-                          textAlign: TextAlign.center,
-                          style: AppType.body.copyWith(color: sh.inkFaint, height: 1.6),
-                        ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: MascotEmptyState(
+                        expression: MascotExpression.neutral,
+                        title: '아직 만든 위젯이 없어요',
+                        message: '추천 시안에서 가져오거나 새로 만들어보세요',
+                        mascotSize: 92,
+                        showStars: false,
                       ),
                     )
                   else
@@ -214,9 +216,7 @@ class _PresetsSectionState extends State<_PresetsSection> {
       enabled: true,
     );
     widget.ref.read(dayTemplatesProvider.notifier).add(tpl);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${p.name}" 가져왔습니다'), duration: const Duration(seconds: 1)),
-    );
+    MascotToast.success(context, '"${p.name}" 위젯을 가져왔어요');
   }
 }
 

@@ -10,6 +10,7 @@ import '../providers/themes_provider.dart';
 import '../supabase/auth_service.dart';
 import '../supabase/theme_share_service.dart';
 import '../widgets/mascot/mascot.dart';
+import '../widgets/mascot/mascot_feedback.dart';
 
 Future<void> showThemeManagerModal(BuildContext context) {
   return showModalBottomSheet(
@@ -210,9 +211,7 @@ class ThemeManagerBody extends ConsumerWidget {
                 final theme = await ThemeShareService.fetchByCode(code);
                 if (theme == null) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('해당 코드의 테마를 찾을 수 없습니다')),
-                    );
+                    MascotToast.error(context, '해당 코드의 테마를 찾을 수 없어요');
                   }
                   return;
                 }
@@ -220,15 +219,11 @@ class ThemeManagerBody extends ConsumerWidget {
                 final subTheme = theme.copyWith(shareRole: 'subscriber');
                 ref.read(themesProvider.notifier).add(subTheme);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('테마 "${theme.name}" 가져오기 완료')),
-                  );
+                  MascotToast.success(context, '테마 "${theme.name}" 가져왔어요');
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('오류: $e')),
-                  );
+                  MascotToast.error(context, '가져오기에 실패했어요');
                 }
               }
             },
@@ -447,9 +442,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
       // shareCode/shareRole 없음 → 내가 편집할 수 있는 로컬 테마
     );
     ref.read(themesProvider.notifier).add(copy);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${copy.name}" 내 테마로 복제됨')),
-    );
+    MascotToast.success(context, '"${copy.name}" 내 테마로 복제했어요');
   }
 
   void _pickColor() async {
