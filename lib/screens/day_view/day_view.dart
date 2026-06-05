@@ -12,6 +12,7 @@ import '../../providers/academic_schedule_provider.dart';
 import '../../providers/birthdays_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../core/utils/todo_style.dart';
+import '../../widgets/mascot/mascot.dart';
 import '../../widgets/mascot/mascot_feedback.dart';
 import '../../models/event_item.dart';
 import '../../models/todo_item.dart';
@@ -93,6 +94,11 @@ class _DayViewState extends ConsumerState<DayView> {
     // 이 날짜의 요일에 해당하는 반복 일정(시간표 탭에서 작성).
     final recurringForDay =
         ref.watch(recurringProvider)[weekdayIndex(date)] ?? const {};
+    // 시간/종일/할일/반복 전부 없으면 빈 날 → 마스코트 힌트.
+    final dayEmpty = timed.isEmpty &&
+        recurringForDay.isEmpty &&
+        allDay.isEmpty &&
+        dayTodos.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,7 +169,7 @@ class _DayViewState extends ConsumerState<DayView> {
         Expanded(
           child: LayoutBuilder(builder: (context, constraints) {
             final dayColW = constraints.maxWidth - _timeColW;
-            return SingleChildScrollView(
+            final timeline = SingleChildScrollView(
               controller: _scroll,
               padding: const EdgeInsets.only(bottom: 110),
               child: SizedBox(
@@ -239,6 +245,39 @@ class _DayViewState extends ConsumerState<DayView> {
                   ],
                 ),
               ),
+            );
+            if (!dayEmpty) return timeline;
+            // 빈 날 — 타임라인 위에 마스코트 힌트(탭 통과).
+            return Stack(
+              children: [
+                timeline,
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 80),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const MascotView(
+                                expression: MascotExpression.sleepy,
+                                size: 96),
+                            const SizedBox(height: 10),
+                            Text('이 날은 아직 비어있어요',
+                                style: AppType.body.copyWith(
+                                    color: sh.inkFaint,
+                                    fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 2),
+                            Text('탭해서 일정을 추가해보세요',
+                                style: AppType.label
+                                    .copyWith(color: sh.inkFaint)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             );
           }),
         ),

@@ -232,7 +232,7 @@ class _LogoMark extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Image.asset(
-                'assets/images/logo.png',
+                'assets/mascot/front.png',
                 fit: BoxFit.contain,
               ),
             ),

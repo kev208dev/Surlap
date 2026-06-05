@@ -5,6 +5,7 @@ import '../core/theme/design_tokens.dart';
 import '../providers/color_preset_provider.dart';
 import '../providers/view_provider.dart';
 import '../supabase/auth_service.dart';
+import '../widgets/mascot/mascot.dart';
 import '../modals/backup_modal.dart';
 import 'login/login_screen.dart';
 import 'settings_view.dart' show SettingsSectionCard, SettingsRow;
@@ -168,8 +169,9 @@ class _AccountCard extends StatelessWidget {
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w800))
-                  : const Icon(Icons.person_rounded,
-                      color: Colors.white, size: 26),
+                  : const ClipOval(
+                      child: MascotView(
+                          expression: MascotExpression.happy, size: 50)),
             ),
             const SizedBox(width: 14),
             Expanded(

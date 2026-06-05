@@ -56,13 +56,24 @@ class ThemeManagerModal extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.sm, Gap.md),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('테마 관리',
-                      style: AppType.title.copyWith(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: sh.ink)),
-                  const Spacer(),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('테마 관리',
+                            style: AppType.title.copyWith(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: sh.ink)),
+                        const SizedBox(height: 2),
+                        Text('카테고리를 만들고 색을 정하거나, 코드로 공유·구독해요',
+                            style: AppType.label.copyWith(
+                                fontSize: 12.5, color: sh.inkSoft)),
+                      ],
+                    ),
+                  ),
                   IconButton(
                     icon: Icon(Icons.close, color: sh.inkSoft, size: 22),
                     onPressed: () => Navigator.pop(context),
@@ -108,13 +119,18 @@ class ThemeManagerBody extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── 요약 카드 ──
+        _SummaryCard(count: themes.length, sh: sh),
         if (allEmpty)
-          const MascotEmptyState(
-            expression: MascotExpression.neutral,
-            title: '아직 만든 테마가 없어요',
-            message: '카테고리를 만들어 일정을 색으로 구분해요',
-            mascotSize: 92,
-            showStars: false,
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: MascotEmptyState(
+              expression: MascotExpression.neutral,
+              title: '아직 만든 테마가 없어요',
+              message: '카테고리를 만들어 일정을 색으로 구분해요',
+              mascotSize: 92,
+              showStars: false,
+            ),
           ),
         if (local.isNotEmpty) ...[
           _GroupLabel('내 카테고리', sh),
@@ -123,53 +139,57 @@ class ThemeManagerBody extends ConsumerWidget {
               theme: t, editable: true, ref: ref, sh: sh)),
         ],
         if (owned.isNotEmpty) ...[
-          _GroupLabel('🔗 공유 중 · 내가 공유', sh),
+          _GroupLabel('공유 중 · 내가 공유', sh),
           ...owned.map((t) => _ThemeRow(
               key: ValueKey(t.id),
               theme: t, editable: true, ref: ref, sh: sh,
               shareCode: t.shareCode)),
         ],
         if (subbed.isNotEmpty) ...[
-          _GroupLabel('📥 구독 중', sh),
+          _GroupLabel('구독 중', sh),
           ...subbed.map((t) => _ThemeRow(
               key: ValueKey(t.id),
               theme: t, editable: false, ref: ref, sh: sh,
               shareCode: t.shareCode)),
         ],
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _addTheme(ref),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('테마 추가'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: sh.accent,
-                  side: BorderSide(color: sh.accent),
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
+        const SizedBox(height: 18),
+        // ── primary: 새 테마 만들기 ──
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () => _addTheme(ref),
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: const Text('새 테마 만들기',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            style: FilledButton.styleFrom(
+              backgroundColor: sh.accent,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(54),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
             ),
-            const SizedBox(width: Gap.md),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _importTheme(context, ref, sh),
-                icon: const Icon(Icons.download_outlined, size: 18),
-                label: const Text('초대 링크로 가져오기'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: sh.inkSoft,
-                  side: BorderSide(color: sh.border),
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
+        const SizedBox(height: 10),
+        // ── secondary: 초대 링크로 가져오기 ──
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () => _importTheme(context, ref, sh),
+            icon: Icon(Icons.download_rounded, size: 18, color: sh.inkSoft),
+            label: Text('초대 링크로 가져오기',
+                style: AppType.body.copyWith(
+                    fontWeight: FontWeight.w700, color: sh.inkSoft)),
+            style: TextButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        // ── 활용 팁 ──
+        _TipCard(sh: sh),
       ],
     );
   }
@@ -243,8 +263,102 @@ class _GroupLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(0, Gap.lg, 0, Gap.sm),
-    child: Text(text, style: AppType.label.copyWith(color: sh.inkSoft)),
+    child: Text(text,
+        style: AppType.label.copyWith(
+            fontWeight: FontWeight.w800, color: sh.inkSoft)),
   );
+}
+
+// ─── 요약 카드(테마 개수 + 한 줄 설명) ────────────────────────────
+class _SummaryCard extends StatelessWidget {
+  final int count;
+  final SpaceHourColors sh;
+  const _SummaryCard({required this.count, required this.sh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: sh.accent.withValues(alpha: sh.dark ? 0.12 : 0.07),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: sh.accent.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: sh.accent.withValues(alpha: sh.dark ? 0.24 : 0.16),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.palette_rounded, color: sh.accent, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('내 테마 $count개',
+                    style: AppType.body.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: sh.ink)),
+                const SizedBox(height: 3),
+                Text('색상으로 일정을 구분하고 링크로 친구와 공유할 수 있어요',
+                    style: AppType.label.copyWith(
+                        fontSize: 12.5, color: sh.inkSoft, height: 1.35)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── 하단 활용 팁 카드 ────────────────────────────────────────────
+class _TipCard extends StatelessWidget {
+  final SpaceHourColors sh;
+  const _TipCard({required this.sh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: sh.ink.withValues(alpha: sh.dark ? 0.04 : 0.025),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: sh.ink.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lightbulb_outline_rounded, size: 18, color: sh.accent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('활용 팁',
+                    style: AppType.label.copyWith(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: sh.ink)),
+                const SizedBox(height: 3),
+                Text('색상을 다르게 설정하면 월간·주간 화면에서 일정을 더 빠르게 구분할 수 있어요',
+                    style: AppType.caption.copyWith(
+                        color: sh.inkSoft, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ThemeRow extends ConsumerStatefulWidget {
@@ -267,12 +381,21 @@ class _ThemeRow extends ConsumerStatefulWidget {
 class _ThemeRowState extends ConsumerState<_ThemeRow> {
   late TextEditingController _nameCtrl;
   late Color _color;
+  bool _editing = false;
+  final FocusNode _focus = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.theme.name);
     _color = widget.theme.colorValue;
+    // 편집 중 포커스 잃으면 저장 후 보기 모드로 복귀.
+    _focus.addListener(() {
+      if (!_focus.hasFocus && _editing) {
+        _saveName(_nameCtrl.text);
+        if (mounted) setState(() => _editing = false);
+      }
+    });
   }
 
   @override
@@ -291,102 +414,159 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final sh = widget.sh;
+    final t = widget.theme;
+    final subtitle = t.shareRole == 'owner'
+        ? '내가 공유 중'
+        : t.shareRole == 'subscriber'
+            ? '구독 중'
+            : '공유 안 됨';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: Gap.sm),
-      padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: Gap.md),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: sh.card2,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: sh.ink.withValues(alpha: 0.06)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: sh.ink.withValues(alpha: 0.07)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 색상 도트 (탭하면 색상 변경)
-          GestureDetector(
-            onTap: widget.editable ? _pickColor : null,
-            child: Container(
-              width: 22, height: 22,
-              decoration: BoxDecoration(
-                color: _color,
-                shape: BoxShape.circle,
-                border: Border.all(color: sh.border, width: 1.5),
-              ),
-            ),
-          ),
-          const SizedBox(width: Gap.md),
-          // 이름 편집
-          Expanded(
-            child: TextField(
-              controller: _nameCtrl,
-              readOnly: !widget.editable,
-              style: AppType.body.copyWith(color: sh.ink),
-              decoration: InputDecoration(
-                hintText: '카테고리 이름',
-                hintStyle: TextStyle(color: sh.inkFaint),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-              onSubmitted: (v) => _saveName(v),
-              onEditingComplete: () => _saveName(_nameCtrl.text),
-            ),
-          ),
-          // 공유 코드 배지 (탭하면 링크 공유)
-          if (widget.shareCode != null)
-            GestureDetector(
-              onTap: () => _shareLink(widget.theme.name, widget.shareCode!),
-              child: Container(
-                margin: const EdgeInsets.only(left: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: sh.accentBg,
-                  borderRadius: BorderRadius.circular(8),
+          Row(
+            children: [
+              _colorDot(sh),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _nameField(sh),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: AppType.caption.copyWith(color: sh.inkSoft)),
+                  ],
                 ),
-                child: Text(widget.shareCode!,
-                    style: AppType.label.copyWith(color: sh.accentInk)),
               ),
-            ),
-          // 구독 테마: 최신 내용 받기(owner 수정 반영) + 내 테마로 복제
-          if (widget.theme.shareRole == 'subscriber') ...[
-            IconButton(
-              icon: Icon(Icons.refresh_rounded, size: 18, color: sh.inkSoft),
-              tooltip: '최신 내용 받기',
-              onPressed: _refreshSubscribed,
-              padding: const EdgeInsets.only(left: 2),
-              constraints: const BoxConstraints(),
-            ),
-            IconButton(
-              icon: Icon(Icons.copy_rounded, size: 17, color: sh.inkSoft),
-              tooltip: '내 테마로 복제',
-              onPressed: _duplicateToMine,
-              padding: const EdgeInsets.only(left: 2),
-              constraints: const BoxConstraints(),
-            ),
-          ],
-          // 공유 버튼 (로컬·오너 테마만 — subscriber는 제외)
-          if (widget.editable && widget.shareCode == null)
-            IconButton(
-              icon: Icon(Icons.link_rounded, size: 18, color: sh.inkSoft),
-              tooltip: '공유하기',
-              onPressed: () => _shareTheme(context),
-              padding: const EdgeInsets.only(left: 2),
-              constraints: const BoxConstraints(),
-            ),
-          // 삭제 버튼 (구독 테마는 "구독 취소")
-          IconButton(
-            icon: Icon(Icons.delete_outline_rounded, size: 18, color: sh.danger),
-            tooltip: widget.theme.shareRole == 'subscriber' ? '구독 취소' : '삭제',
-            onPressed: _delete,
-            padding: const EdgeInsets.only(left: 4),
-            constraints: const BoxConstraints(),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(spacing: 8, children: _actionChips(sh)),
           ),
         ],
+      ),
+    );
+  }
+
+  // 색상 원 — 큰 사이즈 + 글로우 + 흰 링으로 "탭 가능" 강조.
+  Widget _colorDot(SpaceHourColors sh) {
+    final dot = Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: _color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(color: _color.withValues(alpha: 0.40), blurRadius: 14),
+        ],
+        border: Border.all(
+            color: Colors.white.withValues(alpha: 0.22), width: 2),
+      ),
+    );
+    if (!widget.editable) return dot;
+    return GestureDetector(onTap: _pickColor, child: dot);
+  }
+
+  // 이름 — 평소엔 카드 제목 텍스트, 탭하면 편집 모드.
+  Widget _nameField(SpaceHourColors sh) {
+    final titleStyle = AppType.body.copyWith(
+        fontSize: 16, fontWeight: FontWeight.w800, color: sh.ink);
+    if (_editing) {
+      return TextField(
+        controller: _nameCtrl,
+        focusNode: _focus,
+        autofocus: true,
+        style: titleStyle,
+        decoration: InputDecoration(
+          isDense: true,
+          filled: false,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+          hintText: '테마 이름',
+          hintStyle: TextStyle(color: sh.inkFaint),
+        ),
+        onSubmitted: (v) {
+          _saveName(v);
+          setState(() => _editing = false);
+        },
+      );
+    }
+    final empty = widget.theme.name.trim().isEmpty;
+    final title = Text(
+      empty ? '테마 이름' : widget.theme.name,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: empty ? titleStyle.copyWith(color: sh.inkFaint) : titleStyle,
+    );
+    if (!widget.editable) return title;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _editing = true),
+      child: title,
+    );
+  }
+
+  // 상태별 액션 칩(라벨 + 약한 배경).
+  List<Widget> _actionChips(SpaceHourColors sh) {
+    final t = widget.theme;
+    if (t.shareRole == 'subscriber') {
+      return [
+        _chip(Icons.refresh_rounded, '받기', sh.inkSoft, _refreshSubscribed, sh),
+        _chip(Icons.copy_rounded, '복제', sh.accent, _duplicateToMine, sh),
+        _chip(Icons.delete_outline_rounded, '구독 취소', sh.danger, _delete, sh),
+      ];
+    }
+    final chips = <Widget>[];
+    if (widget.shareCode != null) {
+      chips.add(_chip(Icons.link_rounded, '링크 복사', sh.accent,
+          () => _shareLink(t.name, widget.shareCode!), sh));
+    } else if (widget.editable) {
+      chips.add(_chip(
+          Icons.link_rounded, '공유', sh.accent, () => _shareTheme(context), sh));
+    }
+    chips.add(_chip(Icons.delete_outline_rounded, '삭제', sh.danger, _delete, sh));
+    return chips;
+  }
+
+  Widget _chip(IconData icon, String label, Color color, VoidCallback onTap,
+      SpaceHourColors sh) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: sh.dark ? 0.16 : 0.10),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 5),
+            Text(label,
+                style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w700, color: color)),
+          ],
+        ),
       ),
     );
   }

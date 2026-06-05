@@ -1,6 +1,6 @@
 name: spacehour
 description: "HourSpace — 나만의 일정·시간표·위젯을 한 곳에"
-publish_to: 'none'
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
@@ -46,9 +46,6 @@ dependencies:
   # 갤러리 저장 (달력 이미지 저장)
   gal: ^2.3.0
 
-  # 연락처 가져오기 (생일)
-  flutter_contacts: ^1.1.9
-
   # 로컬 알림 (생일 알림)
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
@@ -63,7 +60,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/logo.png
     - assets/mascot/
   # assets/fonts/ 에 파일이 없으면 빌드 오류 — 폰트는 web/index.html CDN 사용
-

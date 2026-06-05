@@ -158,14 +158,7 @@ class _ContinuousWeekViewState extends ConsumerState<ContinuousWeekView> {
               itemExtent: _rowH,
               itemBuilder: (context, index) {
                 final ws = _weekStartForIndex(index);
-                // 이 주가 새 달의 1일을 포함하면 월 경계 구분선 표시
-                final containsMonthStart = List.generate(7,
-                    (i) => DateTime(ws.year, ws.month, ws.day + i))
-                    .any((d) => d.day == 1);
-                return _WeekRow(
-                  weekStart: ws,
-                  showTopBorder: containsMonthStart,
-                );
+                return _WeekRow(weekStart: ws);
               },
             ),
           ),
@@ -177,8 +170,7 @@ class _ContinuousWeekViewState extends ConsumerState<ContinuousWeekView> {
 
 class _WeekRow extends ConsumerWidget {
   final DateTime weekStart;
-  final bool showTopBorder;
-  const _WeekRow({required this.weekStart, this.showTopBorder = false});
+  const _WeekRow({required this.weekStart});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -192,7 +184,9 @@ class _WeekRow extends ConsumerWidget {
     final birthdays = ref.watch(birthdaysProvider);
     final sh = context.sh;
 
-    // 월 경계 구분선 (1일이 포함된 주의 상단에 은은한 라인)
+    // 월 경계 구분선 — 윗칸(7일 전)이 지난달인 셀 상단에 또렷한 라인(계단형).
+    final monthEdge =
+        BorderSide(color: sh.accent.withValues(alpha: 0.55), width: 2);
     Widget row = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: List.generate(7, (i) {
@@ -239,6 +233,22 @@ class _WeekRow extends ConsumerWidget {
               ref.read(circlesProvider.notifier).toggle(key),
         );
 
+        // 월 경계 계단선 — 윗칸(7일 전)이 지난달인 셀(=day<=7) 상단에 라인.
+        // 1일 셀은 왼쪽(계단의 세로 연결부)에도 같은 색 라인.
+        // 단, 1일이 주의 첫 칸(i==0, 화면 맨 끝)이면 세로선 생략.
+        if (date.day <= 7) {
+          cell = DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              border: Border(
+                top: monthEdge,
+                left: (date.day == 1 && i > 0) ? monthEdge : BorderSide.none,
+              ),
+            ),
+            child: cell,
+          );
+        }
+
         // 매월 1일 셀에 월 라벨 오버레이 (달 경계 표시)
         if (date.day == 1) {
           cell = Stack(
@@ -269,15 +279,7 @@ class _WeekRow extends ConsumerWidget {
       }),
     );
 
-    if (!showTopBorder) return row;
-
-    // 월 경계: 은은한 상단 라인 추가 (Stack으로 row 위에 오버레이)
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: sh.border, width: 1.5)),
-      ),
-      child: row,
-    );
+    return row;
   }
 
   void _handleDayTap(BuildContext context, WidgetRef ref, DateTime date) {

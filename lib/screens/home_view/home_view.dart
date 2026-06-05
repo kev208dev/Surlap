@@ -427,12 +427,10 @@ class _NextEventCard extends StatelessWidget {
                 ),
               ],
             ] else ...[
-              Text(
-                allToday.isEmpty ? '오늘 일정이 없어요' : '남은 일정이 없어요',
-                style: AppType.title.copyWith(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: sh.inkFaint),
+              MascotNote(
+                expression: MascotExpression.neutral,
+                text: allToday.isEmpty ? '오늘 일정이 없어요' : '남은 일정이 없어요',
+                mascotSize: 52,
               ),
             ],
           ],
@@ -490,31 +488,37 @@ class _MealCard extends StatelessWidget {
             Text(meal!,
                 style: AppType.body.copyWith(
                     fontWeight: FontWeight.w600, color: sh.ink, height: 1.45))
-          else if (NeisSchool.load() == null) ...[
+          else if (NeisSchool.load() == null)
             // NEIS 같은 기술 용어 대신 친근한 문구.
-            Text('학교 미연결',
-                style: AppType.body.copyWith(color: sh.inkFaint)),
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: () => showNeisSetupModal(context),
-              child: Text('학교 연결하기 →',
-                  style: AppType.label.copyWith(
-                      color: sh.accent, fontWeight: FontWeight.w600)),
+            MascotNote(
+              expression: MascotExpression.neutral,
+              text: '학교 미연결',
+              mascotSize: 40,
+              trailing: GestureDetector(
+                onTap: () => showNeisSetupModal(context),
+                child: Text('학교 연결하기 →',
+                    style: AppType.label.copyWith(
+                        color: sh.accent, fontWeight: FontWeight.w600)),
+              ),
+            )
+          else if (error)
+            MascotNote(
+              expression: MascotExpression.thinking,
+              text: '급식 정보를 불러오지 못했어요',
+              mascotSize: 40,
+              trailing: GestureDetector(
+                onTap: onRetry,
+                child: Text('다시 시도',
+                    style: AppType.label.copyWith(
+                        color: sh.accent, fontWeight: FontWeight.w700)),
+              ),
+            )
+          else
+            const MascotNote(
+              expression: MascotExpression.sleepy,
+              text: '오늘 급식 정보가 없어요',
+              mascotSize: 40,
             ),
-          ] else if (error) ...[
-            Text('급식 정보를 불러오지 못했어요',
-                style: AppType.label.copyWith(color: sh.inkFaint, height: 1.3),
-                maxLines: 2),
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: onRetry,
-              child: Text('다시 시도',
-                  style: AppType.label.copyWith(
-                      color: sh.accent, fontWeight: FontWeight.w700)),
-            ),
-          ] else
-            Text('오늘 급식 정보가 없어요',
-                style: AppType.body.copyWith(color: sh.inkFaint)),
         ],
       ),
     );
@@ -725,10 +729,13 @@ class _TodayTodosCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           if (todos.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Text('오늘 할 일이 없어요. + 로 추가해보세요.',
-                  style: AppType.body.copyWith(color: sh.inkFaint)),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: MascotNote(
+                expression: MascotExpression.thinking,
+                text: '오늘 할 일이 없어요. + 로 추가해보세요.',
+                mascotSize: 44,
+              ),
             )
           else
             ...todos.map((t) {

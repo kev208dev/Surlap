@@ -119,7 +119,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image.asset('assets/images/logo.png',
+                          Image.asset('assets/mascot/front.png',
                               height: 24, fit: BoxFit.contain),
                           const SizedBox(width: 8),
                           const Text(

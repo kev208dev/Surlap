@@ -7,6 +7,7 @@ import '../providers/events_provider.dart';
 import '../providers/todos_provider.dart';
 import '../providers/day_widget_provider.dart';
 import '../providers/view_provider.dart';
+import '../widgets/mascot/mascot.dart';
 import 'add_edit_event_modal.dart';
 import 'add_todo_modal.dart';
 import 'day_widget_input_modal.dart';
@@ -169,11 +170,15 @@ void _showWidgetPicker(BuildContext context, WidgetRef ref, String dateKey) {
                 style: AppType.section
                     .copyWith(fontWeight: FontWeight.w800, color: sh.ink)),
             const SizedBox(height: 4),
-            Text(
-                templates.isEmpty
-                    ? '아직 만든 위젯이 없어요. 새로 만들어 보세요.'
-                    : '추가할 위젯을 선택하세요.',
-                style: AppType.label.copyWith(color: sh.inkSoft)),
+            if (templates.isEmpty)
+              const MascotNote(
+                expression: MascotExpression.neutral,
+                text: '아직 만든 위젯이 없어요. 새로 만들어 보세요.',
+                mascotSize: 44,
+              )
+            else
+              Text('추가할 위젯을 선택하세요.',
+                  style: AppType.label.copyWith(color: sh.inkSoft)),
             const SizedBox(height: Gap.sm),
             ...templates.map((tpl) {
               final applied = tpl.scope.appliesTo(dateKey);

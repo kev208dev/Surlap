@@ -29,7 +29,18 @@ class MascotView extends StatelessWidget {
     this.showStars = false,
   });
 
+  /// 표정별 전용 아트(이상적). 있으면 우선 사용.
   String get _asset => 'assets/mascot/mascot_${expression.name}.png';
+
+  /// 전용 표정 PNG가 아직 없을 때 보여줄 실제 캐릭터 포즈.
+  /// 절대 이모지/스마일 아이콘으로 떨어지지 않도록 보장한다.
+  String get _fallbackAsset => switch (expression) {
+        MascotExpression.neutral => 'assets/mascot/front.png',
+        MascotExpression.happy => 'assets/mascot/front.png',
+        MascotExpression.cheering => 'assets/mascot/threee_quarter.png',
+        MascotExpression.sleepy => 'assets/mascot/side.png',
+        MascotExpression.thinking => 'assets/mascot/side.png',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +49,16 @@ class MascotView extends StatelessWidget {
       width: size,
       height: size,
       fit: BoxFit.contain,
-      // 개별 표정 에셋이 아직 없으면 플레이스홀더로 폴백.
-      errorBuilder: (_, _, _) =>
-          _MascotPlaceholder(expression: expression, size: size),
+      // 1순위: 전용 표정 아트가 없으면 실제 캐릭터 포즈로 폴백.
+      errorBuilder: (_, _, _) => Image.asset(
+        _fallbackAsset,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        // 최후 폴백(캐릭터 에셋 자체가 없을 때만): 브랜드 플레이스홀더.
+        errorBuilder: (_, _, _) =>
+            _MascotPlaceholder(expression: expression, size: size),
+      ),
     );
     if (!showStars) return img;
     return SizedBox(
@@ -181,6 +199,53 @@ class MascotEmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 카드 안 인라인 빈 상태 — 작은 마스코트 + 문구(+선택 액션).
+/// `MascotEmptyState`(큰 중앙형)가 과한, 컴팩트 카드 내부용.
+class MascotNote extends StatelessWidget {
+  final MascotExpression expression;
+  final String text;
+  final double mascotSize;
+  final Widget? trailing;
+  final CrossAxisAlignment align;
+  const MascotNote({
+    super.key,
+    this.expression = MascotExpression.neutral,
+    required this.text,
+    this.mascotSize = 46,
+    this.trailing,
+    this.align = CrossAxisAlignment.center,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sh = context.sh;
+    return Row(
+      crossAxisAlignment: align,
+      children: [
+        MascotView(expression: expression, size: mascotSize),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                text,
+                style: AppType.body
+                    .copyWith(color: sh.inkFaint, height: 1.35),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(height: 4),
+                trailing!,
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

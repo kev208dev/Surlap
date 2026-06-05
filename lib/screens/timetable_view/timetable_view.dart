@@ -43,6 +43,72 @@ class _MergeGroup {
   });
 }
 
+/// 과목명 표시용 정리 — 원본 데이터는 그대로 두고 UI 표시만 줄인다.
+/// 글자 단위로 어색하게 쪼개지지 않도록 단어/접미사 기준으로 다듬는다.
+String getDisplaySubjectName(String raw, {bool lunch = false}) {
+  final s = raw.trim();
+  if (s.isEmpty) return '';
+  // 점심 행은 급식 메뉴를 줄별로 정리해 그대로 보여준다.
+  if (lunch) return _formatLunchMenu(s);
+  // 다중 공백 → 단일 공백.
+  var t = s.replaceAll(RegExp(r'\s+'), ' ');
+  // 흔한 군더더기 접미사 제거(결과가 2자 이상일 때만).
+  for (final suf in const ['일반', '기초', '입문', '개론']) {
+    final stripped = t.replaceAll(' ', '');
+    if (stripped.length > suf.length + 1 && stripped.endsWith(suf)) {
+      t = stripped.substring(0, stripped.length - suf.length);
+      break;
+    }
+  }
+  return t;
+}
+
+/// 급식 메뉴 정리 — 구분자(줄바꿈/`*`/`/`) 기준으로 나눠 줄별 표시.
+/// 알레르기 표기 등은 그대로 둔다.
+String _formatLunchMenu(String raw) {
+  final parts = raw
+      .split(RegExp(r'[\n*/]'))
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+  return parts.isEmpty ? '' : parts.join('\n');
+}
+
+// ─── 표시 밀도 프리셋 ─────────────────────────────────────────────
+/// "넓게 보기 / 촘촘히 보기" 같은 밀도 값을 한곳에 모아 둔다.
+class _Density {
+  final double dayColW;
+  final double headerH;
+  final double schoolH;
+  final double lunchH;
+  final double freeH;
+  final double cardMargin;
+  final double cardRadius;
+  final int subjectMaxLines;
+  final double subjectFont;
+  const _Density({
+    required this.dayColW,
+    required this.headerH,
+    required this.schoolH,
+    required this.lunchH,
+    required this.freeH,
+    required this.cardMargin,
+    required this.cardRadius,
+    required this.subjectMaxLines,
+    required this.subjectFont,
+  });
+
+  // 넓지만 꽉 찬 시간표 — 카드가 셀 대부분을 채우도록 여백은 작게.
+  static const wide = _Density(
+    dayColW: 92, headerH: 60, schoolH: 82, lunchH: 96, freeH: 50,
+    cardMargin: 3, cardRadius: 10, subjectMaxLines: 2, subjectFont: 13,
+  );
+  static const compact = _Density(
+    dayColW: 74, headerH: 46, schoolH: 60, lunchH: 76, freeH: 40,
+    cardMargin: 2.5, cardRadius: 9, subjectMaxLines: 1, subjectFont: 11.5,
+  );
+}
+
 // ─── Main widget ──────────────────────────────────────────────────
 
 class TimetableView extends ConsumerStatefulWidget {
@@ -54,17 +120,77 @@ class TimetableView extends ConsumerStatefulWidget {
 
 class _TimetableViewState extends ConsumerState<TimetableView> {
   static const _dowNames = ['월', '화', '수', '목', '금', '토', '일'];
-  static const _rowH    = 48.0;
-  static const _timeLblW = 52.0;
-  static const _divH   = 3.0;
+  static const _divH = 3.0;
 
   // 디자인 모드(셀 꾸미기) — 화면 로컬 UI 상태.
   bool _designMode = false;
+  // 보기 모드 — 넓게(기본) / 압축.
+  bool _compact = false;
+
+  // 가로/세로 스크롤 — 고정 라벨열·헤더가 본문을 따라가도록 동기화.
+  final _bodyV = ScrollController();
+  final _bodyH = ScrollController();
+  final _labelV = ScrollController();
+  final _headerH = ScrollController();
+  bool _didAutoScroll = false;
 
   static const _palette = [
     Color(0xFFFFE4E4), Color(0xFFFFF3CD), Color(0xFFD4EDDA), Color(0xFFD1ECF1),
     Color(0xFFE2D9F3), Color(0xFFFFF5EE), Color(0xFFF0F0F0), Color(0xFFFFE8D6),
   ];
+
+  // ── 보기 모드별 치수(밀도 프리셋) ──────────────────────────────
+  _Density get _d => _compact ? _Density.compact : _Density.wide;
+  double get _dayColW => _d.dayColW;
+  double get _labelW => _compact ? 54 : 70;
+  double get _headerBandH => _d.headerH;
+  double get _schoolH => _d.schoolH;
+  double get _lunchH => _d.lunchH;
+  double get _freeH => _d.freeH;
+  int get _maxLines => _d.subjectMaxLines;
+  double get _subjectFont => _d.subjectFont;
+
+  @override
+  void initState() {
+    super.initState();
+    _bodyV.addListener(_syncV);
+    _bodyH.addListener(_syncH);
+  }
+
+  @override
+  void dispose() {
+    _bodyV.removeListener(_syncV);
+    _bodyH.removeListener(_syncH);
+    _bodyV.dispose();
+    _bodyH.dispose();
+    _labelV.dispose();
+    _headerH.dispose();
+    super.dispose();
+  }
+
+  void _syncV() {
+    if (!_labelV.hasClients || !_bodyV.hasClients) return;
+    final o = _bodyV.offset
+        .clamp(_labelV.position.minScrollExtent, _labelV.position.maxScrollExtent);
+    if (_labelV.offset != o) _labelV.jumpTo(o);
+  }
+
+  void _syncH() {
+    if (!_headerH.hasClients || !_bodyH.hasClients) return;
+    final o = _bodyH.offset
+        .clamp(_headerH.position.minScrollExtent, _headerH.position.maxScrollExtent);
+    if (_headerH.offset != o) _headerH.jumpTo(o);
+  }
+
+  // 첫 진입 시 오늘 요일이 보이도록 가로 스크롤.
+  void _autoScrollToToday() {
+    if (_didAutoScroll || !_bodyH.hasClients) return;
+    _didAutoScroll = true;
+    final todayCol = DateTime.now().weekday - 1; // 월=0
+    final target = (todayCol * _dayColW)
+        .clamp(0.0, _bodyH.position.maxScrollExtent);
+    if (target > 0) _bodyH.jumpTo(target);
+  }
 
   // ── Data builders ─────────────────────────────────────────────
 
@@ -106,29 +232,16 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     return rows;
   }
 
-  // 행별 높이: divider는 _divH, 그 외엔 내용 최대 길이에 따라 가변.
-  List<double> _rowHeights(
-      List<_RowDef> rows, Map<int, Map<int, String>> displayData) {
-    return [
-      for (final row in rows)
-        if (row.isDivider)
-          _divH
-        else
-          _cellHeightFor(row, displayData),
-    ];
-  }
+  // 행 높이 — 내용 길이가 아니라 행 종류·보기 모드로 결정(넓고 일정하게).
+  double _heightFor(_RowDef r) => switch (r.type) {
+        _RType.divider => _divH,
+        _RType.school => _schoolH,
+        _RType.lunch => _lunchH,
+        _RType.free => _freeH,
+      };
 
-  double _cellHeightFor(_RowDef row, Map<int, Map<int, String>> displayData) {
-    if (row.hour < 0) return _rowH;
-    int maxLen = 0;
-    for (int c = 0; c < 7; c++) {
-      final t = displayData[c]?[row.hour] ?? '';
-      if (t.length > maxLen) maxLen = t.length;
-    }
-    if (maxLen <= 5) return _rowH;        // 한 줄
-    if (maxLen <= 11) return _rowH + 16;  // 두 줄
-    return _rowH + 34;                    // 세 줄 이상
-  }
+  List<double> _rowHeights(List<_RowDef> rows) =>
+      [for (final r in rows) _heightFor(r)];
 
   List<double> _rowOffsets(List<double> heights) {
     final offsets = <double>[];
@@ -140,8 +253,6 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     offsets.add(acc);
     return offsets;
   }
-
-  int _maxLinesForHeight(double h) => ((h - 10) / 14).floor().clamp(1, 4);
 
   Map<int, Map<int, String>> _buildTemplateData(List<DateTime> days) {
     final result = <int, Map<int, String>>{};
@@ -233,8 +344,8 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
           result[col]![row.hour] = n.isNotEmpty ? n : t.isNotEmpty ? t : u;
         } else if (row.type == _RType.lunch) {
           final lunch = neisLunch[col] ?? '';
-          result[col]![row.hour] =
-              u.isNotEmpty ? u : lunch.isNotEmpty ? lunch.split('\n').first : '';
+          // 급식 메뉴 전체를 보여준다(첫 줄만 자르지 않음).
+          result[col]![row.hour] = u.isNotEmpty ? u : lunch;
         } else {
           result[col]![row.hour] = u.isNotEmpty ? u : t;
         }
@@ -348,7 +459,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     );
   }
 
-  // 햄버거 메뉴 — 셀 디자인 토글 + 학교 연결 + 새로고침.
+  // 햄버거 메뉴 — 보기 모드 + 셀 디자인 토글 + 학교 연결 + 새로고침.
   void _openMenu(BuildContext ctx, SpaceHourColors sh) {
     showModalBottomSheet(
       context: ctx,
@@ -429,280 +540,501 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     final tplData = _buildTemplateData(days);
     final displayData =
         _buildDisplayData(neisHourData, tplData, freeData, neis.lunch, rows);
-    // 내용 길이에 따라 행 높이를 가변으로 — 긴 내용은 칸을 더 크게.
-    final rowHeights = _rowHeights(rows, displayData);
+    final rowHeights = _rowHeights(rows);
     final offsets = _rowOffsets(rowHeights);
     final totalH = offsets.last;
     final mergeGroups = _computeMerges(rows, offsets, displayData);
     final mergeSet = _buildMergeSet(mergeGroups);
 
+    final tableW = 7 * _dayColW;
+    final bottomPad = 120.0 + MediaQuery.of(context).padding.bottom;
+
+    // 오늘 위치로 자동 스크롤(첫 프레임 후).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoScrollToToday());
+
     return Column(
-          children: [
-            // ── 제목 + 햄버거 메뉴 ─────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
+      children: [
+        // ── 제목 + 보기 모드 토글 + 햄버거 ─────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('스케줄표',
+                        style: AppType.title.copyWith(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: sh.ink)),
+                    const SizedBox(height: 2),
+                    Text(
+                        _designMode
+                            ? '디자인 모드 — 셀을 눌러 꾸며요'
+                            : '좌우로 넘겨 일주일을 봐요',
+                        style: AppType.label.copyWith(
+                            color: _designMode ? sh.accent : sh.inkSoft)),
+                  ],
+                ),
+              ),
+              _ViewModeToggle(
+                compact: _compact,
+                sh: sh,
+                onChanged: (v) => setState(() => _compact = v),
+              ),
+              const SizedBox(width: Gap.sm),
+              _HamburgerBtn(onTap: () => _openMenu(context, sh)),
+            ],
+          ),
+        ),
+
+        // ── 헤더 밴드 (고정) — 좌상단 코너 + 요일 헤더(가로 동기) ──
+        SizedBox(
+          height: _headerBandH,
+          child: Row(
+            children: [
+              // 좌상단 코너
+              Container(
+                width: _labelW,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: sh.card2,
+                  border: Border(
+                    right: BorderSide(color: _gridLine(sh), width: 1),
+                    bottom: BorderSide(color: _gridLine(sh), width: 1.5),
+                  ),
+                ),
+                child: Icon(Icons.schedule_rounded, size: 16, color: sh.inkSoft),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _headerH,
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: tableW,
+                    child: Row(
+                      children: List.generate(7, (i) =>
+                          _dayHeader(i, days[i], now, sh)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── 본문 — 좌측 고정 라벨열 + 가로/세로 스크롤 그리드 ──────
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 고정 시간/교시 라벨열 (세로 동기)
+              SizedBox(
+                width: _labelW,
+                child: SingleChildScrollView(
+                  controller: _labelV,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      for (int ri = 0; ri < rows.length; ri++)
+                        _labelCell(rows[ri], rowHeights[ri], sh),
+                      SizedBox(height: bottomPad),
+                    ],
+                  ),
+                ),
+              ),
+              // 그리드 본문
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _bodyV,
+                  child: SingleChildScrollView(
+                    controller: _bodyH,
+                    scrollDirection: Axis.horizontal,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('스케줄표',
-                            style: AppType.title.copyWith(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: sh.ink)),
-                        const SizedBox(height: 2),
-                        Text(
-                            _designMode
-                                ? '디자인 모드 — 셀을 눌러 꾸며요'
-                                : '매주 반복되는 내 일정을 배치해요',
-                            style: AppType.label.copyWith(
-                                color: _designMode ? sh.accent : sh.inkSoft)),
-                      ],
-                    ),
-                  ),
-                  _HamburgerBtn(onTap: () => _openMenu(context, sh)),
-                ],
-              ),
-            ),
-            // ── 요일 헤더 (색 강화) ─────────────────────────────────
-            SizedBox(
-              height: 40,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: _timeLblW,
-                    child: Container(
-                      color: sh.card2,
-                      alignment: Alignment.center,
-                      child: Icon(Icons.schedule_rounded,
-                          size: 15, color: sh.inkSoft),
-                    ),
-                  ),
-                  ...List.generate(7, (i) {
-                    final isTodayDow = now.weekday - 1 == i;
-                    final isSat = i == 5;
-                    final isSun = i == 6;
-                    final labelColor = isTodayDow
-                        ? sh.accentInk
-                        : isSun
-                            ? sh.sun
-                            : isSat
-                                ? sh.sat
-                                : sh.ink; // 평일도 진하게
-                    return Expanded(
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isTodayDow
-                              ? sh.accentBg
-                              : sh.card2.withValues(alpha: sh.dark ? 1 : 0.7),
-                          border: Border(
-                            left: BorderSide(color: _gridLine(sh), width: 1),
-                            bottom: BorderSide(color: _gridLine(sh), width: 1.5),
-                          ),
-                        ),
-                        child: Text(_dowNames[i],
-                            style: AppType.body.copyWith(
-                                fontWeight: FontWeight.w800, color: labelColor)),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-
-            // ── Zoomable + scrollable grid (핀치 확대/축소) ─────────
-            Expanded(
-              child: LayoutBuilder(builder: (ctx, constraints) {
-                  final colW = (constraints.maxWidth - _timeLblW) / 7;
-                  return InteractiveViewer(
-                    constrained: false,
-                    minScale: 1.0,
-                    maxScale: 3.0,
-                    boundaryMargin: const EdgeInsets.only(bottom: 130),
-                    child: SizedBox(
-                    width: constraints.maxWidth,
-                    height: totalH,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(
-                          child: Column(
-                            children: List.generate(rows.length, (ri) {
-                              final row = rows[ri];
-                              if (row.isDivider) {
-                                return Container(
-                                  height: _divH,
-                                  color: sh.accent.withValues(alpha: 0.3),
-                                );
-                              }
-                              return SizedBox(
-                                height: rowHeights[ri],
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    SizedBox(
-                                      width: _timeLblW,
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: _timeLblBg(row, sh),
-                                          border: Border(
-                                            right: BorderSide(color: _gridLine(sh), width: 1),
-                                            bottom: BorderSide(color: _gridLine(sh), width: 1),
-                                          ),
-                                        ),
-                                        child: Text(row.label, style: TextStyle(
-                                          fontSize: row.type == _RType.school ? 11 : 10,
-                                          color: row.type == _RType.school
-                                              ? sh.accentInk : sh.inkSoft,
-                                          fontWeight: row.type == _RType.school
-                                              ? FontWeight.w600 : FontWeight.w400,
-                                        )),
-                                      ),
+                        SizedBox(
+                          width: tableW,
+                          height: totalH,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // 그리드 셀
+                              Column(
+                                children: List.generate(rows.length, (ri) {
+                                  final row = rows[ri];
+                                  if (row.isDivider) {
+                                    return Container(
+                                      height: _divH,
+                                      width: tableW,
+                                      color: sh.accent.withValues(alpha: 0.28),
+                                    );
+                                  }
+                                  return SizedBox(
+                                    height: rowHeights[ri],
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: List.generate(7, (col) =>
+                                          _gridCell(
+                                            col: col, ri: ri, row: row,
+                                            days: days, now: now,
+                                            displayData: displayData,
+                                            mergeSet: mergeSet,
+                                            designOf: designOf,
+                                            freeData: freeData, sh: sh,
+                                          )),
                                     ),
-                                    ...List.generate(7, (col) {
-                                      final isMerged = mergeSet.contains((col, ri));
-                                      final isToday = du.isSameDay(days[col], now);
-                                      final text = displayData[col]?[row.hour] ?? '';
-                                      final design = designOf(col, row.hour);
-
-                                      final isLastInMerge = isMerged &&
-                                          mergeGroups.any((g) =>
-                                              g.col == col &&
-                                              ri == g.startRow + g.span - 1);
-                                      final hasBottomBorder =
-                                          !isMerged || isLastInMerge;
-
-                                      final isSchoolFilled = row.type == _RType.school
-                                          && text.isNotEmpty;
-
-                                      Color bgColor;
-                                      if (design.bg != null) {
-                                        bgColor = design.bg!;
-                                      } else if (row.type == _RType.lunch) {
-                                        bgColor = isToday
-                                            ? sh.accentBg.withValues(alpha: 0.5)
-                                            : (sh.dark
-                                                ? sh.card2
-                                                : const Color(0xFFFFF5EE));
-                                      } else if (isSchoolFilled) {
-                                        bgColor = sh.accentBg.withValues(
-                                            alpha: isToday ? 0.5 : 0.3);
-                                      } else if (row.type == _RType.school) {
-                                        bgColor = isToday
-                                            ? sh.accentBg.withValues(alpha: 0.2)
-                                            : sh.card2;
-                                      } else {
-                                        bgColor = isToday
-                                            ? sh.accentBg.withValues(alpha: 0.15)
-                                            : sh.card;
-                                      }
-
-                                      return Expanded(
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            if (_designMode) {
-                                              _showDesignPanel(context, col, row.hour, sh);
-                                            } else {
-                                              _editCell(context, col, row.hour,
-                                                  freeData[col]?[row.hour] ?? '');
-                                            }
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 2, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: bgColor,
-                                              border: Border(
-                                                left: BorderSide(color: _gridLine(sh), width: 1),
-                                                right: col == 6
-                                                    ? BorderSide(color: _gridLine(sh), width: 1)
-                                                    : BorderSide.none,
-                                                bottom: hasBottomBorder
-                                                    ? BorderSide(color: _gridLine(sh), width: 1)
-                                                    : BorderSide.none,
-                                              ),
-                                            ),
-                                            // 칸 높이에 맞춰 줄 수를 늘려 내용이 잘 보이도록.
-                                            child: isMerged ? null : (text.isNotEmpty
-                                                ? Text(text, style: TextStyle(
-                                                    fontSize: 11.5,
-                                                    height: 1.15,
-                                                    color: design.textColor ??
-                                                        (isSchoolFilled || row.type == _RType.lunch
-                                                            ? sh.accentInk : sh.ink),
-                                                    fontWeight: design.bold || isSchoolFilled
-                                                        ? FontWeight.w600 : FontWeight.w400,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                  maxLines: _maxLinesForHeight(rowHeights[ri]),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ) : null),
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ],
-                                ),
-                              );
-                            }),
+                                  );
+                                }),
+                              ),
+                              // 병합(연속 교시) 카드 오버레이
+                              ...mergeGroups.map((mg) => _mergeCard(
+                                    mg, rows, offsets, days, now,
+                                    designOf, sh,
+                                  )),
+                            ],
                           ),
                         ),
-
-                        ...mergeGroups.map((mg) {
-                          final row = rows[mg.startRow];
-                          final design = designOf(mg.col, row.hour);
-                          final isSchoolFilled = row.type == _RType.school;
-                          final textColor = design.textColor ??
-                              (isSchoolFilled || row.type == _RType.lunch
-                                  ? sh.accentInk : sh.ink);
-                          return Positioned(
-                            top: mg.topOffset,
-                            left: _timeLblW + mg.col * colW,
-                            width: colW,
-                            height: offsets[mg.startRow + mg.span] -
-                                offsets[mg.startRow],
-                            child: IgnorePointer(
-                              child: Container(
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                child: Text(mg.text, style: TextStyle(
-                                  fontSize: 10.5,
-                                  color: textColor,
-                                  fontWeight: design.bold || isSchoolFilled
-                                      ? FontWeight.w600 : FontWeight.w400,
-                                ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
+                        SizedBox(height: bottomPad),
                       ],
                     ),
                   ),
-                );
-              }),
-            ),
-          ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Color _timeLblBg(_RowDef row, SpaceHourColors sh) {
-    if (row.type == _RType.school) return sh.accentBg.withValues(alpha: 0.4);
-    if (row.type == _RType.lunch) return sh.accentBg.withValues(alpha: 0.6);
-    return sh.card2;
+  // ── 요일 헤더 셀 ───────────────────────────────────────────────
+  Widget _dayHeader(int i, DateTime date, DateTime now, SpaceHourColors sh) {
+    final isTodayDow = now.weekday - 1 == i;
+    final isSat = i == 5;
+    final isSun = i == 6;
+    final nameColor = isTodayDow
+        ? Colors.white
+        : isSun ? sh.sun : isSat ? sh.sat : sh.ink;
+    return SizedBox(
+      width: _dayColW,
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: sh.card2.withValues(alpha: sh.dark ? 1 : 0.6),
+          border: Border(
+            left: BorderSide(color: _gridLine(sh), width: 1),
+            right: i == 6
+                ? BorderSide(color: _gridLine(sh), width: 1)
+                : BorderSide.none,
+            bottom: BorderSide(color: _gridLine(sh), width: 1.5),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: isTodayDow
+              ? BoxDecoration(
+                  color: sh.accent,
+                  borderRadius: BorderRadius.circular(999),
+                )
+              : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_dowNames[i],
+                  style: AppType.body.copyWith(
+                      fontSize: _compact ? 13 : 15,
+                      fontWeight: FontWeight.w800,
+                      color: nameColor)),
+              if (!_compact) ...[
+                const SizedBox(height: 1),
+                Text('${date.day}',
+                    style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: isTodayDow
+                            ? Colors.white.withValues(alpha: 0.85)
+                            : sh.inkFaint)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
+  // ── 시간/교시 라벨 셀 ──────────────────────────────────────────
+  Widget _labelCell(_RowDef row, double h, SpaceHourColors sh) {
+    if (row.isDivider) {
+      return SizedBox(height: _divH, width: _labelW);
+    }
+    final isSchool = row.type == _RType.school;
+    final isLunch = row.type == _RType.lunch;
+    return Container(
+      height: h,
+      width: _labelW,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isSchool
+            ? sh.accentBg.withValues(alpha: 0.35)
+            : isLunch
+                ? sh.accentBg.withValues(alpha: 0.55)
+                : sh.card2,
+        border: Border(
+          right: BorderSide(color: _gridLine(sh), width: 1),
+          bottom: BorderSide(color: _gridLine(sh), width: 1),
+        ),
+      ),
+      child: isSchool
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${row.period}',
+                    style: TextStyle(
+                        fontSize: _compact ? 14 : 17,
+                        fontWeight: FontWeight.w800,
+                        color: sh.accentInk,
+                        height: 1.0)),
+                Text('교시',
+                    style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: sh.accentInk.withValues(alpha: 0.7))),
+              ],
+            )
+          : Text(row.label,
+              style: TextStyle(
+                fontSize: isLunch ? 12 : 11,
+                color: isLunch ? sh.accentInk : sh.inkSoft,
+                fontWeight: isLunch ? FontWeight.w700 : FontWeight.w500,
+              )),
+    );
+  }
+
+  // ── 그리드 셀(단일) ───────────────────────────────────────────
+  Widget _gridCell({
+    required int col,
+    required int ri,
+    required _RowDef row,
+    required List<DateTime> days,
+    required DateTime now,
+    required Map<int, Map<int, String>> displayData,
+    required Set<(int, int)> mergeSet,
+    required CellDesign Function(int, int) designOf,
+    required Map<int, Map<int, String>> freeData,
+    required SpaceHourColors sh,
+  }) {
+    final isMerged = mergeSet.contains((col, ri));
+    final isToday = du.isSameDay(days[col], now);
+    final text = displayData[col]?[row.hour] ?? '';
+    final design = designOf(col, row.hour);
+    final isLunch = row.type == _RType.lunch;
+    final filled = text.isNotEmpty;
+
+    void onTap() {
+      if (_designMode) {
+        _showDesignPanel(context, col, row.hour, sh);
+      } else {
+        _editCell(context, col, row.hour, freeData[col]?[row.hour] ?? '');
+      }
+    }
+
+    // 병합 멤버 셀은 비워 두고(오버레이 카드가 그려짐), 오늘 컬럼 틴트만.
+    Widget? child;
+    if (!isMerged && filled) {
+      child = _classCard(
+        text: text, isToday: isToday, isLunch: isLunch,
+        design: design, sh: sh,
+      );
+    }
+
+    // 빈 셀도 아주 옅게 채워 허전함 제거(오늘 컬럼은 살짝 보랏빛).
+    final cellBg = isToday
+        ? sh.accent.withValues(alpha: sh.dark ? 0.10 : 0.06)
+        : sh.ink.withValues(alpha: sh.dark ? 0.022 : 0.012);
+    // 오늘 컬럼 좌우 구분선만 보라색으로 살짝 강조.
+    final sideColor =
+        isToday ? sh.accent.withValues(alpha: 0.30) : _gridLine(sh);
+    final sideWidth = isToday ? 1.0 : 0.5;
+
+    return SizedBox(
+      width: _dayColW,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: BoxDecoration(
+            color: cellBg,
+            border: Border(
+              left: BorderSide(color: sideColor, width: sideWidth),
+              right: (col == 6 || isToday)
+                  ? BorderSide(color: sideColor, width: sideWidth)
+                  : BorderSide.none,
+              bottom: BorderSide(color: _gridLine(sh), width: 0.5),
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  // ── 수업 카드 — 셀을 거의 채우는 블록형 ───────────────────────
+  Widget _classCard({
+    required String text,
+    required bool isToday,
+    required bool isLunch,
+    required CellDesign design,
+    required SpaceHourColors sh,
+    bool merged = false,
+  }) {
+    final display = getDisplaySubjectName(text, lunch: isLunch);
+    // 급식 메뉴는 줄별로 더 많이 보이게(작은 폰트·여러 줄).
+    final isMenu = isLunch;
+    final maxLines = isMenu ? (_compact ? 4 : 6) : _maxLines;
+    final font = isMenu ? (_compact ? 8.5 : 10.0) : _subjectFont;
+
+    final baseBg = isLunch
+        ? (isToday
+            ? sh.accent.withValues(alpha: 0.20)
+            : (sh.dark ? sh.card2 : const Color(0xFFFFF3EC)))
+        : sh.accent.withValues(
+            alpha: isToday ? (sh.dark ? 0.34 : 0.22) : (sh.dark ? 0.20 : 0.12));
+    final textColor = design.textColor ?? (sh.dark ? sh.ink : sh.accentInk);
+
+    // 병합(연속 교시) 카드는 은은한 대각 그라데이션으로 큰 면적을 채운다.
+    final useGradient = design.bg == null && merged && !isLunch;
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      margin: EdgeInsets.all(_d.cardMargin),
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: isMenu ? 5 : 6),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: design.bg ?? (useGradient ? null : baseBg),
+        gradient: useGradient
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  sh.accent.withValues(
+                      alpha: isToday ? (sh.dark ? 0.40 : 0.26) : (sh.dark ? 0.24 : 0.15)),
+                  sh.accent.withValues(
+                      alpha: isToday ? (sh.dark ? 0.24 : 0.15) : (sh.dark ? 0.13 : 0.08)),
+                ],
+              )
+            : null,
+        borderRadius: BorderRadius.circular(_d.cardRadius),
+        border: Border.all(
+          color: isToday
+              ? sh.accent.withValues(alpha: 0.55)
+              : sh.ink.withValues(alpha: sh.dark ? 0.14 : 0.07),
+          width: isToday ? 1.2 : 1,
+        ),
+      ),
+      child: Text(
+        display,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        softWrap: true,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: font,
+          height: isMenu ? 1.18 : 1.2,
+          letterSpacing: -0.2,
+          color: textColor,
+          fontWeight: design.bold ? FontWeight.w800 : FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  // ── 병합(연속 교시) 오버레이 카드 ─────────────────────────────
+  Widget _mergeCard(
+    _MergeGroup mg,
+    List<_RowDef> rows,
+    List<double> offsets,
+    List<DateTime> days,
+    DateTime now,
+    CellDesign Function(int, int) designOf,
+    SpaceHourColors sh,
+  ) {
+    final row = rows[mg.startRow];
+    final isToday = du.isSameDay(days[mg.col], now);
+    final isLunch = row.type == _RType.lunch;
+    final design = designOf(mg.col, row.hour);
+    final top = offsets[mg.startRow];
+    final height = offsets[mg.startRow + mg.span] - top;
+    return Positioned(
+      top: top,
+      left: mg.col * _dayColW,
+      width: _dayColW,
+      height: height,
+      child: IgnorePointer(
+        child: _classCard(
+          text: mg.text, isToday: isToday, isLunch: isLunch,
+          design: design, sh: sh, merged: true,
+        ),
+      ),
+    );
+  }
+
+  // 그리드 선은 은은하게 — 카드가 주인공이 되도록.
   Color _gridLine(SpaceHourColors sh) =>
-      sh.ink.withValues(alpha: sh.dark ? 0.20 : 0.12);
+      sh.ink.withValues(alpha: sh.dark ? 0.10 : 0.07);
+}
+
+// ─── 보기 모드 토글 (넓게 / 압축) ─────────────────────────────────
+class _ViewModeToggle extends StatelessWidget {
+  final bool compact;
+  final SpaceHourColors sh;
+  final ValueChanged<bool> onChanged;
+  const _ViewModeToggle(
+      {required this.compact, required this.sh, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: sh.card2,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: sh.ink.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          _seg('넓게', !compact, () => onChanged(false)),
+          _seg('압축', compact, () => onChanged(true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _seg(String label, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 11),
+        decoration: BoxDecoration(
+          color: active ? sh.accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: active ? Colors.white : sh.inkSoft)),
+      ),
+    );
+  }
 }
 
 // ─── 햄버거 버튼 ──────────────────────────────────────────────────
