@@ -49,6 +49,7 @@ dependencies:
   # 로컬 알림 (생일 알림)
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
+  lottie: ^3.3.3
 
 dev_dependencies:
   flutter_test:
@@ -56,9 +57,21 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   riverpod_generator: ^2.6.5
   build_runner: ^2.4.15
+  flutter_native_splash: ^2.4.7
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
   assets:
     - assets/mascot/
+    - assets/icon/
   # assets/fonts/ 에 파일이 없으면 빌드 오류 — 폰트는 web/index.html CDN 사용
+
+# 네이티브 스플래시(앱 시작~Flutter 첫 프레임). 인트로 배경(#6B3DF9)과 동일색.
+# 적용: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#6B3DF9"
+  image: assets/mascot/splash_icon.png
+  android_12:
+    color: "#6B3DF9"
+    image: assets/mascot/splash_icon.png

@@ -390,23 +390,32 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     Map<int, Map<int, String>> displayData,
   ) {
     final groups = <_MergeGroup>[];
+    // 병합 비교는 '표시명' 기준 — [보강]·(3) 등 주석/접미사가 달라도
+    // 같은 과목이면 합친다(원시 텍스트 비교 시 안 합쳐지던 문제 수정).
+    String keyAt(int col, _RowDef r) {
+      final raw = displayData[col]?[r.hour] ?? '';
+      if (raw.isEmpty) return '';
+      return getDisplaySubjectName(raw, lunch: r.type == _RType.lunch).trim();
+    }
+
     for (int col = 0; col < 7; col++) {
       int i = 0;
       while (i < rows.length) {
         if (rows[i].isDivider || rows[i].hour < 0) { i++; continue; }
-        final text = displayData[col]?[rows[i].hour] ?? '';
-        if (text.isEmpty) { i++; continue; }
+        final key = keyAt(col, rows[i]);
+        if (key.isEmpty) { i++; continue; }
         int j = i + 1;
         while (j < rows.length &&
                !rows[j].isDivider &&
                rows[j].hour >= 0 &&
-               (displayData[col]?[rows[j].hour] ?? '') == text) {
+               keyAt(col, rows[j]) == key) {
           j++;
         }
         if (j - i >= 2) {
           groups.add(_MergeGroup(
             col: col, startRow: i, span: j - i,
-            text: text, topOffset: offsets[i],
+            text: displayData[col]?[rows[i].hour] ?? '',
+            topOffset: offsets[i],
           ));
         }
         i = j;

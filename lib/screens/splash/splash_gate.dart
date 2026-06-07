@@ -24,9 +24,9 @@ class SplashGate extends ConsumerStatefulWidget {
 }
 
 class _SplashGateState extends ConsumerState<SplashGate> {
-  // 스플래시 최소 표시 시간 — 인트로 애니메이션(로고 등장 ~950ms)이 끝나고
-  // 워드마크·로더가 충분히 보이도록 여유를 둔다(너무 빨리 지나가지 않게).
-  static const _minSplash = Duration(milliseconds: 2200);
+  // 스플래시 최소 표시 시간 — 인트로 시퀀스(낙하·착지·워드마크 ~2.6s)가 끝난 뒤
+  // 한 박자 호흡까지 보이도록 여유를 둔다(너무 빨리 넘어가지 않게).
+  static const _minSplash = Duration(milliseconds: 3100);
 
   bool _ready = false;
   // 온보딩 완료(또는 이미 시청) 여부. 미시청 첫 실행이면 false.

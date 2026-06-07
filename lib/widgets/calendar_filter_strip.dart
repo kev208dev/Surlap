@@ -92,12 +92,22 @@ class CalendarFilterStrip extends ConsumerWidget {
 
     return SizedBox(
       height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(Gap.xl, 2, Gap.xl, 2),
-        itemCount: chips.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => Center(child: chips[i]),
+      // 우측 끝을 페이드 → "잘림"이 아니라 "더 있어요"로 읽히게.
+      child: ShaderMask(
+        shaderCallback: (rect) => const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Colors.white, Colors.white, Colors.transparent],
+          stops: [0.0, 0.92, 1.0],
+        ).createShader(rect),
+        blendMode: BlendMode.dstIn,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(Gap.xl, 2, Gap.xl, 2),
+          itemCount: chips.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (_, i) => Center(child: chips[i]),
+        ),
       ),
     );
   }

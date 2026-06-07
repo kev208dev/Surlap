@@ -25,6 +25,7 @@ import '../../providers/filter_provider.dart';
 import '../../providers/sports_provider.dart';
 import '../../providers/shared_theme_events_provider.dart';
 import '../../modals/add_edit_event_modal.dart';
+import '../../modals/event_detail_sheet.dart';
 
 class PlannerView extends ConsumerStatefulWidget {
   const PlannerView({super.key});
@@ -38,7 +39,8 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
   final _scrollCtrl = ScrollController();   // 본문(시간 슬롯)
   final _labelCtrl = ScrollController();    // 고정 시간 라벨열(본문 따라감)
 
-  static const _dowNames = ['월', '화', '수', '목', '금', '토', '일'];
+  static const _allDow = ['일', '월', '화', '수', '목', '금', '토'];
+  String _dowName(DateTime d) => _allDow[d.weekday % 7];
   static const _timeColW = 50.0;
   static const _baseRowH = 52.0;
   double _zoom = 1.0; // 확대/축소 — 시간 행 높이 배율.
@@ -52,6 +54,26 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
     super.initState();
     // 본문 세로 스크롤에 시간 라벨열을 동기화(같은 컨트롤러 공유 시 desync 방지).
     _scrollCtrl.addListener(_syncLabel);
+    // 진입 시 '현재 시각 - 1시간' 위치로 스크롤(이번 주를 보고 있을 때만).
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToNow(animate: false));
+  }
+
+  // 현재 시각 근처로 스크롤. 이번 주가 아니면(_weekOffset!=0) 위치 유지.
+  void _scrollToNow({bool animate = true}) {
+    if (!_scrollCtrl.hasClients) return;
+    if (_weekOffset != 0) return;
+    final now = DateTime.now();
+    final targetHour = (now.hour - 1).clamp(0, 23);
+    final target = (targetHour * _rowH).clamp(
+        _scrollCtrl.position.minScrollExtent,
+        _scrollCtrl.position.maxScrollExtent);
+    if (animate) {
+      _scrollCtrl.animateTo(target,
+          duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+    } else {
+      _scrollCtrl.jumpTo(target);
+    }
   }
 
   void _syncLabel() {
@@ -70,12 +92,16 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
   }
 
   List<DateTime> _weekDays() {
+    // 주 시작일을 설정(weekStartDow)에 맞춤 — 월간/연속 뷰와 동일.
+    final wsd = ref.read(settingsProvider).weekStartDow; // 0=일…6=토
     // 기준 날짜: 월간에서 넘어온 viewDay(anchor)가 있으면 그 주, 없으면 이번 주.
     final anchorKey = ref.read(viewProvider).viewDay;
     final anchor = anchorKey != null ? du.fromDateKey(anchorKey) : DateTime.now();
-    final dow = anchor.weekday; // 1=월…7=일
-    final monday = anchor.subtract(Duration(days: dow - 1 - _weekOffset * 7));
-    return List.generate(7, (i) => DateTime(monday.year, monday.month, monday.day + i));
+    final dow0 = anchor.weekday % 7; // 0=일…6=토
+    final offset = (dow0 - wsd + 7) % 7;
+    final start = anchor.subtract(Duration(days: offset - _weekOffset * 7));
+    return List.generate(
+        7, (i) => DateTime(start.year, start.month, start.day + i));
   }
 
   @override
@@ -156,13 +182,23 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                     .read(settingsProvider.notifier)
                     .setShowTimetable(
                         !ref.read(settingsProvider).showTimetable),
-                onZoomIn: () =>
-                    setState(() => _zoom = (_zoom + 0.2).clamp(0.6, 2.0)),
-                onZoomOut: () =>
-                    setState(() => _zoom = (_zoom - 0.2).clamp(0.6, 2.0)),
+                onZoomIn: () {
+                  setState(() => _zoom = (_zoom + 0.2).clamp(0.6, 2.0));
+                  WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _scrollToNow(animate: false));
+                },
+                onZoomOut: () {
+                  setState(() => _zoom = (_zoom - 0.2).clamp(0.6, 2.0));
+                  WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _scrollToNow(animate: false));
+                },
                 onPrev: () => setState(() => _weekOffset--),
                 onNext: () => setState(() => _weekOffset++),
-                onToday: () => setState(() => _weekOffset = 0),
+                onToday: () {
+                  setState(() => _weekOffset = 0);
+                  WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _scrollToNow(animate: true));
+                },
               ),
               // 카테고리 필터칩 — 헤더 묶음 안에.
               const CalendarFilterStrip(),
@@ -246,7 +282,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          _dowNames[i],
+                                          _dowName(d),
                                           style: AppType.label.copyWith(
                                             fontWeight: FontWeight.w700,
                                             color: isToday
@@ -404,7 +440,9 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                                 decoration: BoxDecoration(
                                                   border: Border(
                                                     top: BorderSide(
-                                                        color: sh.border,
+                                                        color: sh.border
+                                                            .withValues(
+                                                                alpha: 0.5),
                                                         width: 0.5),
                                                   ),
                                                 ),
@@ -535,21 +573,30 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
           height: height.clamp(18.0, double.infinity),
           child: GestureDetector(
             onTap: () {
-              final idx = (events[dayKeys[i]] ?? []).indexOf(e);
-              showAddEditEventModal(context, dateKey: dayKeys[i], editIndex: idx);
+              // 편집 가능 여부는 머지맵(events)이 아니라 raw eventsProvider 기준.
+              // (머지맵엔 스포츠·구독 등 읽기전용도 들어있어 idx≥0이 됨)
+              final raw =
+                  ref.read(eventsProvider)[dayKeys[i]] ?? const <EventItem>[];
+              final idx = raw.indexOf(e);
+              if (idx < 0) {
+                showEventDetailSheet(context, e); // 읽기 전용 → 상세
+              } else {
+                showAddEditEventModal(context,
+                    dateKey: dayKeys[i], editIndex: idx);
+              }
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 1),
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
-                color: thColor.withValues(alpha: 0.16),
+                color: thColor.withValues(alpha: 0.22),
                 borderRadius: BorderRadius.circular(7),
                 border: Border(left: BorderSide(color: thColor, width: 3)),
               ),
               child: Text(
                 e.t,
                 style: TextStyle(
-                    fontSize: 10, fontWeight: FontWeight.w500, color: sh.ink),
+                    fontSize: 11, fontWeight: FontWeight.w600, color: sh.ink),
                 maxLines: 2,
                 softWrap: true,
                 overflow: TextOverflow.ellipsis,
@@ -749,11 +796,25 @@ class _NowLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = hour * rowH + minute * rowH / 60;
     return Positioned(
-      top: top,
+      top: top - 4,
       left: 0, right: 0,
-      child: Container(
-        height: 1.5,
-        color: sh.danger.withValues(alpha: 0.7),
+      child: Row(
+        children: [
+          // 좌측 점 — 현재 시각을 또렷하게.
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(left: 1),
+            decoration:
+                BoxDecoration(color: sh.danger, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: Container(
+              height: 1.5,
+              color: sh.danger.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../providers/events_provider.dart';
 import '../../providers/themes_provider.dart';
+import '../../providers/view_provider.dart';
 import '../../providers/recurring_provider.dart';
 import '../../providers/neis_cache_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -30,6 +31,7 @@ import '../../models/todo_item.dart';
 import '../../models/calendar_theme.dart';
 import '../../modals/add_edit_event_modal.dart';
 import '../../modals/add_todo_modal.dart';
+import '../../modals/event_detail_sheet.dart';
 
 /// 일별 뷰 — 주간 뷰의 하루를 확대한 형태.
 /// 왼쪽에 시간대(0~23시) 축을 두고, 시간 일정은 해당 시각에 블록으로 배치한다.
@@ -48,6 +50,19 @@ class _DayViewState extends ConsumerState<DayView> {
   double get _rowH => _baseRowH * _zoom;
 
   late final ScrollController _scroll;
+
+  String _shiftDay(String key, int delta) =>
+      du.toDateKey(du.fromDateKey(key).add(Duration(days: delta)));
+
+  // 좌우 스와이프 → 다음/전날 이동. (왼쪽으로 = 다음날, 오른쪽으로 = 전날)
+  void _onHorizontalDragEnd(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (v.abs() < 200) return; // 약한 스와이프 무시
+    final delta = v < 0 ? 1 : -1;
+    ref
+        .read(viewProvider.notifier)
+        .setDayView(_shiftDay(widget.dateKey, delta));
+  }
 
   @override
   void initState() {
@@ -131,7 +146,9 @@ class _DayViewState extends ConsumerState<DayView> {
         allDay.isEmpty &&
         dayTodos.isEmpty;
 
-    return CollapseOnScroll(
+    return GestureDetector(
+      onHorizontalDragEnd: _onHorizontalDragEnd,
+      child: CollapseOnScroll(
       child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -351,6 +368,7 @@ class _DayViewState extends ConsumerState<DayView> {
         ),
       ],
       ),
+      ),
     );
   }
 
@@ -432,8 +450,13 @@ class _DayViewState extends ConsumerState<DayView> {
         child: GestureDetector(
           onTap: () {
             final idx = (events[widget.dateKey] ?? []).indexOf(e);
-            showAddEditEventModal(context,
-                dateKey: widget.dateKey, editIndex: idx);
+            // 읽기 전용(스포츠·학사·생일·구독)은 eventsProvider에 없어 idx<0 → 상세만.
+            if (idx < 0) {
+              showEventDetailSheet(context, e);
+            } else {
+              showAddEditEventModal(context,
+                  dateKey: widget.dateKey, editIndex: idx);
+            }
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: Gap.xs),

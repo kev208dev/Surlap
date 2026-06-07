@@ -1,97 +1,99 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<!-- 음성 인식(할 일 음성 입력) -->
-	<key>NSMicrophoneUsageDescription</key>
-	<string>할 일을 음성으로 받아쓰기 위해 마이크를 사용합니다.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>말한 내용을 할 일로 변환하기 위해 음성 인식을 사용합니다.</string>
-	<!-- 달력 이미지 갤러리 저장(gal) -->
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>달력 이미지를 사진 앨범에 저장합니다.</string>
-	<!-- 연락처에서 생일 가져오기(flutter_contacts) -->
-	<key>NSContactsUsageDescription</key>
-	<string>친구 생일을 가져오기 위해 연락처에 접근합니다.</string>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>HourSpace</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>HourSpace</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UIApplicationSceneManifest</key>
 	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-		<key>UISceneConfigurations</key>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<!-- 음성 인식(할 일 음성 입력) -->
+		<key>NSMicrophoneUsageDescription</key>
+		<string>할 일을 음성으로 받아쓰기 위해 마이크를 사용합니다.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>말한 내용을 할 일로 변환하기 위해 음성 인식을 사용합니다.</string>
+		<!-- 달력 이미지 갤러리 저장(gal) -->
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>달력 이미지를 사진 앨범에 저장합니다.</string>
+		<!-- 연락처에서 생일 가져오기(flutter_contacts) -->
+		<key>NSContactsUsageDescription</key>
+		<string>친구 생일을 가져오기 위해 연락처에 접근합니다.</string>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleDisplayName</key>
+		<string>HourSpace</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>HourSpace</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>LSRequiresIPhoneOS</key>
+		<true/>
+		<key>UIApplicationSceneManifest</key>
 		<dict>
-			<key>UIWindowSceneSessionRoleApplication</key>
-			<array>
-				<dict>
-					<key>UISceneClassName</key>
-					<string>UIWindowScene</string>
-					<key>UISceneConfigurationName</key>
-					<string>flutter</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-					<key>UISceneStoryboardFile</key>
-					<string>Main</string>
-				</dict>
-			</array>
+			<key>UIApplicationSupportsMultipleScenes</key>
+			<false/>
+			<key>UISceneConfigurations</key>
+			<dict>
+				<key>UIWindowSceneSessionRoleApplication</key>
+				<array>
+					<dict>
+						<key>UISceneClassName</key>
+						<string>UIWindowScene</string>
+						<key>UISceneConfigurationName</key>
+						<string>flutter</string>
+						<key>UISceneDelegateClassName</key>
+						<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+						<key>UISceneStoryboardFile</key>
+						<string>Main</string>
+					</dict>
+				</array>
+			</dict>
 		</dict>
-	</dict>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<!-- 테마 공유 커스텀 스킴: spacehour://theme/<code> -->
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.spacehour.spacehour</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>spacehour</string>
-			</array>
-		</dict>
-	</array>
-	<!-- TODO(출시): https 앱링크(Universal Links)는 Apple Developer 계정 +
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<!-- 테마 공유 커스텀 스킴: spacehour://theme/<code> -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLName</key>
+				<string>com.spacehour.spacehour</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>spacehour</string>
+				</array>
+			</dict>
+		</array>
+		<!-- TODO(출시): https 앱링크(Universal Links)는 Apple Developer 계정 +
 	     Associated Domains(applinks:kev208dev.github.io) + AASA 파일
 	     (https://kev208dev.github.io/.well-known/apple-app-site-association)
 	     호스팅 필요. Xcode에서 Associated Domains capability 추가 후 활성화. -->
-</dict>
+		<key>UIStatusBarHidden</key>
+		<false/>
+	</dict>
 </plist>
