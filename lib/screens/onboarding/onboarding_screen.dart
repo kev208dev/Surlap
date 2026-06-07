@@ -119,8 +119,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image.asset('assets/mascot/front.png',
-                              height: 24, fit: BoxFit.contain),
+                          Image.asset('assets/mascot/splash_icon.png',
+                              height: 26, fit: BoxFit.contain),
                           const SizedBox(width: 8),
                           const Text(
                             'HourSpace',

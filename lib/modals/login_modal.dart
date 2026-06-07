@@ -34,6 +34,11 @@ class _LoginModalState extends ConsumerState<LoginModal> {
   @override
   Widget build(BuildContext context) {
     final sh = context.sh;
+    // Google OAuth는 리다이렉트 복귀로 세션이 생긴다 — 성공 시 모달 자동 종료
+    // (안 닫으면 스피너가 계속 떠 무한 로그인처럼 보임).
+    ref.listen(authProvider, (prev, next) {
+      if (next != null && mounted) Navigator.of(context).pop();
+    });
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(

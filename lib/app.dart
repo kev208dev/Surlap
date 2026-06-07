@@ -46,6 +46,19 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp> {
 
   /// `spacehour://theme/CODE` 또는 (향후) `https://DOMAIN/theme/CODE`
   void _handleUri(Uri uri) {
+    // Google OAuth 콜백(spacehour://login-callback). 세션 복원은 supabase_flutter가
+    // 자동 처리하므로 여기선 손대지 않는다. 단, error 가 실려오면(redirect URL 미등록 등)
+    // 조용히 무한 로그인처럼 보이므로 사유를 표면화한다.
+    if (uri.host == 'login-callback') {
+      final err = uri.queryParameters['error_description'] ??
+          uri.queryParameters['error'];
+      if (err != null && err.isNotEmpty) {
+        scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text('로그인 실패: ${Uri.decodeComponent(err)}')),
+        );
+      }
+      return;
+    }
     String? code;
     if (uri.scheme == ThemeShareService.scheme && uri.host == 'theme') {
       if (uri.pathSegments.isNotEmpty) code = uri.pathSegments.first;

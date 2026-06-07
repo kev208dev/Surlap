@@ -34,7 +34,6 @@ class MonthView extends ConsumerWidget {
     final hiddenThemes = ref.watch(filterProvider);
     final starred = ref.watch(starredProvider);
     final circles = ref.watch(circlesProvider);
-    final memos = ref.watch(memosProvider);
     final widgetValues = ref.watch(widgetValuesProvider);
     final dayTemplates = ref.watch(dayTemplatesProvider);
     final birthdays = ref.watch(birthdaysProvider);
@@ -131,7 +130,6 @@ class MonthView extends ConsumerWidget {
         showPast: settings.showPast,
         starred: starred,
         circles: circles,
-        memos: memos,
         dayTemplates: dayTemplates,
         widgetValues: widgetValues,
         templateRanges: templateRanges,
@@ -143,8 +141,6 @@ class MonthView extends ConsumerWidget {
         // 더블탭 → 동그라미 토글.
         onDayDoubleTap: (date) =>
             ref.read(circlesProvider.notifier).toggle(du.toDateKey(date)),
-        onMemoTap: (memoKey, current) =>
-            _editMemo(context, ref, memoKey, current),
         heroCells: true,
       ),
     );
@@ -155,54 +151,4 @@ class MonthView extends ConsumerWidget {
     showDayActionSheet(context, du.toDateKey(date), date);
   }
 
-  void _editMemo(
-      BuildContext context, WidgetRef ref, String memoKey, String current) {
-    final ctrl = TextEditingController(text: current);
-    showDialog(
-      context: context,
-      builder: (dctx) {
-        final sh = context.sh;
-        return AlertDialog(
-          backgroundColor: sh.card,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card)),
-          title: Text('메모',
-              style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
-          content: TextField(
-            controller: ctrl,
-            autofocus: true,
-            maxLines: 5,
-            minLines: 2,
-            decoration: InputDecoration(
-              hintText: '이 달의 메모를 입력하세요...',
-              hintStyle: TextStyle(color: sh.inkFaint),
-            ),
-          ),
-          actions: [
-            if (current.isNotEmpty)
-              TextButton(
-                onPressed: () {
-                  ref.read(memosProvider.notifier).set(memoKey, '');
-                  Navigator.pop(dctx);
-                },
-                style: TextButton.styleFrom(foregroundColor: sh.danger),
-                child: const Text('삭제'),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(dctx),
-              child: const Text('취소'),
-            ),
-            FilledButton(
-              onPressed: () {
-                ref
-                    .read(memosProvider.notifier)
-                    .set(memoKey, ctrl.text.trim());
-                Navigator.pop(dctx);
-              },
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

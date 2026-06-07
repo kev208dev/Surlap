@@ -120,16 +120,29 @@ class AuthNotifier extends Notifier<User?> {
     }
   }
 
+  // 웹 OAuth 복귀 URL — 쿼리·프래그먼트(해시 라우트) 제거, 경로(서브패스)는 보존.
+  // 예: https://kev208dev.github.io/HourSpace-app/#/x → https://kev208dev.github.io/HourSpace-app/
+  String _webRedirectUrl() {
+    final b = Uri.base;
+    return Uri(
+      scheme: b.scheme,
+      host: b.host,
+      port: b.hasPort ? b.port : null,
+      path: b.path,
+    ).toString();
+  }
+
   Future<void> signInGoogle() async {
     final client = sb;
     if (client == null) { throw Exception('Supabase 클라이언트가 없습니다'); }
     try {
       await client.auth.signInWithOAuth(
         OAuthProvider.google,
-        // 웹: 현재 페이지로 복귀 / 모바일: 등록된 딥링크 콜백으로 복귀.
-        // (Android의 Uri.base는 file:/// 이라 .origin이 StateError를 던짐 →
-        //  모바일은 AndroidManifest/Info.plist에 등록된 커스텀 스킴 사용)
-        redirectTo: kIsWeb ? Uri.base.origin : 'spacehour://login-callback',
+        // 웹: 현재 앱 경로로 복귀 / 모바일: 등록된 딥링크 콜백으로 복귀.
+        // 웹은 origin 만 쓰면 GitHub Pages 서브패스(/HourSpace-app/)가 빠져
+        // 앱이 아닌 루트로 복귀 → 세션을 못 받아 무한 로그인. 경로 보존 필요.
+        // (Android의 Uri.base는 file:/// 이라 .origin이 StateError → 커스텀 스킴 사용)
+        redirectTo: kIsWeb ? _webRedirectUrl() : 'spacehour://login-callback',
       );
       // OAuth는 리다이렉트 방식 — 콜백 딥링크를 supabase_flutter가 받아
       // 세션을 복원하고 onAuthStateChange에서 상태 갱신됨

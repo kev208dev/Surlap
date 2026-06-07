@@ -30,7 +30,6 @@ class MonthGrid extends StatefulWidget {
   final bool showPast;
   final Map<String, int> starred;
   final Set<String> circles;
-  final Map<String, String> memos;
   final List<DayTemplate> dayTemplates;
   final Map<String, Map<String, Map<String, dynamic>>> widgetValues;
   final List<TemplateRange> templateRanges;
@@ -38,7 +37,6 @@ class MonthGrid extends StatefulWidget {
   final void Function(DateTime) onDayTap;
   final void Function(DateTime) onDayLongPress;
   final void Function(DateTime)? onDayDoubleTap;
-  final void Function(String memoKey, String current)? onMemoTap;
   final bool heroCells;
 
   const MonthGrid({
@@ -53,7 +51,6 @@ class MonthGrid extends StatefulWidget {
     required this.showPast,
     this.starred = const {},
     this.circles = const {},
-    this.memos = const {},
     this.dayTemplates = const [],
     this.widgetValues = const {},
     this.templateRanges = const [],
@@ -61,7 +58,6 @@ class MonthGrid extends StatefulWidget {
     required this.onDayTap,
     required this.onDayLongPress,
     this.onDayDoubleTap,
-    this.onMemoTap,
     this.heroCells = false,
   });
 
@@ -230,18 +226,10 @@ class _MonthGridState extends State<MonthGrid> {
     final maxLanes =
         ((rowH - barTop - 3) / _kBarStep).floor().clamp(1, 8);
 
-    // 셀 Row (메모 + 일자)
+    // 셀 Row (달 밖 앞/뒤 빈칸은 비워둠 — 메모 기능 제거)
     final cells = <Widget>[];
     if (info.leadMemo > 0) {
-      final mk = '${widget.year}-${du.pad(widget.month)}-top';
-      cells.add(Expanded(
-        flex: info.leadMemo,
-        child: _MemoCell(
-          text: widget.memos[mk] ?? '',
-          sh: sh,
-          onTap: () => widget.onMemoTap?.call(mk, widget.memos[mk] ?? ''),
-        ),
-      ));
+      cells.add(Expanded(flex: info.leadMemo, child: const SizedBox()));
       for (int c = info.leadMemo; c < 7; c++) {
         cells.add(_dayCell(info.dates[c], viewMonth, row, hasBars));
       }
@@ -249,15 +237,7 @@ class _MonthGridState extends State<MonthGrid> {
       for (int c = 0; c < _monthInRow5; c++) {
         cells.add(_dayCell(info.dates[c], viewMonth, row, hasBars));
       }
-      final mk = '${widget.year}-${du.pad(widget.month)}-bottom';
-      cells.add(Expanded(
-        flex: info.trailMemo,
-        child: _MemoCell(
-          text: widget.memos[mk] ?? '',
-          sh: sh,
-          onTap: () => widget.onMemoTap?.call(mk, widget.memos[mk] ?? ''),
-        ),
-      ));
+      cells.add(Expanded(flex: info.trailMemo, child: const SizedBox()));
     } else {
       for (int c = 0; c < 7; c++) {
         cells.add(_dayCell(info.dates[c], viewMonth, row, hasBars));
@@ -444,35 +424,3 @@ class _LabelBar extends StatelessWidget {
   }
 }
 
-class _MemoCell extends StatelessWidget {
-  final String text;
-  final SpaceHourColors sh;
-  final VoidCallback? onTap;
-  const _MemoCell({required this.text, required this.sh, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: sh.card2.withValues(alpha: 0.4),
-          border: Border(
-            bottom:
-                BorderSide(color: sh.ink.withValues(alpha: 0.05), width: 1),
-          ),
-        ),
-        padding: const EdgeInsets.all(Gap.sm),
-        alignment: Alignment.topLeft,
-        child: text.isNotEmpty
-            ? Text(text,
-                style: TextStyle(fontSize: 9, color: sh.inkSoft, height: 1.3),
-                maxLines: 5,
-                overflow: TextOverflow.ellipsis)
-            : Text('메모...',
-                style: TextStyle(
-                    fontSize: 9, color: sh.inkFaint.withValues(alpha: 0.5))),
-      ),
-    );
-  }
-}
