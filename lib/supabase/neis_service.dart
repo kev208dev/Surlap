@@ -36,6 +36,13 @@ class NeisSchool {
     return faviconUrlFor(homepage);
   }
 
+  /// [logoUrl] 고화질 로드 실패 시 쓸 저화질 파비콘.
+  /// 직접 지정 로고면 폴백 없음(null).
+  String? get logoFallbackUrl {
+    if (logoOverride.trim().isNotEmpty) return null;
+    return faviconFallbackUrlFor(homepage);
+  }
+
   NeisSchool copyWith({
     String? name, String? code, String? officeCode, String? kind,
     int? grade, int? classNm, String? homepage, String? slogan,
@@ -96,13 +103,26 @@ bool academicVisibleForGrade(String title, int? grade) {
   return mentioned.isEmpty || mentioned.contains(grade);
 }
 
-/// 홈페이지 주소에서 도메인을 뽑아 파비콘 URL을 만든다.
-/// Google 파비콘 서비스(sz=128)를 쓰면 대부분의 학교 사이트에서 안정적으로
-/// 작은 로고를 얻을 수 있다. 주소가 비었거나 파싱 실패면 null.
+/// 홈페이지 주소에서 도메인을 뽑아 고화질 아이콘 URL을 만든다.
+/// Google faviconV2 는 apple-touch-icon 등 큰 아이콘을 우선 가져와
+/// 최대 256px 로고를 돌려준다(없으면 자체 폴백). 기존 s2/favicons(16~32px)보다
+/// 학교 로고로 쓰기 적합. 주소가 비었거나 파싱 실패면 null.
 String? faviconUrlFor(String homepage) {
   final raw = homepage.trim();
   if (raw.isEmpty) return null;
   // 스킴이 없으면 붙여서 파싱(예: 'www.school.kr').
+  final withScheme = raw.startsWith('http') ? raw : 'https://$raw';
+  final host = Uri.tryParse(withScheme)?.host ?? '';
+  if (host.isEmpty) return null;
+  final target = Uri.encodeComponent('https://$host');
+  return 'https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON'
+      '&fallback_opts=TYPE,SIZE,URL&url=$target&size=256';
+}
+
+/// 저화질 폴백(faviconV2 실패 시). Google s2 파비콘(128px).
+String? faviconFallbackUrlFor(String homepage) {
+  final raw = homepage.trim();
+  if (raw.isEmpty) return null;
   final withScheme = raw.startsWith('http') ? raw : 'https://$raw';
   final host = Uri.tryParse(withScheme)?.host ?? '';
   if (host.isEmpty) return null;

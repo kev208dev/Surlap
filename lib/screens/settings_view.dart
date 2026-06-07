@@ -513,8 +513,22 @@ class _SchoolRow extends StatelessWidget {
                       width: 24,
                       height: 24,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => Icon(Icons.school_rounded,
-                          size: 18, color: sh.ink.withValues(alpha: 0.48)))
+                      // 고화질 실패 → 저화질 파비콘 → 학교 아이콘.
+                      errorBuilder: (_, _, _) {
+                        final fb = s.logoFallbackUrl;
+                        if (fb != null && fb.isNotEmpty) {
+                          return Image.network(fb,
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => Icon(
+                                  Icons.school_rounded,
+                                  size: 18,
+                                  color: sh.ink.withValues(alpha: 0.48)));
+                        }
+                        return Icon(Icons.school_rounded,
+                            size: 18, color: sh.ink.withValues(alpha: 0.48));
+                      })
                   : Icon(Icons.school_rounded,
                       size: 18, color: sh.ink.withValues(alpha: 0.48)),
             ),

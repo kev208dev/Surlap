@@ -26,12 +26,10 @@ class NeisSetupModal extends ConsumerStatefulWidget {
 
 class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
   final _nameCtrl = TextEditingController();
-  final _sloganCtrl = TextEditingController();
-  final _logoCtrl = TextEditingController();
   final _classCtrl = TextEditingController(text: '1');
   List<Map<String, dynamic>> _results = [];
   Map<String, dynamic>? _selected;
-  NeisSchool? _existing; // 이미 연결된 학교(재진입 시 슬로건 등 편집)
+  NeisSchool? _existing; // 이미 연결된 학교(재진입 시 학년/반 편집)
   int _grade = 1;
   int _classNm = 1;
   bool _loading = false;
@@ -40,23 +38,19 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
   @override
   void initState() {
     super.initState();
-    // 이미 연결돼 있으면 학년/반/슬로건/로고를 미리 채운다.
+    // 이미 연결돼 있으면 학년/반을 미리 채운다.
     final s = NeisSchool.load();
     if (s != null) {
       _existing = s;
       _grade = s.grade;
       _classNm = s.classNm;
       _classCtrl.text = '${s.classNm}';
-      _sloganCtrl.text = s.slogan;
-      _logoCtrl.text = s.logoOverride;
     }
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _sloganCtrl.dispose();
-    _logoCtrl.dispose();
     _classCtrl.dispose();
     super.dispose();
   }
@@ -67,15 +61,93 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
 
   int get _maxGrade => maxGradeForSchoolKind(_activeKind);
 
-  // 학교가 선택/연결된 상태인가 — 학년·슬로건 등 추가 입력을 노출.
+  // 학교가 선택/연결된 상태인가 — 학년·반 입력을 노출.
   bool get _hasSchool => _selected != null || _existing != null;
 
-  // 미리보기용 로고 URL(직접 지정 우선, 없으면 홈페이지 파비콘).
+  // 연결된 학교 카드용 로고 URL(홈페이지 고화질 파비콘).
   String? get _previewLogo {
-    final override = _logoCtrl.text.trim();
-    if (override.isNotEmpty) return override;
     final hp = _selected?['HMPG_ADRES']?.toString() ?? _existing?.homepage ?? '';
     return faviconUrlFor(hp);
+  }
+
+  String? get _previewLogoFallback {
+    final hp = _selected?['HMPG_ADRES']?.toString() ?? _existing?.homepage ?? '';
+    return faviconFallbackUrlFor(hp);
+  }
+
+  // 학교 선택 시 로고 + 학교명을 보여주는 확인 팝업(선택됨 피드백).
+  void _showSelectedPopup(Map<String, dynamic> row) {
+    final name = row['SCHUL_NM']?.toString() ?? '';
+    final hp = row['HMPG_ADRES']?.toString() ?? '';
+    final logo = faviconUrlFor(hp);
+    final fallback = faviconFallbackUrlFor(hp);
+    final sh = context.sh;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '닫기',
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      transitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (dctx, _, _) {
+        // 잠깐 보여주고 자동으로 닫힘(탭해도 닫힘).
+        Future<void>.delayed(const Duration(milliseconds: 1600), () {
+          if (dctx.mounted && Navigator.of(dctx).canPop()) {
+            Navigator.of(dctx).pop();
+          }
+        });
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 240,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
+              decoration: BoxDecoration(
+                color: sh.card,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: sh.dark ? 0.5 : 0.18),
+                    blurRadius: 32,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _LogoThumb(
+                      sh: sh, url: logo, fallbackUrl: fallback, size: 72),
+                  const SizedBox(height: 16),
+                  Text(name,
+                      textAlign: TextAlign.center,
+                      style: AppType.body.copyWith(
+                          fontWeight: FontWeight.w800, color: sh.ink)),
+                  const SizedBox(height: 8),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.check_circle_rounded,
+                        size: 16, color: sh.accent),
+                    const SizedBox(width: 4),
+                    Text('선택됨',
+                        style: AppType.caption.copyWith(
+                            color: sh.accent, fontWeight: FontWeight.w700)),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (_, anim, _, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
+        return FadeTransition(
+          opacity: anim,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.8, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -116,7 +188,8 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
 
               // 현재 연결된 학교 카드(있으면)
               if (_existing != null && _selected == null) ...[
-                _SchoolPreviewCard(sh: sh, logo: _previewLogo, name: _existing!.name,
+                _SchoolPreviewCard(sh: sh, logo: _previewLogo,
+                    logoFallback: _previewLogoFallback, name: _existing!.name,
                     sub: '${_existing!.kind} · ${_existing!.grade}학년 ${_existing!.classNm}반'),
                 const SizedBox(height: 14),
               ],
@@ -168,11 +241,15 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                         subtitle: Text(
                             '${r['LCTN_SC_NM'] ?? ''} · ${r['SCHUL_KND_SC_NM'] ?? ''}',
                             style: AppType.label.copyWith(color: sh.inkSoft)),
-                        onTap: () => setState(() {
-                          _selected = r;
-                          // 학교 종류가 바뀌면 학년 상한을 넘지 않게 보정.
-                          if (_grade > _maxGrade) _grade = 1;
-                        }),
+                        onTap: () {
+                          setState(() {
+                            _selected = r;
+                            // 학교 종류가 바뀌면 학년 상한을 넘지 않게 보정.
+                            if (_grade > _maxGrade) _grade = 1;
+                          });
+                          // 선택 피드백 — 로고 + 학교명 팝업.
+                          _showSelectedPopup(r);
+                        },
                       );
                     },
                   ),
@@ -212,45 +289,6 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                     ],
                   )),
                 ]),
-
-                // ── 로고 · 슬로건 ──
-                const SizedBox(height: 18),
-                Row(children: [
-                  _LogoThumb(sh: sh, url: _previewLogo),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('학교 로고',
-                            style: AppType.label.copyWith(
-                                fontWeight: FontWeight.w700, color: sh.ink)),
-                        const SizedBox(height: 2),
-                        Text('홈페이지 아이콘을 자동으로 가져와요',
-                            style: AppType.caption.copyWith(color: sh.inkSoft)),
-                      ],
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _sloganCtrl,
-                  decoration: InputDecoration(
-                    labelText: '슬로건 / 교훈 (선택)',
-                    hintText: '예) 꿈을 키우는 행복한 학교',
-                    hintStyle: TextStyle(color: sh.inkFaint),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _logoCtrl,
-                  decoration: InputDecoration(
-                    labelText: '로고 이미지 URL 직접 지정 (선택)',
-                    hintText: '비워두면 홈페이지 아이콘 사용',
-                    hintStyle: TextStyle(color: sh.inkFaint),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
               ],
               const SizedBox(height: 20),
               Row(children: [
@@ -301,7 +339,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
   }
 
   Future<void> _save() async {
-    // 새로 고른 학교가 있으면 그 정보로, 없으면 기존 학교 정보에 슬로건/로고만 갱신.
+    // 새로 고른 학교가 있으면 그 정보로, 없으면 기존 학교의 학년·반만 갱신.
     final NeisSchool school;
     if (_selected != null) {
       school = NeisSchool(
@@ -312,15 +350,11 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
         grade: _grade.clamp(1, _maxGrade),
         classNm: _classNm,
         homepage: _selected!['HMPG_ADRES']?.toString() ?? '',
-        slogan: _sloganCtrl.text.trim(),
-        logoOverride: _logoCtrl.text.trim(),
       );
     } else if (_existing != null) {
       school = _existing!.copyWith(
         grade: _grade.clamp(1, _maxGrade),
         classNm: _classNm,
-        slogan: _sloganCtrl.text.trim(),
-        logoOverride: _logoCtrl.text.trim(),
       );
     } else {
       return;
@@ -354,10 +388,12 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
 class _SchoolPreviewCard extends StatelessWidget {
   final SpaceHourColors sh;
   final String? logo;
+  final String? logoFallback;
   final String name;
   final String sub;
   const _SchoolPreviewCard(
-      {required this.sh, required this.logo, required this.name, required this.sub});
+      {required this.sh, required this.logo, this.logoFallback,
+      required this.name, required this.sub});
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +405,7 @@ class _SchoolPreviewCard extends StatelessWidget {
         border: Border.all(color: sh.accent.withValues(alpha: 0.16)),
       ),
       child: Row(children: [
-        _LogoThumb(sh: sh, url: logo),
+        _LogoThumb(sh: sh, url: logo, fallbackUrl: logoFallback),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -396,29 +432,48 @@ class _SchoolPreviewCard extends StatelessWidget {
 class _LogoThumb extends StatelessWidget {
   final SpaceHourColors sh;
   final String? url;
-  const _LogoThumb({required this.sh, required this.url});
+  /// 고화질(url) 로드 실패 시 시도할 저화질 파비콘.
+  final String? fallbackUrl;
+  /// 썸네일 한 변 크기(기본 44).
+  final double size;
+  const _LogoThumb(
+      {required this.sh, required this.url, this.fallbackUrl, this.size = 44});
+
+  double get _inner => size * 0.73;
+
+  Widget _schoolIcon() =>
+      Icon(Icons.school_rounded, color: sh.inkSoft, size: size * 0.5);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: sh.ink.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(size * 0.27),
       ),
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
       child: (url != null && url!.isNotEmpty)
           ? Image.network(
               url!,
-              width: 32,
-              height: 32,
+              width: _inner,
+              height: _inner,
               fit: BoxFit.contain,
+              // 고화질 실패 → 저화질 파비콘 → 그래도 실패면 학교 아이콘.
               errorBuilder: (_, _, _) =>
-                  Icon(Icons.school_rounded, color: sh.inkSoft, size: 22),
+                  (fallbackUrl != null && fallbackUrl!.isNotEmpty)
+                      ? Image.network(
+                          fallbackUrl!,
+                          width: _inner,
+                          height: _inner,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => _schoolIcon(),
+                        )
+                      : _schoolIcon(),
             )
-          : Icon(Icons.school_rounded, color: sh.inkSoft, size: 22),
+          : _schoolIcon(),
     );
   }
 }
