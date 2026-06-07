@@ -182,9 +182,23 @@ Future<Map<int, String>?> fetchTimetable(
   }
 }
 
-// 급식 조회
-Future<String?> fetchLunch(NeisSchool school, String date) async {
-  if (school.officeCode.isEmpty) { return null; }
+/// 하루 급식(기숙사 학교는 조식·중식·석식 모두). MMEAL_SC_CODE 1=조식·2=중식·3=석식.
+class SchoolMeals {
+  final String? breakfast;
+  final String? lunch;
+  final String? dinner;
+  const SchoolMeals({this.breakfast, this.lunch, this.dinner});
+  bool get isEmpty => breakfast == null && lunch == null && dinner == null;
+}
+
+String _cleanMenu(String raw) => raw
+    .replaceAll('<br/>', '\n')
+    .replaceAll(RegExp(r'\s*\(.*?\)'), '')
+    .trim();
+
+/// 그 날 급식 전체(조/중/석) 조회.
+Future<SchoolMeals?> fetchMeals(NeisSchool school, String date) async {
+  if (school.officeCode.isEmpty) return null;
   final uri = Uri.parse(
       '$_base/mealServiceDietInfo?KEY=$_neisKey&Type=json&pSize=10'
       '&ATPT_OFCDC_SC_CODE=${school.officeCode}'
@@ -198,21 +212,32 @@ Future<String?> fetchLunch(NeisSchool school, String date) async {
   try {
     final j = jsonDecode(res.body) as Map<String, dynamic>;
     if (j['RESULT'] != null) {
-      debugPrint('[NEIS] 급식 데이터 없음 ($date): ${(j['RESULT'] as Map?)?['MESSAGE']}');
+      debugPrint('[NEIS] 급식 없음 ($date): ${(j['RESULT'] as Map?)?['MESSAGE']}');
       return null;
     }
     final rows = j['mealServiceDietInfo']?[1]['row'] as List? ?? [];
-    if (rows.isEmpty) { return null; }
-    final raw = rows[0]['DDISH_NM']?.toString() ?? '';
-    // <br/> 구분자를 개행으로, 칼로리 태그 제거
-    final lunch =
-        raw.replaceAll('<br/>', '\n').replaceAll(RegExp(r'\s*\(.*?\)'), '').trim();
-    debugPrint('[NEIS] 급식 $date → ${lunch.split('\n').length}개 메뉴');
-    return lunch;
+    String? b, l, d;
+    for (final r in rows) {
+      final menu = _cleanMenu(r['DDISH_NM']?.toString() ?? '');
+      if (menu.isEmpty) continue;
+      switch (r['MMEAL_SC_CODE']?.toString()) {
+        case '1': b = menu; break;
+        case '2': l = menu; break;
+        case '3': d = menu; break;
+        default: l ??= menu; // 코드 없으면 중식 취급
+      }
+    }
+    return SchoolMeals(breakfast: b, lunch: l, dinner: d);
   } catch (e) {
     debugPrint('[NEIS] 급식 파싱 오류 ($date): $e');
     return null;
   }
+}
+
+// 급식(중식) 조회 — 시간표 급식 행/캐시용. 기숙사면 조식이 먼저 와도 중식 우선.
+Future<String?> fetchLunch(NeisSchool school, String date) async {
+  final m = await fetchMeals(school, date);
+  return m?.lunch ?? m?.breakfast ?? m?.dinner;
 }
 
 // 학사일정 한 건.

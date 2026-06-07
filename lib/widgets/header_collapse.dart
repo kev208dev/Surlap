@@ -40,22 +40,18 @@ class _CollapseOnScrollState extends ConsumerState<CollapseOnScroll> {
     if (n.metrics.axis != Axis.vertical) return false;
     if (n is ScrollUpdateNotification) {
       final px = n.metrics.pixels;
-      if (px <= 0) {
+      // 펼침은 '맨 위로 끌어올렸을 때'만 — 위로 스크롤하는 도중엔 헤더 안 나옴.
+      if (px <= 4) {
         _accum = 0;
-        _set(false); // 맨 위 → 항상 펼침
+        _set(false);
         return false;
       }
       final d = n.scrollDelta ?? 0;
-      // 방향 바뀌면 누적 리셋(떨림 방지).
-      if (d > 0 && _accum < 0) _accum = 0;
-      if (d < 0 && _accum > 0) _accum = 0;
-      _accum += d;
+      // 아래로(콘텐츠 위로) 충분히 → 접힘. 위로 스크롤로는 펼치지 않는다.
+      _accum = d > 0 ? _accum + d : 0;
       if (_accum > _threshold) {
         _accum = 0;
-        _set(true); // 아래로 충분히 → 접힘
-      } else if (_accum < -_threshold) {
-        _accum = 0;
-        _set(false); // 위로 충분히 → 펼침
+        _set(true);
       }
     } else if (n is UserScrollNotification &&
         n.direction == ScrollDirection.idle) {

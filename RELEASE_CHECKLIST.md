@@ -82,14 +82,19 @@ Supabase 대시보드에서 각 테이블의 RLS 정책 확인:
 
 ```bash
 # AAB 빌드 (Play Store 권장)
-flutter build appbundle --release
+flutter build appbundle --release --dart-define-from-file=.dart_define
 
 # 또는 APK (직접 배포용)
-flutter build apk --release --split-per-abi
+flutter build apk --release --split-per-abi --dart-define-from-file=.dart_define
 
 # 에뮬레이터/실기기에서 릴리스 APK 테스트
 flutter install --release
 ```
+
+> ⚠️ **반드시 `--dart-define-from-file=.dart_define` 를 붙일 것.**
+> 빠뜨리면 BALLDONTLIE/FOOTBALL_DATA/PANDASCORE 키가 비어서
+> "스포츠 API 키가 없어 경기 일정이 안 와요" 에러가 뜬다.
+> (`flutter install` 은 위에서 만든 빌드를 그대로 설치하므로 플래그 불필요.)
 
 릴리스 빌드 후 확인:
 - [ ] 앱 시작 정상

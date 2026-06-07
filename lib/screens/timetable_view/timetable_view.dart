@@ -395,7 +395,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     String keyAt(int col, _RowDef r) {
       final raw = displayData[col]?[r.hour] ?? '';
       if (raw.isEmpty) return '';
-      return getDisplaySubjectName(raw, lunch: r.type == _RType.lunch).trim();
+      // 공백까지 제거해 비교 — "아침운동"과 "아침 운동"도 같은 과목으로 병합.
+      return getDisplaySubjectName(raw, lunch: r.type == _RType.lunch)
+          .replaceAll(RegExp(r'\s+'), '');
     }
 
     for (int col = 0; col < 7; col++) {

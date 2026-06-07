@@ -13,6 +13,7 @@ import '../supabase/neis_service.dart';
 import '../modals/neis_setup_modal.dart';
 import '../modals/birthday_manager_modal.dart';
 import '../widgets/coach_mark.dart';
+import 'feature_intro/feature_intro_screen.dart';
 
 /// 보기 설정 — 하단 nav의 한 탭으로, 다른 뷰처럼 좌우 viewer(AnimatedSwitcher)
 /// 안에서 전환되는 in-shell 뷰. (push 페이지 아님 → 자체 헤더를 그린다)
@@ -176,6 +177,12 @@ class SettingsSections extends ConsumerWidget {
                   showCoachMarks(rootCtx);
                 },
               ),
+              SettingsRow(
+                sh: sh,
+                icon: Icons.auto_awesome_rounded,
+                title: '기능 둘러보기',
+                onTap: () => showFeatureIntro(context),
+              ),
               if (showSchool)
                 _SchoolRow(
                   sh: sh,
@@ -257,7 +264,7 @@ class CategoryFilterChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: selected
               ? brand.withValues(alpha: 0.10)
@@ -269,6 +276,7 @@ class CategoryFilterChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 선택 표시는 채움/테두리/색으로만 — 체크 아이콘 제거(컴팩트).
             Container(
               width: 8,
               height: 8,
@@ -280,10 +288,6 @@ class CategoryFilterChip extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: selected ? brand : sh.ink.withValues(alpha: 0.5))),
-            if (selected) ...[
-              const SizedBox(width: 6),
-              Icon(Icons.check_rounded, size: 15, color: brand),
-            ],
           ],
         ),
       ),

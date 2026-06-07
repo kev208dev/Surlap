@@ -11,7 +11,15 @@ import '../../models/record_template.dart';
 import 'day_cell.dart';
 import 'multiday_span.dart';
 
-class MonthGrid extends StatelessWidget {
+// 바 레이아웃 상수
+const double _kBarTop = 33; // 날짜 숫자 아래(바 시작)
+const double _kBadgeH = 14; // 기록 뱃지 줄 높이
+const double _kBarH = 4; // 접힘 바 두께
+const double _kBarStep = 6; // 접힘 레인 간격(바4 + 간격2)
+const double _kLabelH = 16; // 펼침 바 높이
+const double _kLabelStep = 19; // 펼침 레인 간격
+
+class MonthGrid extends StatefulWidget {
   final int year;
   final int month;
   final int weekStartDow;
@@ -25,15 +33,12 @@ class MonthGrid extends StatelessWidget {
   final Map<String, String> memos;
   final List<DayTemplate> dayTemplates;
   final Map<String, Map<String, Map<String, dynamic>>> widgetValues;
-  /// 기록 템플릿 적용 기간 — 셀 뱃지/하이라이트 계산용.
   final List<TemplateRange> templateRanges;
-  /// 기록 템플릿 id→정의(셀 뱃지 이모지 조회).
   final Map<String, RecordTemplate> templatesById;
   final void Function(DateTime) onDayTap;
   final void Function(DateTime) onDayLongPress;
   final void Function(DateTime)? onDayDoubleTap;
   final void Function(String memoKey, String current)? onMemoTap;
-  /// 날짜 셀 Hero 줌인 활성화 (단일 월 그리드에서만 — 연속 보기는 끔).
   final bool heroCells;
 
   const MonthGrid({
@@ -61,37 +66,112 @@ class MonthGrid extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final headers = du.weekdayHeaders(weekStartDow);
-    final firstCell = du.firstCellDate(year, month, weekStartDow);
-    final viewMonth = DateTime(year, month);
+  State<MonthGrid> createState() => _MonthGridState();
+}
 
-    // memo boundary computation
-    final firstDayDate = DateTime(year, month, 1);
-    final daysInMonth = DateTime(year, month + 1, 0).day;
-    final leadingCount = (firstDayDate.weekday % 7 - weekStartDow + 7) % 7;
-    final firstTrailingIdx = leadingCount + daysInMonth;
-    final trailingInRow5 = firstTrailingIdx >= 42
+class _MonthGridState extends State<MonthGrid> {
+  int? _expandedRow;
+
+  SpaceHourColors get sh => widget.sh;
+
+  @override
+  void didUpdateWidget(covariant MonthGrid old) {
+    super.didUpdateWidget(old);
+    // 달이 바뀌면 펼침 해제.
+    if (old.year != widget.year || old.month != widget.month) {
+      _expandedRow = null;
+    }
+  }
+
+  // ── 행 구성(메모/일자 칼럼 + 일정 데이터) ──
+  late int _leadingCount, _trailingInRow5, _monthInRow5;
+  late DateTime _firstCell;
+
+  List<RecordBadge> _badgesFor(DateTime d) {
+    final key = du.toDateKey(d);
+    return recordBadgesForDate(key, widget.templateRanges,
+        widget.widgetValues[key] ?? const {}, widget.templatesById);
+  }
+
+  ({
+    List<DateTime> dates,
+    List<List<EventItem>> colEvents,
+    List<List<TodoItem>> colTodos,
+    int leadMemo, // 0=없음, n=앞 n칸 메모
+    int trailMemo, // 0=없음, n=뒤 n칸 메모
+    bool hasBadge,
+  }) _rowInfo(int row) {
+    final dates =
+        List.generate(7, (c) => _firstCell.add(Duration(days: row * 7 + c)));
+    final leadMemo = (row == 0 && _leadingCount > 0) ? _leadingCount : 0;
+    final trailMemo = (row == 5 && _trailingInRow5 > 0) ? _trailingInRow5 : 0;
+    final colEvents = <List<EventItem>>[];
+    final colTodos = <List<TodoItem>>[];
+    bool hasBadge = false;
+    for (int c = 0; c < 7; c++) {
+      final isMemo = c < leadMemo || c >= 7 - trailMemo;
+      if (isMemo) {
+        colEvents.add(const []);
+        colTodos.add(const []);
+        continue;
+      }
+      final key = du.toDateKey(dates[c]);
+      colEvents.add((widget.events[key] ?? const <EventItem>[])
+          .where((e) => !e.isTimetable)
+          .toList());
+      colTodos.add(widget.todosByDate[key] ?? const []);
+      if (!hasBadge && _badgesFor(dates[c]).isNotEmpty) hasBadge = true;
+    }
+    return (
+      dates: dates,
+      colEvents: colEvents,
+      colTodos: colTodos,
+      leadMemo: leadMemo,
+      trailMemo: trailMemo,
+      hasBadge: hasBadge,
+    );
+  }
+
+  void _onCellTap(int row, DateTime date, bool rowHasBars) {
+    if (_expandedRow == row) {
+      setState(() => _expandedRow = null);
+      return;
+    }
+    if (rowHasBars) {
+      setState(() => _expandedRow = row);
+    } else {
+      if (_expandedRow != null) setState(() => _expandedRow = null);
+      widget.onDayTap(date);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final headers = du.weekdayHeaders(widget.weekStartDow);
+    _firstCell =
+        du.firstCellDate(widget.year, widget.month, widget.weekStartDow);
+
+    final firstDayDate = DateTime(widget.year, widget.month, 1);
+    final daysInMonth = DateTime(widget.year, widget.month + 1, 0).day;
+    _leadingCount = (firstDayDate.weekday % 7 - widget.weekStartDow + 7) % 7;
+    final firstTrailingIdx = _leadingCount + daysInMonth;
+    _trailingInRow5 = firstTrailingIdx >= 42
         ? 0
         : firstTrailingIdx <= 35
             ? 7
             : 42 - firstTrailingIdx;
-    final monthInRow5 = 7 - trailingInRow5;
-
-    final topMemoKey = '$year-${du.pad(month)}-top';
-    final bottomMemoKey = '$year-${du.pad(month)}-bottom';
+    _monthInRow5 = 7 - _trailingInRow5;
 
     return Column(
       children: [
-        // 요일 헤더 행 — 배경 거의 투명, 경계선 없음
         Padding(
           padding: const EdgeInsets.only(top: Gap.sm, bottom: Gap.xs),
           child: Row(
             children: headers.asMap().entries.map((e) {
               final isSunHeader =
-                  (weekStartDow + e.key) % 7 == DateTime.sunday % 7;
+                  (widget.weekStartDow + e.key) % 7 == DateTime.sunday % 7;
               final isSatHeader =
-                  (weekStartDow + e.key) % 7 == DateTime.saturday;
+                  (widget.weekStartDow + e.key) % 7 == DateTime.saturday;
               return Expanded(
                 child: Center(
                   child: Text(
@@ -112,135 +192,255 @@ class MonthGrid extends StatelessWidget {
             }).toList(),
           ),
         ),
-        // 날짜 그리드 (6행 × 7열)
         Expanded(
-          child: Column(
-            children: List.generate(6, (row) {
-              // ── 첫 번째 행: 선행 메모 셀 + 날짜 셀 ──
-              if (row == 0 && leadingCount > 0) {
-                final cells = <Widget>[
-                  Expanded(
-                    flex: leadingCount,
-                    child: _MemoCell(
-                      text: memos[topMemoKey] ?? '',
-                      sh: sh,
-                      onTap: () => onMemoTap?.call(
-                          topMemoKey, memos[topMemoKey] ?? ''),
-                    ),
-                  ),
-                  ...List.generate(7 - leadingCount, (i) {
-                    final col = leadingCount + i;
-                    final cellDate = firstCell.add(Duration(days: col));
-                    return _buildDayCell(cellDate, viewMonth);
-                  }),
-                ];
-                return Expanded(child: Row(children: cells));
-              }
-
-              // ── 마지막 행: 날짜 셀 + 후행 메모 셀 ──
-              if (row == 5 && trailingInRow5 > 0) {
-                final cells = <Widget>[
-                  ...List.generate(monthInRow5, (i) {
-                    final cellDate = firstCell.add(Duration(days: 35 + i));
-                    return _buildDayCell(cellDate, viewMonth);
-                  }),
-                  Expanded(
-                    flex: trailingInRow5,
-                    child: _MemoCell(
-                      text: memos[bottomMemoKey] ?? '',
-                      sh: sh,
-                      onTap: () => onMemoTap?.call(
-                          bottomMemoKey, memos[bottomMemoKey] ?? ''),
-                    ),
-                  ),
-                ];
-                return Expanded(child: Row(children: cells));
-              }
-
-              // ── 일반 행 (같은 이름 연속 일정 = 가로 막대 병합) ──
-              return Expanded(
-                child: _buildSpanningRow(
-                  List.generate(
-                      7, (col) => firstCell.add(Duration(days: row * 7 + col))),
-                  viewMonth,
+          child: LayoutBuilder(builder: (ctx, c) {
+            final rowH = c.maxHeight / 6;
+            return Stack(
+              children: [
+                Column(
+                  children: List.generate(
+                      6, (r) => SizedBox(height: rowH, child: _weekRow(r, rowH))),
                 ),
-              );
-            }),
-          ),
+                // 펼침: 바깥 탭 → 접힘 배리어 + 라벨 패널.
+                if (_expandedRow != null) ...[
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setState(() => _expandedRow = null),
+                    ),
+                  ),
+                  _expandedPanel(_expandedRow!, rowH),
+                ],
+              ],
+            );
+          }),
         ),
       ],
     );
   }
 
-  Widget _buildDayCell(DateTime cellDate, DateTime viewMonth,
-      {List<EventItem>? eventsOverride, double topReserve = 0}) {
-    final key = du.toDateKey(cellDate);
-    final cellEvents = eventsOverride ?? (events[key] ?? const <EventItem>[]);
-    final applicable =
-        dayTemplates.where((t) => t.enabled && t.scope.appliesTo(key)).toList();
-    final dateWidgetValues = widgetValues[key] ?? {};
-    final badges = recordBadgesForDate(
-        key, templateRanges, dateWidgetValues, templatesById);
+  // ── 한 주 행: 셀 배경(날짜·뱃지·격자) + 접힘 색 바 오버레이 ──
+  Widget _weekRow(int row, double rowH) {
+    final info = _rowInfo(row);
+    final viewMonth = DateTime(widget.year, widget.month);
+    final res = computeWeekBars(
+        info.colEvents, info.colTodos, info.dates, widget.themes, sh);
+    final hasBars = res.bars.isNotEmpty;
+    final barTop = _kBarTop + (info.hasBadge ? _kBadgeH : 0);
+    final maxLanes =
+        ((rowH - barTop - 3) / _kBarStep).floor().clamp(1, 8);
+
+    // 셀 Row (메모 + 일자)
+    final cells = <Widget>[];
+    if (info.leadMemo > 0) {
+      final mk = '${widget.year}-${du.pad(widget.month)}-top';
+      cells.add(Expanded(
+        flex: info.leadMemo,
+        child: _MemoCell(
+          text: widget.memos[mk] ?? '',
+          sh: sh,
+          onTap: () => widget.onMemoTap?.call(mk, widget.memos[mk] ?? ''),
+        ),
+      ));
+      for (int c = info.leadMemo; c < 7; c++) {
+        cells.add(_dayCell(info.dates[c], viewMonth, row, hasBars));
+      }
+    } else if (info.trailMemo > 0) {
+      for (int c = 0; c < _monthInRow5; c++) {
+        cells.add(_dayCell(info.dates[c], viewMonth, row, hasBars));
+      }
+      final mk = '${widget.year}-${du.pad(widget.month)}-bottom';
+      cells.add(Expanded(
+        flex: info.trailMemo,
+        child: _MemoCell(
+          text: widget.memos[mk] ?? '',
+          sh: sh,
+          onTap: () => widget.onMemoTap?.call(mk, widget.memos[mk] ?? ''),
+        ),
+      ));
+    } else {
+      for (int c = 0; c < 7; c++) {
+        cells.add(_dayCell(info.dates[c], viewMonth, row, hasBars));
+      }
+    }
+
+    if (!hasBars) return Row(children: cells);
+
+    return LayoutBuilder(builder: (ctx, cc) {
+      final colW = cc.maxWidth / 7;
+      // 가려진(초과 레인) 바 수 — 칼럼별 +N.
+      final hidden = List<int>.filled(7, 0);
+      for (final b in res.bars) {
+        if (b.lane >= maxLanes) {
+          for (int col = b.start; col <= b.end; col++) {
+            hidden[col]++;
+          }
+        }
+      }
+      return Stack(
+        children: [
+          Row(children: cells),
+          // 접힘 색 바 (이름 없이 색만). 탭은 셀이 처리 → IgnorePointer.
+          IgnorePointer(
+            child: Stack(
+              children: [
+                for (final b in res.bars)
+                  if (b.lane < maxLanes)
+                    Positioned(
+                      top: barTop + b.lane * _kBarStep,
+                      left: b.start * colW + 1.5,
+                      width: (b.end - b.start + 1) * colW - 3,
+                      height: _kBarH,
+                      child: _ThinBar(bar: b),
+                    ),
+                for (int col = 0; col < 7; col++)
+                  if (hidden[col] > 0)
+                    Positioned(
+                      left: col * colW + 4,
+                      top: barTop + maxLanes * _kBarStep,
+                      child: Text('+${hidden[col]}',
+                          style: TextStyle(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w700,
+                              color: sh.inkSoft)),
+                    ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _dayCell(
+      DateTime cellDate, DateTime viewMonth, int row, bool rowHasBars) {
     return Expanded(
       child: DayCell(
         date: cellDate,
         viewMonth: viewMonth,
-        events: cellEvents,
-        todos: todosByDate[key] ?? const [],
-        themes: themes,
+        events: const [], // 일정은 바로만 표시 → 칩 비활성
+        todos: const [],
+        themes: widget.themes,
         sh: sh,
-        showPast: showPast,
-        hasCircle: circles.contains(key),
-        applicableTemplates: applicable,
-        dateWidgetValues: dateWidgetValues,
-        recordBadges: badges,
-        onTap: () => onDayTap(cellDate),
-        onLongPress: () => onDayLongPress(cellDate),
-        onDoubleTap: onDayDoubleTap == null
+        showPast: widget.showPast,
+        hasCircle: widget.circles.contains(du.toDateKey(cellDate)),
+        recordBadges: _badgesFor(cellDate),
+        onTap: () => _onCellTap(row, cellDate, rowHasBars),
+        onLongPress: () => widget.onDayLongPress(cellDate),
+        onDoubleTap: widget.onDayDoubleTap == null
             ? null
-            : () => onDayDoubleTap!(cellDate),
-        heroDateNumber: heroCells,
-        topReserve: topReserve,
+            : () => widget.onDayDoubleTap!(cellDate),
+        heroDateNumber: widget.heroCells,
       ),
     );
   }
 
-  // 한 주(7일) 행 — 같은 이름이 연속된 날을 가로 막대로 병합해 올린다.
-  Widget _buildSpanningRow(List<DateTime> weekDates, DateTime viewMonth) {
-    final colEvents = [
-      for (final d in weekDates)
-        (events[du.toDateKey(d)] ?? const <EventItem>[])
-            .where((e) => !e.isTimetable)
-            .toList()
-    ];
-    final res = computeDaySpans(colEvents, themes, sh);
-    final reserve = spanSlotCount(res.spans) * kSpanBarH;
-    final rowW = Row(
-      children: List.generate(7, (col) {
-        final cellEvents = colEvents[col]
-            .where((e) => !res.spanned.contains('$col|${e.t}'))
-            .toList();
-        return _buildDayCell(weekDates[col], viewMonth,
-            eventsOverride: cellEvents, topReserve: reserve);
-      }),
+  // ── 펼침 패널: 그 주 바들을 두껍게 + 이름 표시 ──
+  Widget _expandedPanel(int row, double rowH) {
+    final info = _rowInfo(row);
+    final res = computeWeekBars(
+        info.colEvents, info.colTodos, info.dates, widget.themes, sh);
+    final barTop = _kBarTop + (info.hasBadge ? _kBadgeH : 0);
+    final panelH = res.laneCount * _kLabelStep + 10;
+
+    return Positioned(
+      top: row * rowH + barTop,
+      left: 0,
+      right: 0,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        builder: (_, t, child) => Opacity(
+          opacity: t,
+          child: Transform.scale(
+            scale: 0.96 + 0.04 * t,
+            alignment: Alignment.topCenter,
+            child: child,
+          ),
+        ),
+        child: Container(
+          height: panelH,
+          decoration: BoxDecoration(
+            color: sh.card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: sh.ink.withValues(alpha: 0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: sh.dark ? 0.4 : 0.14),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+          child: LayoutBuilder(builder: (ctx, cc) {
+            final colW = cc.maxWidth / 7;
+            return Stack(
+              children: [
+                for (final b in res.bars)
+                  Positioned(
+                    top: b.lane * _kLabelStep,
+                    left: b.start * colW + 1.5,
+                    width: (b.end - b.start + 1) * colW - 3,
+                    height: _kLabelH,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onDayTap(b.date),
+                      child: _LabelBar(bar: b, sh: sh),
+                    ),
+                  ),
+              ],
+            );
+          }),
+        ),
+      ),
     );
-    if (res.spans.isEmpty) return rowW;
-    return LayoutBuilder(builder: (ctx, c) {
-      final colW = c.maxWidth / 7;
-      const top = 36.0; // 날짜 숫자 아래(이벤트 영역 시작)
-      return Stack(
-        children: [
-          rowW,
-          ...res.spans.map((s) => Positioned(
-                top: top + s.slot * kSpanBarH,
-                left: s.start * colW + 1.5,
-                width: (s.end - s.start + 1) * colW - 3,
-                height: kSpanBarH - 2,
-                child: SpanBar(span: s, sh: sh),
-              )),
-        ],
-      );
-    });
+  }
+}
+
+// 접힘: 색만 (이름 없음)
+class _ThinBar extends StatelessWidget {
+  final WeekBar bar;
+  const _ThinBar({required this.bar});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: bar.done ? bar.color.withValues(alpha: 0.45) : bar.color,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+}
+
+// 펼침: 색 + 이름
+class _LabelBar extends StatelessWidget {
+  final WeekBar bar;
+  final SpaceHourColors sh;
+  const _LabelBar({required this.bar, required this.sh});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: bar.color.withValues(alpha: sh.dark ? 0.28 : 0.16),
+        borderRadius: BorderRadius.circular(4),
+        border: Border(left: BorderSide(color: bar.color, width: 3)),
+      ),
+      child: Text(
+        bar.label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: sh.dark ? sh.ink : bar.color,
+          decoration: bar.done ? TextDecoration.lineThrough : null,
+        ),
+      ),
+    );
   }
 }
 
@@ -248,7 +448,6 @@ class _MemoCell extends StatelessWidget {
   final String text;
   final SpaceHourColors sh;
   final VoidCallback? onTap;
-
   const _MemoCell({required this.text, required this.sh, this.onTap});
 
   @override
@@ -259,26 +458,20 @@ class _MemoCell extends StatelessWidget {
         decoration: BoxDecoration(
           color: sh.card2.withValues(alpha: 0.4),
           border: Border(
-            bottom: BorderSide(
-                color: sh.ink.withValues(alpha: 0.05), width: 1),
+            bottom:
+                BorderSide(color: sh.ink.withValues(alpha: 0.05), width: 1),
           ),
         ),
         padding: const EdgeInsets.all(Gap.sm),
         alignment: Alignment.topLeft,
         child: text.isNotEmpty
-            ? Text(
-                text,
-                style: TextStyle(
-                    fontSize: 9, color: sh.inkSoft, height: 1.3),
+            ? Text(text,
+                style: TextStyle(fontSize: 9, color: sh.inkSoft, height: 1.3),
                 maxLines: 5,
-                overflow: TextOverflow.ellipsis,
-              )
-            : Text(
-                '메모...',
+                overflow: TextOverflow.ellipsis)
+            : Text('메모...',
                 style: TextStyle(
-                    fontSize: 9,
-                    color: sh.inkFaint.withValues(alpha: 0.5)),
-              ),
+                    fontSize: 9, color: sh.inkFaint.withValues(alpha: 0.5))),
       ),
     );
   }

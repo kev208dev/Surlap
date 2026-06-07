@@ -29,7 +29,7 @@ class HomeView extends ConsumerStatefulWidget {
 }
 
 class _HomeViewState extends ConsumerState<HomeView> {
-  String? _mealText;
+  SchoolMeals? _meals;
   bool _mealLoaded = false;
   bool _mealError = false; // fetch 실패(네트워크 등) — 미연결과 구분
 
@@ -56,10 +56,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
     });
     final dateStr = du.toDateKey(DateTime.now()).replaceAll('-', '');
     try {
-      final meal = await fetchLunch(school, dateStr);
+      final meals = await fetchMeals(school, dateStr);
       if (mounted) {
         setState(() {
-          _mealText = meal;
+          _meals = meals;
           _mealLoaded = true;
         });
       }
@@ -181,9 +181,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
                           final di = now.weekday - 1;
                           final cached =
                               (di >= 0 && di <= 6) ? neis.lunch[di] : null;
+                          final meals = _meals ??
+                              (cached != null
+                                  ? SchoolMeals(lunch: cached)
+                                  : null);
                           return _MealCard(
                             sh: sh,
-                            meal: _mealText ?? cached,
+                            meals: meals,
                             loaded: _mealLoaded || cached != null,
                             error: _mealError && cached == null,
                             onRetry: _loadMeal,
@@ -484,27 +488,36 @@ class _NextEventCard extends StatelessWidget {
 // ─── 급식 카드 ───────────────────────────────────────────────────
 class _MealCard extends StatelessWidget {
   final SpaceHourColors sh;
-  final String? meal;
+  final SchoolMeals? meals;
   final bool loaded;
   final bool error;
   final VoidCallback onRetry;
 
   const _MealCard({
     required this.sh,
-    required this.meal,
+    required this.meals,
     required this.loaded,
     required this.error,
     required this.onRetry,
   });
 
-  List<String> get _items => (meal ?? '')
-      .split(RegExp(r'[\n*]'))
-      .map((e) => e.trim())
-      .where((e) => e.isNotEmpty)
-      .toList();
+  // (라벨, 아이콘, 메뉴) — 있는 끼니만.
+  List<(String, IconData, String)> get _sections {
+    final m = meals;
+    if (m == null) return const [];
+    return [
+      if (m.breakfast != null)
+        ('조식', Icons.wb_twilight_rounded, m.breakfast!),
+      if (m.lunch != null) ('중식', Icons.restaurant_rounded, m.lunch!),
+      if (m.dinner != null) ('석식', Icons.nightlight_round, m.dinner!),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final sections = _sections;
+    // 끼니가 1개뿐이면 라벨 없이, 여러 개면(기숙사) 라벨로 구분.
+    final multi = sections.length > 1;
     return Container(
       padding: const EdgeInsets.all(16),
       constraints: const BoxConstraints(minHeight: 120),
@@ -520,17 +533,8 @@ class _MealCard extends StatelessWidget {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          else if (_items.isNotEmpty)
-            // 메뉴 전체를 그대로 보여준다(더보기 없이).
-            ..._items.map((m) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(m,
-                      style: AppType.body.copyWith(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          color: sh.ink,
-                          height: 1.3)),
-                ))
+          else if (sections.isNotEmpty)
+            ...sections.map((s) => _mealSection(s.$1, s.$2, s.$3, multi))
           else if (NeisSchool.load() == null)
             _LinkLine(
               sh: sh,
@@ -547,6 +551,44 @@ class _MealCard extends StatelessWidget {
             )
           else
             _emptyNote(sh, '오늘 급식 정보가 없어요', null),
+        ],
+      ),
+    );
+  }
+
+  Widget _mealSection(String label, IconData icon, String menu, bool multi) {
+    final items = menu
+        .split(RegExp(r'[\n*]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    return Padding(
+      padding: EdgeInsets.only(bottom: multi ? 10 : 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (multi)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(children: [
+                Icon(icon, size: 13, color: sh.accent),
+                const SizedBox(width: 5),
+                Text(label,
+                    style: AppType.label.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: sh.accent)),
+              ]),
+            ),
+          ...items.map((m) => Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(m,
+                    style: AppType.body.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: sh.ink,
+                        height: 1.3)),
+              )),
         ],
       ),
     );

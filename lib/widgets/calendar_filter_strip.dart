@@ -91,7 +91,7 @@ class CalendarFilterStrip extends ConsumerWidget {
     ];
 
     return SizedBox(
-      height: 44,
+      height: 38,
       // 우측 끝을 페이드 → "잘림"이 아니라 "더 있어요"로 읽히게.
       child: ShaderMask(
         shaderCallback: (rect) => const LinearGradient(

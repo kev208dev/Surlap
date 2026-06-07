@@ -11,14 +11,14 @@ import '../../providers/view_provider.dart';
 import '../../providers/recurring_provider.dart';
 import '../../providers/neis_cache_provider.dart';
 import '../../providers/settings_provider.dart';
-import '../../supabase/neis_service.dart' show NeisSchool, academicVisibleForGrade;
+import '../../supabase/neis_service.dart'
+    show NeisSchool, academicVisibleForGrade;
 import '../timetable_view/timetable_view.dart'
     show timetableSubjectsForDate, getDisplaySubjectName;
-import '../../widgets/zoom_button.dart';
 import '../../widgets/view_segment_control.dart';
 import '../../widgets/calendar_filter_strip.dart';
 import '../../widgets/header_collapse.dart';
-import '../month_view/multiday_span.dart';
+import '../month_view/multiday_span.dart' show eventColorFor;
 import '../../providers/academic_schedule_provider.dart';
 import '../../providers/birthdays_provider.dart';
 import '../../providers/filter_provider.dart';
@@ -26,7 +26,10 @@ import '../../providers/sports_provider.dart';
 import '../../providers/shared_theme_events_provider.dart';
 import '../../modals/add_edit_event_modal.dart';
 import '../../modals/event_detail_sheet.dart';
+import '../search_view.dart';
 
+/// 주간(시간그리드) 뷰 — 한 화면 3일 + 가로로 연속(하루씩) 이동.
+/// 시간축(좌측 라벨) 고정, 날짜 헤더는 컬럼과 함께 가로 스크롤. 세로/가로 독립.
 class PlannerView extends ConsumerStatefulWidget {
   const PlannerView({super.key});
 
@@ -34,788 +37,878 @@ class PlannerView extends ConsumerStatefulWidget {
   ConsumerState<PlannerView> createState() => _PlannerViewState();
 }
 
-class _PlannerViewState extends ConsumerState<PlannerView> {
-  int _weekOffset = 0;
-  final _scrollCtrl = ScrollController();   // 본문(시간 슬롯)
-  final _labelCtrl = ScrollController();    // 고정 시간 라벨열(본문 따라감)
+const int _kCenter = 100000; // 무한 가로 리스트의 '오늘' 인덱스
+const int _daysPerScreen = 3;
+const double _timeColW = 54;
+const double _baseRowH = 56;
+const double _headerH = 42;
+const double _allDayBandH = 24;
+const double _bottomPad = 120;
 
-  static const _allDow = ['일', '월', '화', '수', '목', '금', '토'];
-  String _dowName(DateTime d) => _allDow[d.weekday % 7];
-  static const _timeColW = 50.0;
-  static const _baseRowH = 52.0;
-  double _zoom = 1.0; // 확대/축소 — 시간 행 높이 배율.
+class _PlannerViewState extends ConsumerState<PlannerView> {
+  final _vCtrl = ScrollController(); // 세로(시간) 본문
+  final _vLabelCtrl = ScrollController(); // 세로 시간 라벨(본문 따라감)
+  ScrollController? _hCtrl; // 가로(날짜) 본문
+  ScrollController? _hHeaderCtrl; // 가로 날짜 헤더(본문 따라감)
+  double _dayW = 0;
+  // 좌측 첫 보이는 컬럼 인덱스(제목용) — ValueNotifier라 스크롤 시 그리드 리빌드 X.
+  final _leadVN = ValueNotifier<int>(_kCenter);
+
+  double _zoom = 1.0;
   double get _rowH => _baseRowH * _zoom;
-  static const _headerH = 52.0;
-  static const _allDayH = 38.0;
-  static const _bottomPad = 120.0; // 하단 네비/FAB 가림 방지
+
+  static DateTime get _today {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
+  }
+
+  // 가로 기준점(_kCenter 인덱스) = 이번 주 시작일. 오늘이 수요일이어도
+  // 컬럼은 주 시작일(설정, 기본 월)부터 정렬되고 오늘은 강조만.
+  late final DateTime _anchor = _weekStart(_today);
+
+  DateTime _weekStart(DateTime d) {
+    final wsd = ref.read(settingsProvider).weekStartDow;
+    final off = (d.weekday % 7 - wsd + 7) % 7;
+    return d.subtract(Duration(days: off));
+  }
+
+  DateTime _dateFor(int i) => _anchor.add(Duration(days: i - _kCenter));
 
   @override
   void initState() {
     super.initState();
-    // 본문 세로 스크롤에 시간 라벨열을 동기화(같은 컨트롤러 공유 시 desync 방지).
-    _scrollCtrl.addListener(_syncLabel);
-    // 진입 시 '현재 시각 - 1시간' 위치로 스크롤(이번 주를 보고 있을 때만).
+    _vCtrl.addListener(_syncLabel);
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _scrollToNow(animate: false));
   }
 
-  // 현재 시각 근처로 스크롤. 이번 주가 아니면(_weekOffset!=0) 위치 유지.
-  void _scrollToNow({bool animate = true}) {
-    if (!_scrollCtrl.hasClients) return;
-    if (_weekOffset != 0) return;
-    final now = DateTime.now();
-    final targetHour = (now.hour - 1).clamp(0, 23);
-    final target = (targetHour * _rowH).clamp(
-        _scrollCtrl.position.minScrollExtent,
-        _scrollCtrl.position.maxScrollExtent);
-    if (animate) {
-      _scrollCtrl.animateTo(target,
-          duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
-    } else {
-      _scrollCtrl.jumpTo(target);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hCtrl == null) {
+      final w = MediaQuery.of(context).size.width;
+      _dayW = (w - _timeColW) / _daysPerScreen;
+      final init = _kCenter * _dayW;
+      _hCtrl = ScrollController(initialScrollOffset: init)
+        ..addListener(_syncHeader);
+      _hHeaderCtrl = ScrollController(initialScrollOffset: init);
     }
   }
 
   void _syncLabel() {
-    if (!_labelCtrl.hasClients || !_scrollCtrl.hasClients) return;
-    final o = _scrollCtrl.offset.clamp(
-        _labelCtrl.position.minScrollExtent, _labelCtrl.position.maxScrollExtent);
-    if (_labelCtrl.offset != o) _labelCtrl.jumpTo(o);
+    if (!_vLabelCtrl.hasClients || !_vCtrl.hasClients) return;
+    final o = _vCtrl.offset.clamp(
+        _vLabelCtrl.position.minScrollExtent,
+        _vLabelCtrl.position.maxScrollExtent);
+    if (_vLabelCtrl.offset != o) _vLabelCtrl.jumpTo(o);
+  }
+
+  void _syncHeader() {
+    final h = _hCtrl!;
+    if (!_hHeaderCtrl!.hasClients || !h.hasClients) return;
+    final o = h.offset.clamp(_hHeaderCtrl!.position.minScrollExtent,
+        _hHeaderCtrl!.position.maxScrollExtent);
+    if (_hHeaderCtrl!.offset != o) _hHeaderCtrl!.jumpTo(o);
+    final lead = (h.offset / _dayW).round();
+    if (lead != _leadVN.value) _leadVN.value = lead;
+  }
+
+  void _scrollToNow({bool animate = true}) {
+    if (!_vCtrl.hasClients) return;
+    final now = DateTime.now();
+    final target = ((now.hour - 1).clamp(0, 23) * _rowH).clamp(
+        _vCtrl.position.minScrollExtent, _vCtrl.position.maxScrollExtent);
+    if (animate) {
+      _vCtrl.animateTo(target,
+          duration: const Duration(milliseconds: 320), curve: Curves.easeOut);
+    } else {
+      _vCtrl.jumpTo(target);
+    }
+  }
+
+  void _shiftDays(int delta) {
+    final h = _hCtrl;
+    if (h == null || !h.hasClients) return;
+    h.animateTo((_leadVN.value + delta) * _dayW,
+        duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
+  }
+
+  void _goToday() {
+    // 오늘 칸을 좌측에 보이도록(주 시작 정렬과 별개로 '오늘' 버튼은 오늘로 점프).
+    final todayIdx = _kCenter + _today.difference(_anchor).inDays;
+    _hCtrl?.animateTo(todayIdx * _dayW,
+        duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToNow(animate: true));
   }
 
   @override
   void dispose() {
-    _scrollCtrl.removeListener(_syncLabel);
-    _scrollCtrl.dispose();
-    _labelCtrl.dispose();
+    _vCtrl.removeListener(_syncLabel);
+    _vCtrl.dispose();
+    _vLabelCtrl.dispose();
+    _hCtrl?.dispose();
+    _hHeaderCtrl?.dispose();
+    _leadVN.dispose();
     super.dispose();
   }
 
-  List<DateTime> _weekDays() {
-    // 주 시작일을 설정(weekStartDow)에 맞춤 — 월간/연속 뷰와 동일.
-    final wsd = ref.read(settingsProvider).weekStartDow; // 0=일…6=토
-    // 기준 날짜: 월간에서 넘어온 viewDay(anchor)가 있으면 그 주, 없으면 이번 주.
-    final anchorKey = ref.read(viewProvider).viewDay;
-    final anchor = anchorKey != null ? du.fromDateKey(anchorKey) : DateTime.now();
-    final dow0 = anchor.weekday % 7; // 0=일…6=토
-    final offset = (dow0 - wsd + 7) % 7;
-    final start = anchor.subtract(Duration(days: offset - _weekOffset * 7));
-    return List.generate(
-        7, (i) => DateTime(start.year, start.month, start.day + i));
+  // ── 데이터 ──
+  late Map<String, List<EventItem>> _events; // 머지 포함
+  late List<CalendarTheme> _themes;
+  late Map<String, List<String>> _academic;
+  late List<dynamic> _birthdaysRaw;
+  late bool _academicHidden, _birthdayHidden;
+  late int? _grade;
+
+  List<EventItem> _allDayFor(DateTime d) {
+    final key = du.toDateKey(d);
+    return <EventItem>[
+      ...(_events[key] ?? const [])
+          .where((e) => !e.hasTime && !e.isTimetable),
+      if (!_birthdayHidden)
+        for (final b in _birthdaysRaw)
+          if (b.month == d.month && b.day == d.day)
+            EventItem(t: b.name, th: birthdayThemeId, birthday: true),
+      if (!_academicHidden)
+        ...(_academic[key] ?? const [])
+            .where((n) => academicVisibleForGrade(n, _grade))
+            .map((n) => EventItem(t: n, th: academicThemeId, academic: true)),
+    ];
   }
+
+  List<EventItem> _timedFor(DateTime d) =>
+      (_events[du.toDateKey(d)] ?? const [])
+          .where((e) => e.hasTime && !e.isTimetable)
+          .toList();
 
   @override
   Widget build(BuildContext context) {
     final sh = context.sh;
-    final events = ref.watch(eventsProvider);
-    final themes = ref.watch(themesProvider);
-    final academic = ref.watch(academicScheduleProvider);
     final hidden = ref.watch(filterProvider);
-    final academicHidden = hidden.contains(academicThemeId);
-    final birthdays = ref.watch(birthdaysProvider);
-    final birthdayHidden = hidden.contains(birthdayThemeId);
-    // 스포츠 경기(시간 있음) + 구독 공유 테마 일정 — 종일/타임 그리드에 머지.
-    final sportsByDate = ref.watch(sportsEventsByDateProvider);
-    final sharedByDate = ref.watch(sharedThemeEventsByDateProvider);
-    final eventsWithSports = <String, List<EventItem>>{...events};
+    final events = ref.watch(eventsProvider);
+    _themes = ref.watch(themesProvider);
+    _academic = ref.watch(academicScheduleProvider);
+    _academicHidden = hidden.contains(academicThemeId);
+    _birthdaysRaw = ref.watch(birthdaysProvider);
+    _birthdayHidden = hidden.contains(birthdayThemeId);
+    _grade = NeisSchool.load()?.grade;
+    ref.watch(recurringProvider);
+    ref.watch(neisCacheProvider);
+    final showTt = ref.watch(settingsProvider).showTimetable;
+
+    // 스포츠·구독 머지(필터 반영).
+    final merged = <String, List<EventItem>>{...events};
     void mergeExtra(Map<String, List<EventItem>> src) {
       src.forEach((k, items) {
         final vis = items
             .where((e) =>
                 e.themeIds.isNotEmpty && !hidden.contains(e.themeIds.first))
             .toList();
-        if (vis.isEmpty) return;
-        eventsWithSports[k] = [...(eventsWithSports[k] ?? const []), ...vis];
+        if (vis.isNotEmpty) {
+          merged[k] = [...(merged[k] ?? const []), ...vis];
+        }
       });
     }
 
-    mergeExtra(sportsByDate);
-    mergeExtra(sharedByDate);
-    final days = _weekDays();
-    final dayKeys = days.map(du.toDateKey).toList();
-    final now = DateTime.now();
-    final grade = NeisSchool.load()?.grade; // 다른 학년 학사일정 숨김용
-    // 칸별 종일 일정(필터 + 생일/학사). 같은 이름 연속이면 가로 막대로 병합.
-    final colAllDay = <List<EventItem>>[
-      for (int i = 0; i < 7; i++)
-        <EventItem>[
-          ...(eventsWithSports[dayKeys[i]] ?? [])
-              .where((e) => !e.hasTime && !e.isTimetable),
-          if (!birthdayHidden)
-            ...birthdays
-                .where((b) =>
-                    b.month == days[i].month && b.day == days[i].day)
-                .map((b) =>
-                    EventItem(t: b.name, th: birthdayThemeId, birthday: true)),
-          if (!academicHidden)
-            ...(academic[dayKeys[i]] ?? const [])
-                .where((n) => academicVisibleForGrade(n, grade))
-                .map((n) =>
-                    EventItem(t: n, th: academicThemeId, academic: true)),
-        ],
-    ];
-    final hasAllDay = colAllDay.any((l) => l.isNotEmpty);
-    final allDaySpans = computeDaySpans(colAllDay, themes, sh);
-    final allDaySlots = spanSlotCount(allDaySpans.spans);
-    final allDayReserve = allDaySlots * (kSpanBarH + 2);
-    final allDayH = hasAllDay ? _allDayH + allDayReserve : 0.0;
+    mergeExtra(ref.watch(sportsEventsByDateProvider));
+    mergeExtra(ref.watch(sharedThemeEventsByDateProvider));
+    _events = merged;
+
+    final headerTotal = _headerH + _allDayBandH;
+
     return CollapseOnScroll(
       child: Column(
-      children: [
-        // 헤더(세그먼트 + 주 이동 + 필터칩) — 스크롤 시 부드럽게 접힘.
-        CollapsibleHeader(
-          collapsed: ref.watch(headerCollapsedProvider),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 통합 뷰 전환 세그먼트(연·월·주·일)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, 0),
-                child: ViewSegmentControl(),
+        children: [
+          _PlannerNav(
+            title: ValueListenableBuilder<int>(
+              valueListenable: _leadVN,
+              builder: (_, lead, _) => Text(
+                _titleText(lead),
+                maxLines: 1,
+                style: AppType.title.copyWith(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: sh.ink),
               ),
-              // 주 이동 헤더(한 줄: 이동 + 토글 + 줌버튼)
-              _WeekNav(
-                days: days,
-                sh: sh,
-                showTimetable: ref.watch(settingsProvider).showTimetable,
-                onToggleSchedule: () => ref
-                    .read(settingsProvider.notifier)
-                    .setShowTimetable(
-                        !ref.read(settingsProvider).showTimetable),
-                onZoomIn: () {
-                  setState(() => _zoom = (_zoom + 0.2).clamp(0.6, 2.0));
-                  WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => _scrollToNow(animate: false));
-                },
-                onZoomOut: () {
-                  setState(() => _zoom = (_zoom - 0.2).clamp(0.6, 2.0));
-                  WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => _scrollToNow(animate: false));
-                },
-                onPrev: () => setState(() => _weekOffset--),
-                onNext: () => setState(() => _weekOffset++),
-                onToday: () {
-                  setState(() => _weekOffset = 0);
-                  WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => _scrollToNow(animate: true));
-                },
-              ),
-              // 카테고리 필터칩 — 헤더 묶음 안에.
-              const CalendarFilterStrip(),
-            ],
+            ),
+            sh: sh,
+            showTimetable: showTt,
+            onToggleSchedule: () => ref
+                .read(settingsProvider.notifier)
+                .setShowTimetable(!showTt),
+            onZoomIn: () {
+              setState(() => _zoom = (_zoom + 0.2).clamp(0.6, 2.0));
+              WidgetsBinding.instance
+                  .addPostFrameCallback((_) => _scrollToNow(animate: false));
+            },
+            onZoomOut: () {
+              setState(() => _zoom = (_zoom - 0.2).clamp(0.6, 2.0));
+              WidgetsBinding.instance
+                  .addPostFrameCallback((_) => _scrollToNow(animate: false));
+            },
+            onPrev: () => _shiftDays(-_daysPerScreen),
+            onNext: () => _shiftDays(_daysPerScreen),
+            onToday: _goToday,
+            onSearch: () => showSearchSheet(context),
           ),
-        ),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 고정 시간 레이블 컬럼
-              SizedBox(
-                width: _timeColW,
-                child: Column(
-                  children: [
-                    // 요일 헤더 공간
-                    SizedBox(height: _headerH + allDayH),
-                    // 시간 레이블
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: _labelCtrl,
-                        physics: const NeverScrollableScrollPhysics(),
-                        child: Column(
+          CollapsibleHeader(
+            collapsed: ref.watch(headerCollapsedProvider),
+            child: const CalendarFilterStrip(),
+          ),
+          Expanded(
+            child: _hCtrl == null
+                ? const SizedBox.shrink()
+                : Column(
+                    children: [
+                      // 날짜 헤더(가로 스크롤, 본문 따라감)
+                      SizedBox(
+                        height: headerTotal,
+                        child: Row(
                           children: [
-                            ...List.generate(24, (h) {
-                              return SizedBox(
-                                height: _rowH,
-                                child: Align(
-                                  alignment: Alignment.topRight,
-                                  child: Padding(
-                                    padding:
-                                        const EdgeInsets.only(right: 6, top: 2),
-                                    child: Text(
-                                      h == 0 ? '' : '$h:00',
-                                      style: TextStyle(
-                                          fontSize: 10.5, color: sh.inkFaint),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                            const SizedBox(height: _bottomPad),
+                            SizedBox(
+                                width: _timeColW,
+                                child: ColoredBox(color: sh.bg)),
+                            Expanded(
+                              child: ListView.builder(
+                                controller: _hHeaderCtrl,
+                                scrollDirection: Axis.horizontal,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemExtent: _dayW,
+                                itemBuilder: (_, i) =>
+                                    _dayHeader(_dateFor(i), sh),
+                              ),
+                            ),
                           ],
                         ),
                       ),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 고정 시간 라벨 열
+                            SizedBox(
+                              width: _timeColW,
+                              child: SingleChildScrollView(
+                                controller: _vLabelCtrl,
+                                physics: const NeverScrollableScrollPhysics(),
+                                child: Column(
+                                  children: [
+                                    for (int h = 0; h < 24; h++)
+                                      SizedBox(
+                                        height: _rowH,
+                                        child: Align(
+                                          alignment: Alignment.topRight,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 6, top: 2),
+                                            child: Text(
+                                                h == 0 ? '' : '$h:00',
+                                                style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    color: sh.inkFaint)),
+                                          ),
+                                        ),
+                                      ),
+                                    const SizedBox(height: _bottomPad),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // 2D 그리드: 세로(시간) 스크롤 안에 가로(날짜) 리스트
+                            Expanded(
+                              child: SingleChildScrollView(
+                                controller: _vCtrl,
+                                child: SizedBox(
+                                  height: _rowH * 24 + _bottomPad,
+                                  child: ListView.builder(
+                                    controller: _hCtrl,
+                                    scrollDirection: Axis.horizontal,
+                                    itemExtent: _dayW,
+                                    physics: _DaySnapPhysics(itemW: _dayW),
+                                    itemBuilder: (_, i) =>
+                                        _dayColumn(_dateFor(i), showTt, sh),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _titleText(int lead) {
+    final d = _dateFor(lead);
+    final e = _dateFor(lead + _daysPerScreen - 1);
+    if (d.month == e.month) {
+      return '${d.month}월 ${d.day}–${e.day}';
+    }
+    return '${d.month}/${d.day} – ${e.month}/${e.day}';
+  }
+
+  // ── 날짜 헤더 셀(요일/날짜 + 종일) ──
+  Widget _dayHeader(DateTime d, SpaceHourColors sh) {
+    final isToday = du.isSameDay(d, DateTime.now());
+    final isSun = d.weekday == DateTime.sunday;
+    final isSat = d.weekday == DateTime.saturday;
+    final allDay = _allDayFor(d);
+    return GestureDetector(
+      onTap: () => ref.read(viewProvider.notifier).setDayView(du.toDateKey(d)),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isToday ? sh.accent.withValues(alpha: 0.08) : null,
+          border: Border(
+              right: BorderSide(
+                  color: sh.ink.withValues(alpha: 0.06), width: 0.5)),
+        ),
+        child: Column(
+          children: [
+            SizedBox(
+              height: _headerH,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${_dowName(d)} ',
+                        style: AppType.label.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: isToday
+                                ? sh.accent
+                                : isSun
+                                    ? sh.danger
+                                    : isSat
+                                        ? sh.sat
+                                        : sh.inkSoft)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: isToday ? 7 : 0,
+                          vertical: isToday ? 2 : 0),
+                      decoration: isToday
+                          ? BoxDecoration(
+                              color: sh.accent,
+                              borderRadius: BorderRadius.circular(999))
+                          : null,
+                      child: Text('${d.day}',
+                          style: AppType.label.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: isToday ? Colors.white : sh.ink)),
                     ),
                   ],
                 ),
               ),
-              // 날짜 컬럼들
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width - _timeColW,
-                    child: Column(
-                      children: [
-                        // 요일 헤더
-                        SizedBox(
-                          height: _headerH,
-                          child: Row(
-                            children: List.generate(7, (i) {
-                              final d = days[i];
-                              final isToday = du.isSameDay(d, now);
-                              final isSat = d.weekday == DateTime.saturday;
-                              final isSun = d.weekday == DateTime.sunday;
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () => ref.read(viewProvider.notifier)
-                                      .setDayView(dayKeys[i]),
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: sh.card,
-                                      border: Border(
-                                        right: BorderSide(color: sh.border, width: 0.5),
-                                        bottom: BorderSide(color: sh.border),
-                                      ),
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          _dowName(d),
-                                          style: AppType.label.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                            color: isToday
-                                                ? sh.accent
-                                                : isSun
-                                                    ? sh.danger
-                                                    : isSat
-                                                        ? sh.sat
-                                                        : sh.inkSoft,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        // 오늘은 브랜드 accent pill로 강조(홈·월간과 통일).
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: isToday ? 8 : 0,
-                                              vertical: isToday ? 2 : 0),
-                                          decoration: isToday
-                                              ? BoxDecoration(
-                                                  color: sh.accent,
-                                                  borderRadius:
-                                                      BorderRadius.circular(999),
-                                                )
-                                              : null,
-                                          child: Text(
-                                            '${d.month}/${d.day}',
-                                            style: AppType.label.copyWith(
-                                              fontSize: 12.5,
-                                              fontWeight: isToday
-                                                  ? FontWeight.w800
-                                                  : FontWeight.w600,
-                                              color:
-                                                  isToday ? Colors.white : sh.ink,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
+            ),
+            // 종일 — 1줄 + N (다일은 각 날 칩으로).
+            SizedBox(
+              height: _allDayBandH,
+              child: allDay.isEmpty
+                  ? null
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _allDayChip(allDay.first, d, sh),
                           ),
-                        ),
-                        // 종일 행 (없으면 0). 같은 이름 연속 = 가로 막대 병합.
-                        SizedBox(
-                          height: allDayH,
-                          child: LayoutBuilder(builder: (ctx, c) {
-                            final colW = c.maxWidth / 7;
-                            return Stack(
-                              children: [
-                                Row(
-                                  children: List.generate(7, (i) {
-                                    final chips = colAllDay[i]
-                                        .where((e) => !allDaySpans.spanned
-                                            .contains('$i|${e.t}'))
-                                        .toList();
-                                    return Expanded(
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: du.isSameDay(days[i], now)
-                                              ? sh.accentBg
-                                                  .withValues(alpha: 0.5)
-                                              : sh.card2,
-                                          border: Border(
-                                            right: BorderSide(
-                                                color: sh.border, width: 0.5),
-                                            bottom:
-                                                BorderSide(color: sh.border),
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 2),
-                                        child: Padding(
-                                          // 막대 슬롯만큼 아래로 밀어 칩과 겹침 방지.
-                                          padding: EdgeInsets.only(
-                                              top: allDayReserve),
-                                          child: chips.isEmpty
-                                              ? null
-                                              // 넘치면 잘라(overflow 방지).
-                                              : ClipRect(
-                                                  child: SingleChildScrollView(
-                                                    physics:
-                                                        const NeverScrollableScrollPhysics(),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .stretch,
-                                                      children: chips
-                                                          .take(2)
-                                                          .map((e) => _EventChip(
-                                                                item: e,
-                                                                themes: themes,
-                                                                sh: sh,
-                                                                onTap: () {},
-                                                              ))
-                                                          .toList(),
-                                                    ),
-                                                  ),
-                                                ),
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ),
-                                // 멀티데이 막대 오버레이.
-                                ...allDaySpans.spans.map((s) => Positioned(
-                                      top: s.slot * (kSpanBarH + 2) + 1,
-                                      left: s.start * colW + 1.5,
-                                      width: (s.end - s.start + 1) * colW - 3,
-                                      height: kSpanBarH,
-                                      child: SpanBar(span: s, sh: sh),
-                                    )),
-                              ],
-                            );
-                          }),
-                        ),
-                        // 시간 슬롯
-                        Expanded(
-                          child: SingleChildScrollView(
-                            controller: _scrollCtrl,
-                            child: Column(
-                              children: [
-                            SizedBox(
-                              height: _rowH * 24,
-                              child: Stack(
-                                children: [
-                                  // 그리드 라인 + 셀 배경
-                                  Row(
-                                    children: List.generate(7, (i) {
-                                      final isToday =
-                                          du.isSameDay(days[i], now);
-                                      // 빈 칸을 탭하면 그 날(일간 뷰)로 이동.
-                                      return Expanded(
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: () => ref
-                                              .read(viewProvider.notifier)
-                                              .setDayView(dayKeys[i]),
-                                          child: Container(
-                                          decoration: BoxDecoration(
-                                            color: isToday
-                                                ? sh.accentBg.withValues(alpha: 0.18)
-                                                : null,
-                                            border: Border(
-                                              right: BorderSide(
-                                                  color: sh.border,
-                                                  width: 0.5),
-                                            ),
-                                          ),
-                                          child: Column(
-                                            children: List.generate(24, (h) =>
-                                              Container(
-                                                height: _rowH,
-                                                decoration: BoxDecoration(
-                                                  border: Border(
-                                                    top: BorderSide(
-                                                        color: sh.border
-                                                            .withValues(
-                                                                alpha: 0.5),
-                                                        width: 0.5),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                  // 시간표 수업 오버레이(읽기전용 — 수정은 스케줄표에서만)
-                                  ..._buildRecurringOverlays(days, sh),
-                                  // 일반 이벤트 오버레이(+스포츠 머지)
-                                  ..._buildEventOverlays(
-                                      days, dayKeys, eventsWithSports, themes, sh),
-                                  // 현재 시각 선
-                                  if (_weekOffset == 0)
-                                    _NowLine(hour: now.hour, minute: now.minute,
-                                        rowH: _rowH, sh: sh),
-                                ],
-                              ),
+                          if (allDay.length > 1)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 2),
+                              child: Text('+${allDay.length - 1}',
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: sh.inkSoft)),
                             ),
-                                const SizedBox(height: _bottomPad),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
       ),
     );
   }
 
-  // 시간표 수업 오버레이 — NEIS·템플릿·주간반복 합산, 읽기전용. 토글로 on/off.
-  List<Widget> _buildRecurringOverlays(List<DateTime> days, SpaceHourColors sh) {
-    ref.watch(recurringProvider);
-    ref.watch(neisCacheProvider);
-    if (!ref.watch(settingsProvider).showTimetable) return const [];
-    final colW = (MediaQuery.of(context).size.width - _timeColW) / 7;
-    final overlays = <Widget>[];
-    for (int i = 0; i < 7; i++) {
-      final byHour = timetableSubjectsForDate(ref, days[i]);
-      byHour.forEach((hour, title) {
-        final name = getDisplaySubjectName(title);
-        overlays.add(Positioned(
-          left: i * colW + 2,
-          top: hour * _rowH + 2,
-          width: colW - 4,
-          height: _rowH - 4,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-            decoration: BoxDecoration(
-              color: sh.accent.withValues(alpha: sh.dark ? 0.20 : 0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: sh.accent.withValues(alpha: 0.25)),
-            ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                softWrap: false,
-                style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: -0.3,
-                    fontWeight: FontWeight.w700,
-                    color: sh.dark ? sh.ink : sh.accentInk),
-              ),
-            ),
-          ),
-        ));
-      });
-    }
-    return overlays;
+  Widget _allDayChip(EventItem e, DateTime d, SpaceHourColors sh) {
+    final c = eventColorFor(e, _themes, sh);
+    return GestureDetector(
+      onTap: () => _onEventTap(e, du.toDateKey(d)),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 18,
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          color: c.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(5),
+          border: Border(left: BorderSide(color: c, width: 2.5)),
+        ),
+        child: Text(e.t,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: sh.dark ? sh.ink : c)),
+      ),
+    );
   }
 
-  List<Widget> _buildEventOverlays(
-    List<DateTime> days,
-    List<String> dayKeys,
-    Map<String, List<EventItem>> events,
-    List<CalendarTheme> themes,
-    SpaceHourColors sh,
-  ) {
-    final colW = (MediaQuery.of(context).size.width - _timeColW) / 7;
-    final overlays = <Widget>[];
+  // ── 하루 컬럼(그리드 라인 + 시간표 + 이벤트 + now) ──
+  Widget _dayColumn(DateTime d, bool showTt, SpaceHourColors sh) {
+    final isToday = du.isSameDay(d, DateTime.now());
+    final now = DateTime.now();
+    final timed = _timedFor(d);
+    final placed = _placeTimed(timed);
+    final recurring = showTt
+        ? timetableSubjectsForDate(ref, d)
+        : const <int, String>{};
 
-    for (int i = 0; i < 7; i++) {
-      final timed = (events[dayKeys[i]] ?? [])
-          .where((e) => e.hasTime && !e.isTimetable)
-          .toList();
-      for (final e in timed) {
-        final parts = e.tm!.split(':');
-        final h = int.parse(parts[0]);
-        final m = int.parse(parts[1]);
-        final top = h * _rowH + m * _rowH / 60;
-        double height = _rowH;
-        if (e.te != null) {
-          final ep = e.te!.split(':');
-          final eh = int.parse(ep[0]);
-          final em = int.parse(ep[1]);
-          height = ((eh - h) * 60 + (em - m)) * _rowH / 60;
-          if (height < 20) { height = 20; }
-        }
-        final thColor = e.sport && e.sportColor != null
-            ? Color(e.sportColor!)
-            : e.themeIds.isNotEmpty
-                ? themes.firstWhere(
-                    (t) => e.themeIds.contains(t.id),
-                    orElse: () =>
-                        const CalendarTheme(id: '', name: '', color: '#6b8ec2'),
-                  ).colorValue
-                : sh.accent;
-
-        overlays.add(Positioned(
-          left: i * colW + 1,
-          top: top,
-          width: colW - 2,
-          height: height.clamp(18.0, double.infinity),
-          child: GestureDetector(
-            onTap: () {
-              // 편집 가능 여부는 머지맵(events)이 아니라 raw eventsProvider 기준.
-              // (머지맵엔 스포츠·구독 등 읽기전용도 들어있어 idx≥0이 됨)
-              final raw =
-                  ref.read(eventsProvider)[dayKeys[i]] ?? const <EventItem>[];
-              final idx = raw.indexOf(e);
-              if (idx < 0) {
-                showEventDetailSheet(context, e); // 읽기 전용 → 상세
-              } else {
-                showAddEditEventModal(context,
-                    dateKey: dayKeys[i], editIndex: idx);
-              }
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 1),
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              decoration: BoxDecoration(
-                color: thColor.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(7),
-                border: Border(left: BorderSide(color: thColor, width: 3)),
-              ),
-              child: Text(
-                e.t,
-                style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600, color: sh.ink),
-                maxLines: 2,
-                softWrap: true,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-        ));
-      }
-    }
-    return overlays;
-  }
-}
-
-class _WeekNav extends StatelessWidget {
-  final List<DateTime> days;
-  final SpaceHourColors sh;
-  final bool showTimetable;
-  final VoidCallback onToggleSchedule;
-  final VoidCallback onZoomIn, onZoomOut;
-  final VoidCallback onPrev, onNext, onToday;
-
-  const _WeekNav({
-    required this.days, required this.sh,
-    required this.showTimetable, required this.onToggleSchedule,
-    required this.onZoomIn, required this.onZoomOut,
-    required this.onPrev, required this.onNext, required this.onToday,
-  });
-
-  // 그 달의 몇째 주(월요일 시작 기준).
-  static int _weekOfMonth(DateTime d) {
-    final first = DateTime(d.year, d.month, 1);
-    final offset = (first.weekday - 1) % 7;
-    return ((d.day + offset - 1) / 7).floor() + 1;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final rep = days[3]; // 주 중간(목요일쯤) — 그 주가 속한 달 기준.
-    final wom = _weekOfMonth(rep);
     return Container(
-      padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
-      color: sh.bg,
-      child: Row(
+      decoration: BoxDecoration(
+        color: isToday ? sh.accent.withValues(alpha: sh.dark ? 0.05 : 0.03) : null,
+        border: Border(
+            right:
+                BorderSide(color: sh.ink.withValues(alpha: 0.06), width: 0.5)),
+      ),
+      child: Stack(
         children: [
-          _NavBtn('＜', onPrev, sh),
-          // 라벨 — 년도 작게, 월·주 크게. 탭하면 오늘로. 공간 부족 시 자동 축소.
-          Flexible(
+          // 빈 칸 탭 → 그 날 일간 뷰(이벤트 블록 탭은 위에서 우선 처리).
+          Positioned.fill(
             child: GestureDetector(
-            onTap: onToday,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text.rich(
-                TextSpan(children: [
-                  TextSpan(
-                    text: '${rep.year} ',
-                    style: AppType.caption.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: sh.inkSoft),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => ref
+                  .read(viewProvider.notifier)
+                  .setDayView(du.toDateKey(d)),
+            ),
+          ),
+          // 그리드 가로선
+          IgnorePointer(
+            child: Column(
+            children: [
+              for (int h = 0; h < 24; h++)
+                Container(
+                  height: _rowH,
+                  decoration: BoxDecoration(
+                    border: Border(
+                        top: BorderSide(
+                            color: sh.ink.withValues(alpha: sh.dark ? 0.07 : 0.05),
+                            width: 0.5)),
                   ),
-                  TextSpan(
-                    text: '${rep.month}월 $wom째주',
-                    style: AppType.title.copyWith(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                        color: sh.ink),
-                  ),
-                ]),
                 ),
-              ),
+            ],
             ),
           ),
-          ),
-          _NavBtn('＞', onNext, sh),
-          const Spacer(),
-          // 스케줄 표시 토글(아이콘만).
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onToggleSchedule,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: showTimetable ? sh.accent.withValues(alpha: 0.10) : sh.card2,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: showTimetable
-                        ? sh.accent.withValues(alpha: 0.35)
-                        : sh.ink.withValues(alpha: 0.08)),
-              ),
-              child: Icon(
-                  showTimetable
-                      ? Icons.event_available_rounded
-                      : Icons.event_busy_rounded,
-                  size: 20,
-                  color: showTimetable ? sh.accent : sh.inkSoft),
+          // 시간표 수업(읽기 전용)
+          for (final entry in recurring.entries)
+            Positioned(
+              top: entry.key * _rowH + 2,
+              left: 2,
+              right: 2,
+              height: _rowH - 4,
+              child: _RecurringBlock(
+                  name: getDisplaySubjectName(entry.value), sh: sh),
             ),
-          ),
-          const SizedBox(width: 6),
-          // 컴팩트 줌(+/−).
-          ZoomButton(icon: Icons.remove_rounded, sh: sh, onTap: onZoomOut),
-          const SizedBox(width: 6),
-          ZoomButton(icon: Icons.add_rounded, sh: sh, onTap: onZoomIn),
+          // 이벤트 블록(겹침 분할)
+          for (final p in placed)
+            Positioned(
+              top: p.top,
+              left: p.lane * (_dayW / p.lanes) + 1,
+              width: _dayW / p.lanes - 2,
+              height: p.height < 18 ? 18 : p.height,
+              child: _EventBlock(
+                event: p.e,
+                color: eventColorFor(p.e, _themes, sh),
+                height: p.height < 18 ? 18 : p.height,
+                sh: sh,
+                onTap: () => _onEventTap(p.e, du.toDateKey(d)),
+              ),
+            ),
+          // 현재 시각선
+          if (isToday)
+            Positioned(
+              top: (now.hour * 60 + now.minute) * _rowH / 60 - 4,
+              left: 0,
+              right: 0,
+              child: Row(children: [
+                Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(left: 1),
+                    decoration: BoxDecoration(
+                        color: sh.danger, shape: BoxShape.circle)),
+                Expanded(
+                    child: Container(
+                        height: 1.5,
+                        color: sh.danger.withValues(alpha: 0.7))),
+              ]),
+            ),
         ],
       ),
     );
   }
-}
 
-class _NavBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final SpaceHourColors sh;
-  const _NavBtn(this.label, this.onTap, this.sh);
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Text(label, style: AppType.section.copyWith(color: sh.inkSoft)),
-      ),
-    );
-  }
-}
-
-class _EventChip extends StatelessWidget {
-  final EventItem item;
-  final List<CalendarTheme> themes;
-  final SpaceHourColors sh;
-  final VoidCallback onTap;
-  const _EventChip({required this.item, required this.themes,
-    required this.sh, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    // 생일·학사일정: 아이콘 칩으로 구분.
-    if (item.birthday || item.academic) {
-      final c = item.birthday ? sh.birthdayColor : sh.academicColor;
-      final icon =
-          item.birthday ? Icons.cake_rounded : Icons.school_rounded;
-      return Container(
-        margin: const EdgeInsets.only(bottom: 1),
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-        decoration: BoxDecoration(
-          color: c.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(children: [
-          Icon(icon, size: 9, color: c),
-          const SizedBox(width: 2),
-          Expanded(
-            child: Text(item.t,
-                style: TextStyle(
-                    fontSize: 10, color: c, fontWeight: FontWeight.w600),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-        ]),
-      );
+  void _onEventTap(EventItem e, String dateKey) {
+    final raw = ref.read(eventsProvider)[dateKey] ?? const <EventItem>[];
+    final idx = raw.indexOf(e);
+    if (idx < 0) {
+      showEventDetailSheet(context, e);
+    } else {
+      showAddEditEventModal(context, dateKey: dateKey, editIndex: idx);
     }
-    final color = item.themeIds.isNotEmpty
-        ? themes.firstWhere((t) => item.themeIds.contains(t.id),
-            orElse: () => CalendarTheme(id:'', name:'', color:'#888888')).colorValue
-        : sh.accent;
+  }
+
+  // 겹치는 timed 이벤트를 클러스터로 묶어 레인(좌우) 배정.
+  List<_Placed> _placeTimed(List<EventItem> timed) {
+    int toMin(String hhmm) {
+      final p = hhmm.split(':');
+      return int.parse(p[0]) * 60 + int.parse(p[1]);
+    }
+
+    final items = timed.map((e) {
+      final s = toMin(e.tm!);
+      var en = (e.te != null && e.te!.isNotEmpty) ? toMin(e.te!) : s + 30;
+      if (en <= s) en = s + 30;
+      return (e: e, s: s, en: en);
+    }).toList()
+      ..sort((a, b) => a.s.compareTo(b.s));
+
+    final out = <_Placed>[];
+    int i = 0;
+    while (i < items.length) {
+      // 클러스터 수집(전이적 겹침).
+      int ce = items[i].en;
+      int j = i + 1;
+      while (j < items.length && items[j].s < ce) {
+        if (items[j].en > ce) ce = items[j].en;
+        j++;
+      }
+      final cluster = items.sublist(i, j);
+      // 레인 배정(first-fit).
+      final laneEnds = <int>[];
+      final laneOf = <int>[];
+      for (final it in cluster) {
+        int lane = 0;
+        while (lane < laneEnds.length && laneEnds[lane] > it.s) {
+          lane++;
+        }
+        if (lane == laneEnds.length) {
+          laneEnds.add(it.en);
+        } else {
+          laneEnds[lane] = it.en;
+        }
+        laneOf.add(lane);
+      }
+      final lanes = laneEnds.length;
+      for (int k = 0; k < cluster.length; k++) {
+        final it = cluster[k];
+        out.add(_Placed(
+          e: it.e,
+          top: it.s * _rowH / 60,
+          height: (it.en - it.s) * _rowH / 60,
+          lane: laneOf[k],
+          lanes: lanes,
+        ));
+      }
+      i = j;
+    }
+    return out;
+  }
+
+  static const _allDow = ['일', '월', '화', '수', '목', '금', '토'];
+  String _dowName(DateTime d) => _allDow[d.weekday % 7];
+}
+
+// 하루(itemW) 단위로 스냅 — 연속 스크롤이되 컬럼이 반쯤 잘려 멈추지 않게.
+class _DaySnapPhysics extends ScrollPhysics {
+  final double itemW;
+  const _DaySnapPhysics({required this.itemW, super.parent});
+
+  @override
+  _DaySnapPhysics applyTo(ScrollPhysics? ancestor) =>
+      _DaySnapPhysics(itemW: itemW, parent: buildParent(ancestor));
+
+  double _target(ScrollMetrics pos, double velocity, Tolerance tol) {
+    double page = pos.pixels / itemW;
+    if (velocity < -tol.velocity) {
+      page -= 0.5;
+    } else if (velocity > tol.velocity) {
+      page += 0.5;
+    }
+    return (page.roundToDouble() * itemW)
+        .clamp(pos.minScrollExtent, pos.maxScrollExtent);
+  }
+
+  @override
+  Simulation? createBallisticSimulation(
+      ScrollMetrics position, double velocity) {
+    if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
+        (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
+      return super.createBallisticSimulation(position, velocity);
+    }
+    final tol = toleranceFor(position);
+    final target = _target(position, velocity, tol);
+    if (target != position.pixels) {
+      return ScrollSpringSimulation(
+          spring, position.pixels, target, velocity,
+          tolerance: tol);
+    }
+    return null;
+  }
+
+  @override
+  bool get allowImplicitScrolling => false;
+}
+
+class _Placed {
+  final EventItem e;
+  final double top, height;
+  final int lane, lanes;
+  _Placed(
+      {required this.e,
+      required this.top,
+      required this.height,
+      required this.lane,
+      required this.lanes});
+}
+
+// ── 이벤트 블록: 색 띠 + 아이콘 + 제목 + 시간 ──
+class _EventBlock extends StatelessWidget {
+  final EventItem event;
+  final Color color;
+  final double height;
+  final SpaceHourColors sh;
+  final VoidCallback onTap;
+  const _EventBlock(
+      {required this.event,
+      required this.color,
+      required this.height,
+      required this.sh,
+      required this.onTap});
+
+  Widget _icon() {
+    if (event.sport) {
+      return Text(event.sportEmoji ?? '🏅',
+          style: const TextStyle(fontSize: 11));
+    }
+    final ic = event.academic
+        ? Icons.school_rounded
+        : event.birthday
+            ? Icons.cake_rounded
+            : Icons.event_rounded;
+    return Icon(ic, size: 11, color: color);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final short = height < 38;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 1),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        margin: const EdgeInsets.symmetric(horizontal: 0.5, vertical: 0.5),
+        padding: EdgeInsets.symmetric(horizontal: 5, vertical: short ? 1 : 3),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(4),
+          color: color.withValues(alpha: sh.dark ? 0.24 : 0.16),
+          borderRadius: BorderRadius.circular(7),
+          border: Border(left: BorderSide(color: color, width: 3)),
         ),
-        child: Text(item.t,
-            style: TextStyle(fontSize: 10, color: sh.ink),
-            maxLines: 1, overflow: TextOverflow.ellipsis),
+        clipBehavior: Clip.hardEdge,
+        child: short
+            ? Row(children: [
+                _icon(),
+                const SizedBox(width: 3),
+                Expanded(
+                  child: Text(event.t,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: sh.ink)),
+                ),
+              ])
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    _icon(),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(event.t,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              height: 1.15,
+                              fontWeight: FontWeight.w700,
+                              color: sh.ink)),
+                    ),
+                  ]),
+                  const SizedBox(height: 1),
+                  Text(
+                    event.te != null && event.te!.isNotEmpty
+                        ? '${event.tm}–${event.te}'
+                        : '${event.tm}',
+                    style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: sh.inkSoft),
+                  ),
+                ],
+              ),
       ),
     );
   }
 }
 
-class _NowLine extends StatelessWidget {
-  final int hour, minute;
-  final double rowH;
+class _RecurringBlock extends StatelessWidget {
+  final String name;
   final SpaceHourColors sh;
-  const _NowLine({required this.hour, required this.minute,
-    required this.rowH, required this.sh});
+  const _RecurringBlock({required this.name, required this.sh});
 
   @override
   Widget build(BuildContext context) {
-    final top = hour * rowH + minute * rowH / 60;
-    return Positioned(
-      top: top - 4,
-      left: 0, right: 0,
-      child: Row(
+    return Container(
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+      decoration: BoxDecoration(
+        color: sh.accent.withValues(alpha: sh.dark ? 0.14 : 0.09),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: sh.accent.withValues(alpha: 0.22)),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(name,
+            maxLines: 1,
+            softWrap: false,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: sh.dark ? sh.ink : sh.accentInk)),
+      ),
+    );
+  }
+}
+
+// ── 헤더(제목 + 세그먼트 + ⋮) ──
+class _PlannerNav extends StatelessWidget {
+  final Widget title;
+  final SpaceHourColors sh;
+  final bool showTimetable;
+  final VoidCallback onToggleSchedule, onZoomIn, onZoomOut;
+  final VoidCallback onPrev, onNext, onToday, onSearch;
+  const _PlannerNav({
+    required this.title,
+    required this.sh,
+    required this.showTimetable,
+    required this.onToggleSchedule,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onPrev,
+    required this.onNext,
+    required this.onToday,
+    required this.onSearch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: sh.bg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 좌측 점 — 현재 시각을 또렷하게.
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(left: 1),
-            decoration:
-                BoxDecoration(color: sh.danger, shape: BoxShape.circle),
+          // ── 1행: 세그먼트 풀폭 (일 뷰와 동일 구조로 통일) ──
+          const Padding(
+            padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
+            child: ViewSegmentControl(),
           ),
-          Expanded(
-            child: Container(
-              height: 1.5,
-              color: sh.danger.withValues(alpha: 0.7),
+          // ── 2행: 날짜(좌, 탭→오늘) + 컨트롤(우) ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.sm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onToday,
+                    behavior: HitTestBehavior.opaque,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: title,
+                    ),
+                  ),
+                ),
+                _navBtn(Icons.chevron_left_rounded, onPrev),
+                const SizedBox(width: 6),
+                _navBtn(Icons.chevron_right_rounded, onNext),
+                const SizedBox(width: 2),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert_rounded,
+                      size: 20, color: sh.inkSoft),
+                  padding: EdgeInsets.zero,
+                  tooltip: '더보기',
+                  color: sh.card,
+                  onSelected: (v) {
+                    switch (v) {
+                      case 'search': onSearch(); break;
+                      case 'schedule': onToggleSchedule(); break;
+                      case 'zoomIn': onZoomIn(); break;
+                      case 'zoomOut': onZoomOut(); break;
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    _item('search', Icons.search_rounded, '일정 검색'),
+                    _item(
+                        'schedule',
+                        showTimetable
+                            ? Icons.event_available_rounded
+                            : Icons.event_busy_rounded,
+                        showTimetable ? '스케줄 숨기기' : '스케줄 표시',
+                        active: showTimetable),
+                    _item('zoomIn', Icons.zoom_in_rounded, '확대'),
+                    _item('zoomOut', Icons.zoom_out_rounded, '축소'),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  PopupMenuItem<String> _item(String v, IconData ic, String label,
+          {bool active = false}) =>
+      PopupMenuItem(
+        value: v,
+        child: Row(children: [
+          Icon(ic, size: 18, color: active ? sh.accent : sh.inkSoft),
+          const SizedBox(width: 10),
+          Text(label, style: TextStyle(color: sh.ink)),
+        ]),
+      );
+
+  Widget _navBtn(IconData ic, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: sh.card2,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: sh.ink.withValues(alpha: 0.07)),
+          ),
+          child: Icon(ic, size: 22, color: sh.inkSoft),
+        ),
+      );
 }

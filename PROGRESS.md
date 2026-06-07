@@ -152,3 +152,31 @@
 - 모델 호환: RecordTemplate.emoji 필드 유지(신규=아이콘 id 저장, 기존 이모지 데이터는 폴백 표시). 프리셋(공부=menu_book/독서=auto_stories/운동=directions_run)도 아이콘 id로.
 - 렌더 일원화: day_cell 뱃지·day_action_sheet·record_entry_sheet·record_template_sheet 전부 `recordGlyph` 사용. 아이콘 색은 셀/템플릿 색(accent·inkSoft) 따름, 기록 없으면 faint.
 - 참고: day_widgets/widget_cell_renderer.dart는 레거시 위젯(DayField)용 — 기록 템플릿 글리프는 day_cell 뱃지에서 그림(거기 업데이트).
+
+### 17. 월간 캘린더 일정 = 가로 색 바(span) + 탭 펼침
+상태: **완료** ✓ (flutter analyze 0 경고)
+- multiday_span.dart: `WeekBar`/`computeWeekBars` 추가 — 모든 일정(+할일, 단일일 포함)을 색 바로, 연속 동일 제목은 하나의 긴 바, 겹침은 레인 패킹. 기존 computeDaySpans(타뷰용)는 보존.
+- month_grid.dart: StatefulWidget화. 평소엔 **얇은 색 바(높이4, 이름 없이 색만)**, 다일 연속 바, 셀당 최대 N레인 + 초과 `+N`. DayCell은 events 비워 칩 미표시(날짜·기록뱃지·격자만).
+- 탭 펼침: 날짜/주 탭 → 그 주 바들이 **라벨 패널(두꺼운 바 + 이름)**로 팝오버 확장(fade+scale 220ms). 라벨 바 탭 → onDayTap(상세/액션시트). 바깥 탭 → 접힘.
+- 기록 템플릿 뱃지는 셀 상단 얇은 줄 유지(바와 영역 분리). 필터/색 체계·다크 일관.
+
+### 18. 헤더 스크롤 동작 + 월/연/주/일 헤더 통일
+상태: **완료** ✓ (flutter analyze 0 경고)
+- header_collapse.dart: 펼침을 '맨 위로 끌어올렸을 때(px≤4)'만 — 위로 스크롤 도중엔 헤더 안 나옴(아래로 충분히=접힘, 위로는 펼치지 않음).
+- app_header.dart(월/연): 검색바·세그먼트 별행 제거 → 주/일(_WeekNav)과 동일한 단일 행 `‹ 날짜 › + 세그먼트(150) + ⋮` + 필터칩(접힘). 검색은 ⋮ → showSearchSheet(시트). 네비 행 항상 보임. ConsumerWidget화.
+- planner ⋮에도 '일정 검색' 추가(일관). → 4뷰 헤더 배치 통일로 전환 튐 완화.
+
+### 19. 주간 뷰 = 3일 가로 연속 스크롤(전면 재작성) + 자기검토 수정
+상태: **완료** ✓ (flutter analyze 0 경고)
+- planner_view.dart 재작성: 한 화면 3일(넓은 컬럼), 가로 무한 연속 스크롤. 시간축 좌측 고정(sticky), 날짜 헤더 가로 동기 스크롤, 세로(시간)/가로(날짜) 독립.
+- 이벤트 블록 재디자인: 좌측 색 띠 + 아이콘(스포츠 이모지/학사·생일/일반) + 제목 + 시간. 짧으면 1줄, 길면 2줄+시간. 겹침은 클러스터 레인 좌우 분할. 탭 → 상세/편집.
+- 줌(±) 유지, 진입 시 오늘 왼쪽 + 현재시각 스크롤, 현재시각선, 종일=헤더 밴드(1칩+N), 시간표 오버레이.
+- 자기검토 수정: ① 제목을 ValueNotifier로 → 가로 스크롤 중 그리드 리빌드 제거(잔렉 해결). ② 빈 칸 탭 → 그 날 일간 뷰(회귀 복구). ③ 하루 단위 스냅 physics → 컬럼 반쯤 잘려 멈추지 않게.
+- 아젠다(리스트) 뷰는 선택사항이라 보류.
+
+### 20. 기숙사 급식 3끼 + 시간표 병합 + 주 시작일 + 헤더 일(日)뷰 통일
+상태: **완료** ✓ (flutter analyze 0 경고)
+- 급식 3끼(기숙사): neis_service.dart에 `SchoolMeals`(조/중/석)·`fetchMeals`(MMEAL_SC_CODE 1/2/3 분기)·`_cleanMenu` 추가, `fetchLunch`는 중→조→석 폴백으로 유지(타뷰 호환). home_view `_MealCard`가 끼니 여러 개면 라벨(🌅조식/🍱중식/🌙석식)로, 1개면 라벨 없이 렌더. 홈에만 표시.
+- 시간표 병합: `_computeMerges` 비교 키를 `getDisplaySubjectName(...).replaceAll(\s+,'')`로 — 공백 차이("아침운동"/"아침 운동")도 같은 과목으로 세로 병합.
+- 주 시작일: 주(planner) 좌측 첫 칸을 '오늘'이 아니라 **이번 주 시작일(설정 weekStartDow, 기본 월)**에 정렬(`_anchor=_weekStart(today)`). '오늘' 버튼은 오늘 칸으로 점프. 무한 연속 스크롤·스냅 유지.
+- 헤더 통일: 월/연(app_header)·주(_PlannerNav)를 **일 뷰 구조**로 — 1행 세그먼트 풀폭 + 2행 날짜(좌, 탭→오늘)·컨트롤(우, 화살표+⋮). 패딩 (lg,xs,lg,sm)/(lg,0,lg,sm)로 4뷰 일치.
