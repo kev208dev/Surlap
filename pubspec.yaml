@@ -18,6 +18,9 @@ dependencies:
   # 저장소
   shared_preferences: ^2.3.2
 
+  # 홈스크린 위젯 (iOS WidgetKit / Android AppWidget)
+  home_widget: ^0.7.0
+
   # Supabase
   supabase_flutter: ^2.8.4
 

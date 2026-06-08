@@ -12,8 +12,8 @@ import 'day_cell.dart';
 import 'multiday_span.dart';
 
 // 바 레이아웃 상수
-const double _kBarTop = 33; // 날짜 숫자 아래(바 시작)
-const double _kBadgeH = 14; // 기록 뱃지 줄 높이
+const double _kBarTop = 36; // 날짜 숫자 아래(셀 콘텐츠 시작 지점 = pad4+숫자30+간격2)
+const double _kBadgeH = 17; // 기록 뱃지 줄 높이(겹침 방지로 실제 글리프보다 약간 여유)
 const double _kBarH = 4; // 접힘 바 두께
 const double _kBarStep = 6; // 접힘 레인 간격(바4 + 간격2)
 const double _kLabelH = 16; // 펼침 바 높이

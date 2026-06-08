@@ -3,8 +3,11 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
+import 'home_widget/widget_bridge.dart';
 import 'providers/color_preset_provider.dart';
+import 'providers/events_provider.dart';
 import 'providers/themes_provider.dart';
+import 'providers/todos_provider.dart';
 import 'screens/splash/splash_gate.dart';
 import 'supabase/theme_share_service.dart';
 
@@ -18,7 +21,8 @@ class SpaceHourApp extends ConsumerStatefulWidget {
   ConsumerState<SpaceHourApp> createState() => _SpaceHourAppState();
 }
 
-class _SpaceHourAppState extends ConsumerState<SpaceHourApp> {
+class _SpaceHourAppState extends ConsumerState<SpaceHourApp>
+    with WidgetsBindingObserver {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _sub;
 
@@ -26,6 +30,22 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp> {
   void initState() {
     super.initState();
     _initDeepLinks();
+    WidgetsBinding.instance.addObserver(this);
+    // 할 일/일정 변경 시 홈 위젯 자동 갱신 (build 밖에서 구독 → 위젯 트리와 분리)
+    ref.listenManual(todosProvider, (_, _) => _syncWidget());
+    ref.listenManual(eventsProvider, (_, _) => _syncWidget());
+    // 첫 프레임 후 홈 위젯 초기 동기화
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncWidget());
+  }
+
+  void _syncWidget() {
+    WidgetBridge.sync(ref).catchError((_) {});
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 앱 복귀 시 위젯 갱신 (날짜 변경/타 기기 동기화 반영)
+    if (state == AppLifecycleState.resumed) _syncWidget();
   }
 
   Future<void> _initDeepLinks() async {
@@ -41,6 +61,7 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp> {
   @override
   void dispose() {
     _sub?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
