@@ -32,19 +32,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   static const _slides = [
     _Slide(
-      expression: MascotExpression.happy,
-      headline: '하루를 한눈에',
-      sub: '흩어진 일정도 시간 위에 펼치면 단순해져요.',
+      expression: MascotExpression.thinking,
+      headline: '학교 시간표·급식,\n자동으로 채워져요',
+      sub: '학년·반만 알려주면 시간표와 급식이 매일 들어와요. (NEIS 연동)',
     ),
     _Slide(
-      expression: MascotExpression.neutral,
-      headline: '시간이 보여요',
-      sub: '월·주·일을 오가며 내 시간이 어디로 흐르는지 색으로 확인해요.',
+      expression: MascotExpression.happy,
+      headline: '일정·할 일·기록을\n앱 하나로',
+      sub: '달력, 할 일, 하루 기록까지 — 여러 앱을 오갈 필요 없어요.',
     ),
     _Slide(
       expression: MascotExpression.cheering,
-      headline: '이제 시작할 시간',
-      sub: '먼저, 나에게 맞게 맞춰볼게요.',
+      headline: '백호가 함께해요',
+      sub: '오늘을 응원하고, 비어 있는 하루엔 쉼을 권하는 작은 친구.',
     ),
   ];
 
