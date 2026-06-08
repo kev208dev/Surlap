@@ -23,6 +23,8 @@ class EventItem {
   final int? sportColor;
   /// 스포츠 종목 이모지.
   final String? sportEmoji;
+  /// 스포츠 팀 로고 URL(있으면 이모지 대신 표시). 직렬화 제외.
+  final String? sportLogo;
 
   const EventItem({
     required this.t,
@@ -39,6 +41,7 @@ class EventItem {
     this.sport = false,
     this.sportColor,
     this.sportEmoji,
+    this.sportLogo,
   });
 
   bool get isTimetable => tt;
@@ -86,7 +89,7 @@ class EventItem {
     String? t, String? tm, String? te, dynamic th, bool? tt,
     String? id, String? cid, String? author, String? createdAt,
     bool? academic, bool? birthday,
-    bool? sport, int? sportColor, String? sportEmoji,
+    bool? sport, int? sportColor, String? sportEmoji, String? sportLogo,
   }) => EventItem(
     t: t ?? this.t,
     tm: tm ?? this.tm,
@@ -102,6 +105,7 @@ class EventItem {
     sport: sport ?? this.sport,
     sportColor: sportColor ?? this.sportColor,
     sportEmoji: sportEmoji ?? this.sportEmoji,
+    sportLogo: sportLogo ?? this.sportLogo,
   );
 }
 

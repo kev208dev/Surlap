@@ -44,10 +44,11 @@ class EventChip extends StatelessWidget {
           text: item.t,
           sh: sh);
     }
-    // 스포츠 구독 경기: 종목 이모지 + 구독 색.
+    // 스포츠 구독 경기: 팀 로고(없으면 종목 이모지) + 구독 색.
     if (item.sport) {
       return _EmojiChip(
           emoji: item.sportEmoji ?? '🏅',
+          logoUrl: item.sportLogo,
           color: Color(item.sportColor ?? 0xFF6C63FF),
           text: item.t,
           sh: sh);
@@ -107,14 +108,16 @@ class EventChip extends StatelessWidget {
   }
 }
 
-/// 스포츠 구독 경기 칩 — 종목 이모지 + 구독 색.
+/// 스포츠 구독 경기 칩 — 팀 로고(없으면 종목 이모지) + 구독 색.
 class _EmojiChip extends StatelessWidget {
   final String emoji;
+  final String? logoUrl;
   final Color color;
   final String text;
   final SpaceHourColors sh;
   const _EmojiChip(
       {required this.emoji,
+      this.logoUrl,
       required this.color,
       required this.text,
       required this.sh});
@@ -123,6 +126,14 @@ class _EmojiChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor =
         sh.dark ? Color.lerp(color, Colors.white, 0.25)! : Color.lerp(color, Colors.black, 0.35)!;
+    final emojiLeading = Text(emoji, style: const TextStyle(fontSize: 9, height: 1.3));
+    final leading = (logoUrl != null && logoUrl!.isNotEmpty)
+        ? Image.network(logoUrl!,
+            width: 12,
+            height: 12,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => emojiLeading)
+        : emojiLeading;
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
       padding: const EdgeInsets.fromLTRB(4, 2, 5, 2.5),
@@ -133,7 +144,7 @@ class _EmojiChip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 9, height: 1.3)),
+          leading,
           const SizedBox(width: 3),
           Expanded(
             child: Text(

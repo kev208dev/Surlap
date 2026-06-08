@@ -92,9 +92,7 @@ class _EventDetailSheet extends StatelessWidget {
                   color: m.color.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: m.emoji != null
-                    ? Text(m.emoji!, style: const TextStyle(fontSize: 20))
-                    : Icon(m.icon, size: 20, color: m.color),
+                child: _badgeChild(m),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -138,6 +136,24 @@ class _EventDetailSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // 헤더 배지 내용 — 스포츠 팀 로고가 있으면 로고, 없으면 이모지/아이콘.
+  Widget _badgeChild(({Color color, IconData? icon, String? emoji, String label}) m) {
+    final logo = e.sportLogo;
+    final emojiW = m.emoji != null
+        ? Text(m.emoji!, style: const TextStyle(fontSize: 20))
+        : Icon(m.icon, size: 20, color: m.color);
+    if (e.sport && logo != null && logo.isNotEmpty) {
+      return Image.network(
+        logo,
+        width: 26,
+        height: 26,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => emojiW,
+      );
+    }
+    return emojiW;
   }
 
   Widget _row(IconData icon, String text, SpaceHourColors sh, {Color? color}) {

@@ -6,6 +6,7 @@ import '../core/utils/date_utils.dart' as du;
 import '../models/event_item.dart';
 import '../models/sports.dart';
 import '../sports/sports_adapter.dart';
+import '../sports/sports_catalog.dart';
 import '../storage/local_store.dart';
 import '../utils/sports_notifications.dart';
 
@@ -178,6 +179,7 @@ final sportsEventsByDateProvider = Provider<Map<String, List<EventItem>>>((ref) 
             sport: true,
             sportColor: sub.color,
             sportEmoji: sub.emoji,
+            sportLogo: teamLogoUrl(sub.leagueId, sub.teamId),
           ));
     }
   }
