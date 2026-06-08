@@ -159,6 +159,17 @@ class AuthNotifier extends Notifier<User?> {
     state = null;
   }
 
+  /// 회원 탈퇴 — 서버 RPC(delete_account)가 auth 사용자와 연결 데이터를 삭제한다.
+  /// Apple App Store 요구사항: 계정 생성이 가능한 앱은 앱 내 탈퇴를 제공해야 함.
+  Future<void> deleteAccount() async {
+    final client = sb;
+    if (client == null) throw StateError('Supabase 미연결');
+    await client.rpc('delete_account');
+    await _clearCredentials();
+    await client.auth.signOut();
+    state = null;
+  }
+
   bool get isLoggedIn => state != null;
   String get displayName => userDisplayName(state);
 }

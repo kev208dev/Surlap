@@ -5,6 +5,7 @@ import 'storage/local_store.dart';
 import 'supabase/supabase_client.dart';
 import 'supabase/account_scope.dart';
 import 'providers/record_templates_provider.dart';
+import 'utils/birthday_notifications.dart';
 import 'app.dart';
 
 void main() async {
@@ -20,6 +21,9 @@ void main() async {
   await LocalStore.instance.migrateLegacyToGuestOnce();
   // 기록 데이터 일반화 마이그레이션(공부 studyHours→primary 등, 1회)
   await migrateRecordDataOnce();
+
+  // 로컬 알림 플러그인 + 타임존 초기화(예약된 생일 알림 재가동).
+  await BirthdayNotifications.init();
 
   // Supabase 초기화 (dart-define 값이 있을 때만)
   await initSupabase();

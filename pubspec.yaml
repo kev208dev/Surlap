@@ -68,7 +68,31 @@ flutter:
   assets:
     - assets/mascot/
     - assets/icon/
-  # assets/fonts/ 에 파일이 없으면 빌드 오류 — 폰트는 web/index.html CDN 사용
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.otf
+          weight: 800
+    - family: Pretendard Variable
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.otf
+          weight: 800
 
 # 네이티브 스플래시(앱 시작~Flutter 첫 프레임). 인트로 배경(#6B3DF9)과 동일색.
 # 적용: dart run flutter_native_splash:create

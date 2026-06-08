@@ -84,11 +84,21 @@ class ProfileView extends ConsumerWidget {
           sh: sh,
           title: '계정',
           child: loggedIn
-              ? SettingsRow(
-                  sh: sh,
-                  icon: Icons.logout_rounded,
-                  title: '로그아웃',
-                  onTap: () => ref.read(authProvider.notifier).signOut(),
+              ? Column(
+                  children: [
+                    SettingsRow(
+                      sh: sh,
+                      icon: Icons.logout_rounded,
+                      title: '로그아웃',
+                      onTap: () => ref.read(authProvider.notifier).signOut(),
+                    ),
+                    SettingsRow(
+                      sh: sh,
+                      icon: Icons.person_remove_rounded,
+                      title: '회원 탈퇴',
+                      onTap: () => _confirmDeleteAccount(context, ref),
+                    ),
+                  ],
                 )
               : SettingsRow(
                   sh: sh,
@@ -98,6 +108,42 @@ class ProfileView extends ConsumerWidget {
                 ),
         ),
       ],
+    );
+  }
+}
+
+// 회원 탈퇴 확인 → 서버 RPC 로 계정·데이터 삭제.
+Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('회원 탈퇴'),
+      content: const Text(
+        '계정과 클라우드에 저장된 데이터가 영구히 삭제돼요.\n이 작업은 되돌릴 수 없어요.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('취소'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: const Text('탈퇴'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await ref.read(authProvider.notifier).deleteAccount();
+    messenger.showSnackBar(
+      const SnackBar(content: Text('계정이 삭제되었어요')),
+    );
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('탈퇴 실패: $e')),
     );
   }
 }
