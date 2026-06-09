@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../supabase/auth_service.dart';
+import '../../i18n/strings.dart';
 import '../../modals/login_modal.dart';
 import '../../widgets/mascot/mascot.dart';
 import '../../widgets/mascot/mascot_feedback.dart';
@@ -39,7 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _loading = false);
-        MascotToast.error(context, '로그인에 실패했어요. 잠시 후 다시 시도해주세요');
+        MascotToast.error(context, tr('로그인에 실패했어요. 잠시 후 다시 시도해주세요'));
       }
     }
   }
@@ -98,10 +99,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             letterSpacing: -0.5,
                             color: Colors.white)),
                     const SizedBox(height: 12),
-                    const Text(
-                      '오늘의 시간을 정리해볼까요?',
+                    Text(
+                      tr('오늘의 시간을 정리해볼까요?'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -109,7 +110,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '로그인하면 일정·시간표·캘린더가\n모든 기기에서 안전하게 동기화돼요',
+                      tr('로그인하면 일정·시간표·캘린더가\n모든 기기에서 안전하게 동기화돼요'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 14,
@@ -120,7 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const Spacer(flex: 3),
                     // ── 흰색 pill 메인 버튼 (Google) ──
                     _WhitePill(
-                      label: 'Google로 계속하기',
+                      label: tr('Google로 계속하기'),
                       loading: _loading,
                       onTap: _loading ? null : _google,
                     ),
@@ -138,7 +139,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16)),
                         ),
-                        child: Text('아이디로 로그인',
+                        child: Text(tr('아이디로 로그인'),
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
@@ -150,7 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (widget.showSkip)
                       TextButton(
                         onPressed: widget.onDone,
-                        child: Text('나중에 하기',
+                        child: Text(tr('나중에 하기'),
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../supabase/auth_service.dart';
 import '../../storage/local_store.dart';
 import '../../core/constants/storage_keys.dart';
+import '../../providers/locale_provider.dart';
 import '../main_shell.dart';
 import '../onboarding/onboarding_screen.dart';
+import '../onboarding/language_select_screen.dart';
 import '../login/login_screen.dart';
 import 'splash_screen.dart';
 
@@ -29,6 +31,8 @@ class _SplashGateState extends ConsumerState<SplashGate> {
   static const _minSplash = Duration(milliseconds: 3100);
 
   bool _ready = false;
+  // 언어 선택 완료(또는 이미 선택) 여부. 첫 실행이면 false → 언어 선택 화면.
+  bool _langChosen = false;
   // 온보딩 완료(또는 이미 시청) 여부. 미시청 첫 실행이면 false.
   bool _onboardingDone = false;
   // 이번 세션에서 로그인 화면을 이미 처리("나중에 하기" 포함)했는지.
@@ -63,6 +67,7 @@ class _SplashGateState extends ConsumerState<SplashGate> {
         LocalStore.instance.getBool(StorageKeys.hasSeenOnboarding) ?? false;
     setState(() {
       _ready = true;
+      _langChosen = LocaleNotifier.chosen;
       _onboardingDone = seen;
     });
   }
@@ -73,8 +78,14 @@ class _SplashGateState extends ConsumerState<SplashGate> {
     final Widget child;
     if (!_ready) {
       child = const SplashScreen(key: ValueKey('splash'));
+    } else if (!_langChosen) {
+      // 첫 실행: 스플래시 끝 → 언어 선택(학교 연결·온보딩보다 먼저).
+      child = LanguageSelectScreen(
+        key: const ValueKey('lang'),
+        onDone: () => setState(() => _langChosen = true),
+      );
     } else if (!_onboardingDone) {
-      // 첫 실행: 스플래시 끝 → 온보딩.
+      // 언어 선택 후 → 온보딩.
       child = OnboardingScreen(
         key: const ValueKey('onboarding'),
         onDone: _finishOnboarding,

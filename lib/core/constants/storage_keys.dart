@@ -36,6 +36,8 @@ abstract final class StorageKeys {
   static const todos         = 'calendar-todos-v1';
   // 온보딩 시청 여부 — 기기 설정값(계정 스코프 제외).
   static const hasSeenOnboarding = 'calendar-has-seen-onboarding-v1';
+  // 앱 언어(ko/en/ja/zh/es) — 기기 설정값. null이면 아직 미선택(언어 선택 화면 표시).
+  static const appLang       = 'calendar-app-lang-v1';
   // 테마 관리 활용 팁 — 처음 1회만 노출.
   static const themeTipSeen  = 'calendar-theme-tip-seen-v1';
   // 생일 알림 설정 — 기기 설정값.

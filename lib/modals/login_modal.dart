@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/strings.dart';
 import '../supabase/auth_service.dart';
 
 /// [startWithForm]=true 면 Google/선택 화면을 건너뛰고 바로 아이디·비번 폼을 연다.
@@ -71,7 +72,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
               ],
             ),
             const SizedBox(height: Gap.sm),
-            Text('사용 방식을 선택해주세요',
+            Text(tr('사용 방식을 선택해주세요'),
                 style: AppType.body.copyWith(color: sh.inkSoft)),
             const SizedBox(height: 28),
             if (!_showForm) ...[
@@ -92,8 +93,8 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                     children: [
                       _GoogleLogo(),
                       const SizedBox(width: 10),
-                      const Text('Google로 로그인',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(tr('Google로 로그인'),
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
@@ -104,7 +105,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                 Expanded(child: Divider(color: sh.border)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: Gap.md),
-                  child: Text('또는',
+                  child: Text(tr('또는'),
                       style: AppType.caption.copyWith(color: sh.inkFaint)),
                 ),
                 Expanded(child: Divider(color: sh.border)),
@@ -114,7 +115,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
               SizedBox(width: double.infinity,
                 child: FilledButton(
                   onPressed: () => setState(() => _showForm = true),
-                  child: const Text('아이디로 로그인'),
+                  child: Text(tr('아이디로 로그인')),
                 ),
               ),
               const SizedBox(height: 10),
@@ -123,7 +124,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                       foregroundColor: sh.inkSoft, side: BorderSide(color: sh.border)),
-                  child: const Text('로그인 없이 사용'),
+                  child: Text(tr('로그인 없이 사용')),
                 ),
               ),
             ] else ...[
@@ -140,8 +141,8 @@ class _LoginModalState extends ConsumerState<LoginModal> {
               TextField(
                 controller: _idCtrl,
                 decoration: InputDecoration(
-                    labelText: '아이디',
-                    hintText: '처음이면 새 아이디 등록',
+                    labelText: tr('아이디'),
+                    hintText: tr('처음이면 새 아이디 등록'),
                     hintStyle: TextStyle(color: sh.inkFaint)),
                 autofillHints: const [AutofillHints.username],
               ),
@@ -149,8 +150,8 @@ class _LoginModalState extends ConsumerState<LoginModal> {
               TextField(
                 controller: _pwCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(
-                    labelText: '비밀번호', hintText: '4자 이상'),
+                decoration: InputDecoration(
+                    labelText: tr('비밀번호'), hintText: tr('4자 이상')),
                 autofillHints: const [AutofillHints.password],
                 onSubmitted: (_) => _submit(),
               ),
@@ -160,7 +161,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                   onPressed: () => setState(() { _showForm = false; _error = null; }),
                   style: OutlinedButton.styleFrom(
                       foregroundColor: sh.inkSoft, side: BorderSide(color: sh.border)),
-                  child: const Text('뒤로'),
+                  child: Text(tr('뒤로')),
                 )),
                 const SizedBox(width: 10),
                 Expanded(flex: 2, child: FilledButton(
@@ -168,7 +169,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                   child: _loading
                       ? const SizedBox(width: 18, height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('확인'),
+                      : Text(tr('확인')),
                 )),
               ]),
             ],
@@ -193,7 +194,7 @@ class _LoginModalState extends ConsumerState<LoginModal> {
     final id = _idCtrl.text.trim();
     final pw = _pwCtrl.text;
     if (id.isEmpty || pw.isEmpty) {
-      setState(() => _error = '아이디와 비밀번호를 입력해주세요');
+      setState(() => _error = tr('아이디와 비밀번호를 입력해주세요'));
       return;
     }
     setState(() { _loading = true; _error = null; });

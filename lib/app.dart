@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
+import 'i18n/app_lang.dart';
+import 'i18n/strings.dart' as i18n;
+import 'providers/locale_provider.dart';
 import 'home_widget/widget_bridge.dart';
 import 'providers/color_preset_provider.dart';
 import 'providers/events_provider.dart';
@@ -120,11 +124,21 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp>
   @override
   Widget build(BuildContext context) {
     final preset = ref.watch(colorPresetProvider);
+    // 언어 변경 시 트리 전체가 리빌드되며 currentLang이 갱신 → 모든 tr() 재평가.
+    final lang = ref.watch(localeProvider);
+    i18n.currentLang = lang;
     return MaterialApp(
       title: 'HourSpace',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: scaffoldMessengerKey,
       theme: buildTheme(preset),
+      locale: lang.locale,
+      supportedLocales: AppLang.values.map((l) => l.locale),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const SplashGate(),
     );
   }

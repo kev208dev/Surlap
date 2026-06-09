@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../i18n/strings.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
 import '../../models/todo_item.dart';
@@ -189,14 +190,14 @@ class MonthView extends ConsumerWidget {
                             size: 84,
                             showStars: false),
                         const SizedBox(height: 14),
-                        Text('이 달은 아직 비어 있어요',
+                        Text(tr('이 달은 아직 비어 있어요'),
                             textAlign: TextAlign.center,
                             style: AppType.body.copyWith(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: sh.ink)),
                         const SizedBox(height: 6),
-                        Text('아래 + 버튼으로 일정을 추가해 보세요',
+                        Text(tr('아래 + 버튼으로 일정을 추가해 보세요'),
                             textAlign: TextAlign.center,
                             style: AppType.label.copyWith(
                                 fontSize: 13,

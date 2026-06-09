@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/app_lang.dart';
+import '../i18n/strings.dart';
+import '../providers/locale_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/themes_provider.dart';
 import '../providers/filter_provider.dart';
@@ -121,8 +124,18 @@ class SettingsSections extends ConsumerWidget {
             children: [
               SettingsRow(
                 sh: sh,
+                icon: Icons.language_rounded,
+                title: tr('언어'),
+                trailing: _LanguagePill(
+                    lang: ref.watch(localeProvider),
+                    onSelected: (l) =>
+                        ref.read(localeProvider.notifier).set(l),
+                    sh: sh),
+              ),
+              SettingsRow(
+                sh: sh,
                 icon: Icons.history_rounded,
-                title: '지난 날 표시',
+                title: tr('지난 날 표시'),
                 trailing: _IosSwitch(
                     value: settings.showPast,
                     onChanged: notifier.setShowPast,
@@ -131,7 +144,7 @@ class SettingsSections extends ConsumerWidget {
               SettingsRow(
                 sh: sh,
                 icon: Icons.notifications_outlined,
-                title: '알림',
+                title: tr('알림'),
                 trailing: _IosSwitch(
                     value: settings.notifyEnabled,
                     onChanged: notifier.setNotify,
@@ -140,7 +153,7 @@ class SettingsSections extends ConsumerWidget {
               SettingsRow(
                 sh: sh,
                 icon: Icons.view_stream_outlined,
-                title: '연속 보기',
+                title: tr('연속 보기'),
                 trailing: _IosSwitch(
                     value: settings.continuousView,
                     onChanged: notifier.setContinuousView,
@@ -149,7 +162,7 @@ class SettingsSections extends ConsumerWidget {
               SettingsRow(
                 sh: sh,
                 icon: Icons.calendar_today_outlined,
-                title: '주 시작일',
+                title: tr('주 시작일'),
                 trailing: _WeekStartPill(
                     dow: settings.weekStartDow,
                     onSelected: notifier.setWeekStart,
@@ -536,6 +549,59 @@ class _SchoolRow extends StatelessWidget {
 }
 
 // ─── 주 시작일 pill ──────────────────────────────────────────────
+// ── 언어 선택 pill (국기 + 자기 언어 이름) ──
+class _LanguagePill extends StatelessWidget {
+  final AppLang lang;
+  final ValueChanged<AppLang> onSelected;
+  final SpaceHourColors sh;
+  const _LanguagePill(
+      {required this.lang, required this.onSelected, required this.sh});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<AppLang>(
+      onSelected: onSelected,
+      color: sh.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      itemBuilder: (_) => [
+        for (final l in AppLang.values)
+          PopupMenuItem(
+            value: l,
+            child: Row(children: [
+              Text(l.flag, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              Text(l.nativeName,
+                  style: AppType.body.copyWith(
+                      color: sh.ink,
+                      fontWeight:
+                          l == lang ? FontWeight.w700 : FontWeight.w400)),
+            ]),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: sh.ink.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(lang.flag, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Text(lang.nativeName,
+                style: AppType.body.copyWith(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: sh.ink.withValues(alpha: 0.55)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _WeekStartPill extends StatelessWidget {
   final int dow; // 0=일, 1=월, 6=토
   final ValueChanged<int> onSelected;
@@ -555,7 +621,7 @@ class _WeekStartPill extends StatelessWidget {
         for (final e in _labels.entries)
           PopupMenuItem(
             value: e.key,
-            child: Text(e.value,
+            child: Text(tr(e.value),
                 style: AppType.body.copyWith(
                     color: sh.ink,
                     fontWeight:
@@ -571,7 +637,7 @@ class _WeekStartPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_labels[dow] ?? '월요일',
+            Text(tr(_labels[dow] ?? '월요일'),
                 style: AppType.body.copyWith(
                     fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
             const SizedBox(width: 4),

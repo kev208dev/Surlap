@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../i18n/strings.dart';
 import '../providers/view_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/theme_sharing_provider.dart';
@@ -182,22 +183,22 @@ class _SpeedDialFabState extends State<_SpeedDialFab>
     final actions = <({IconData icon, String label, VoidCallback onTap})>[
       (
         icon: Icons.palette_rounded,
-        label: '공유 캘린더',
+        label: tr('공유 캘린더'),
         onTap: () => showThemeManagerModal(context),
       ),
       (
         icon: Icons.event_rounded,
-        label: '일정 추가',
+        label: tr('일정 추가'),
         onTap: () => showAddEditEventModal(context, dateKey: _todayKey()),
       ),
       (
         icon: Icons.check_circle_rounded,
-        label: '할 일 추가',
+        label: tr('할 일 추가'),
         onTap: () => showAddTodoModal(context),
       ),
       (
         icon: Icons.dashboard_customize_rounded,
-        label: '기록 템플릿',
+        label: tr('기록 템플릿'),
         onTap: () => showRecordTemplateSheet(context),
       ),
     ];

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../i18n/strings.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../models/event_item.dart';
@@ -507,9 +508,9 @@ class _MealCard extends StatelessWidget {
     if (m == null) return const [];
     return [
       if (m.breakfast != null)
-        ('조식', Icons.wb_twilight_rounded, m.breakfast!),
-      if (m.lunch != null) ('중식', Icons.restaurant_rounded, m.lunch!),
-      if (m.dinner != null) ('석식', Icons.nightlight_round, m.dinner!),
+        (tr('조식'), Icons.wb_twilight_rounded, m.breakfast!),
+      if (m.lunch != null) (tr('중식'), Icons.restaurant_rounded, m.lunch!),
+      if (m.dinner != null) (tr('석식'), Icons.nightlight_round, m.dinner!),
     ];
   }
 
@@ -525,7 +526,7 @@ class _MealCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _iconBadge(sh, Icons.restaurant_rounded, '오늘 급식'),
+          _iconBadge(sh, Icons.restaurant_rounded, tr('오늘 급식')),
           const SizedBox(height: 12),
           if (!loaded)
             const SizedBox(
@@ -538,19 +539,19 @@ class _MealCard extends StatelessWidget {
           else if (NeisSchool.load() == null)
             _LinkLine(
               sh: sh,
-              text: '학교 미연결',
-              action: '학교 연결하기',
+              text: tr('학교 미연결'),
+              action: tr('학교 연결하기'),
               onTap: () => showNeisSetupModal(context),
             )
           else if (error)
             _LinkLine(
               sh: sh,
-              text: '급식 정보를 불러오지 못했어요',
+              text: tr('급식 정보를 불러오지 못했어요'),
               action: '다시 시도',
               onTap: onRetry,
             )
           else
-            _emptyNote(sh, '오늘 급식 정보가 없어요', null),
+            _emptyNote(sh, tr('오늘 급식 정보가 없어요'), null),
         ],
       ),
     );

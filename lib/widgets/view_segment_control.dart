@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/strings.dart';
 import '../providers/view_provider.dart';
 
 /// 통합 뷰 전환 세그먼트(연·월·주·일).
@@ -52,7 +53,7 @@ class ViewSegmentControl extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
-                    label,
+                    tr(label),
                     style: AppType.label.copyWith(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
