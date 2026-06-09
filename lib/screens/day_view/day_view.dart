@@ -14,6 +14,7 @@ import '../../supabase/neis_service.dart'
 import '../timetable_view/timetable_view.dart'
     show timetableSubjectsForDate, getDisplaySubjectName;
 import '../../i18n/dates.dart' as i18nd;
+import '../../i18n/strings.dart';
 import '../../providers/holidays_provider.dart';
 import '../../widgets/view_segment_control.dart';
 import '../../widgets/calendar_filter_strip.dart';
@@ -236,7 +237,7 @@ class _DayViewState extends ConsumerState<DayView> {
                   .any((t) => t.id == id && t.status == 1);
               ref.read(todosProvider.notifier).toggleDone(id);
               if (willComplete) {
-                MascotToast.success(context, '좋아요! 하나 끝냈어요');
+                MascotToast.success(context, tr('좋아요! 하나 끝냈어요'));
               }
             },
             onTapTodo: (t) => showAddTodoModal(context, edit: t),
@@ -342,12 +343,12 @@ class _DayViewState extends ConsumerState<DayView> {
                                 expression: MascotExpression.sleepy,
                                 size: 96),
                             const SizedBox(height: 10),
-                            Text('이 날은 아직 비어있어요',
+                            Text(tr('이 날은 아직 비어있어요'),
                                 style: AppType.body.copyWith(
                                     color: sh.inkFaint,
                                     fontWeight: FontWeight.w600)),
                             const SizedBox(height: 2),
-                            Text('탭해서 일정을 추가해보세요',
+                            Text(tr('탭해서 일정을 추가해보세요'),
                                 style: AppType.label
                                     .copyWith(color: sh.inkFaint)),
                           ],
@@ -533,7 +534,7 @@ class _TodoBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('할 일 (${todos.length})',
+          Text(trf('할 일 ({0})', [todos.length]),
               style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -617,7 +618,7 @@ class _AllDayBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('종일',
+          Text(tr('종일'),
               style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,

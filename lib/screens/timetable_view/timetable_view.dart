@@ -19,6 +19,7 @@ import '../../providers/neis_cache_provider.dart';
 import '../../providers/academic_schedule_provider.dart';
 import '../../modals/neis_setup_modal.dart';
 import '../../widgets/zoom_button.dart';
+import '../../i18n/strings.dart';
 
 // ─── Row definition ───────────────────────────────────────────────
 
@@ -248,11 +249,11 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
     rows.add(const _RowDef(type: _RType.divider));
     final topPeriods = maxPeriod < 4 ? maxPeriod : 4;
     for (int p = 1; p <= topPeriods; p++) {
-      rows.add(_RowDef(type: _RType.school, label: '$p교시', hour: 8 + p, period: p));
+      rows.add(_RowDef(type: _RType.school, label: trf('{0}교시', [p]), hour: 8 + p, period: p));
     }
-    rows.add(const _RowDef(type: _RType.lunch, label: '점심', hour: 13));
+    rows.add(_RowDef(type: _RType.lunch, label: tr('점심'), hour: 13));
     for (int p = 5; p <= maxPeriod; p++) {
-      rows.add(_RowDef(type: _RType.school, label: '$p교시', hour: 9 + p, period: p));
+      rows.add(_RowDef(type: _RType.school, label: trf('{0}교시', [p]), hour: 9 + p, period: p));
     }
     rows.add(const _RowDef(type: _RType.divider));
     final afterSchool = 10 + maxPeriod;
@@ -448,14 +449,14 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
           backgroundColor: sh.card,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(22)),
-          title: Text('${_dowNames[col]}요일 $hour:00 · 매주 반복',
+          title: Text(trf('{0}요일 {1}:00 · 매주 반복', [_dowNames[col], hour]),
               style: AppType.section.copyWith(
                   fontWeight: FontWeight.w800, color: sh.ink)),
           content: TextField(
             controller: ctrl,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: '예) 수학, 영어...',
+              hintText: tr('예) 수학, 영어...'),
               hintStyle: TextStyle(color: sh.inkFaint),
             ),
             textCapitalization: TextCapitalization.sentences,
@@ -466,13 +467,13 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
               TextButton(
                 onPressed: () => _saveCell(dctx, col, hour, ''),
                 style: TextButton.styleFrom(foregroundColor: sh.danger),
-                child: const Text('삭제'),
+                child: Text(tr('삭제')),
               ),
             TextButton(
-                onPressed: () => Navigator.pop(dctx), child: const Text('취소')),
+                onPressed: () => Navigator.pop(dctx), child: Text(tr('취소'))),
             FilledButton(
               onPressed: () => _saveCell(dctx, col, hour, ctrl.text.trim()),
-              child: const Text('저장'),
+              child: Text(tr('저장')),
             ),
           ],
         );
@@ -513,9 +514,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.ios_share_rounded, color: sh.accent),
-              title: Text('이미지로 공유',
+              title: Text(tr('이미지로 공유'),
                   style: AppType.body.copyWith(color: sh.ink)),
-              subtitle: Text('시간표를 깔끔한 이미지로 내보내요',
+              subtitle: Text(tr('시간표를 깔끔한 이미지로 내보내요'),
                   style: AppType.caption.copyWith(color: sh.inkSoft)),
               onTap: () {
                 Navigator.pop(mctx);
@@ -526,9 +527,9 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.palette_outlined,
                   color: _designMode ? sh.accent : sh.inkSoft),
-              title: Text('셀 디자인',
+              title: Text(tr('셀 디자인'),
                   style: AppType.body.copyWith(color: sh.ink)),
-              subtitle: Text(_designMode ? '켜짐 — 셀을 눌러 꾸미기' : '꺼짐',
+              subtitle: Text(_designMode ? tr('켜짐 — 셀을 눌러 꾸미기') : tr('꺼짐'),
                   style: AppType.caption.copyWith(color: sh.inkSoft)),
               trailing: Switch.adaptive(
                 value: _designMode,
@@ -546,7 +547,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.school_outlined, color: sh.inkSoft),
-              title: Text('학교 연결 (NEIS)',
+              title: Text(tr('학교 연결 (NEIS)'),
                   style: AppType.body.copyWith(color: sh.ink)),
               onTap: () {
                 Navigator.pop(mctx);
@@ -556,7 +557,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.refresh_rounded, color: sh.inkSoft),
-              title: Text('시간표·학사일정 새로고침',
+              title: Text(tr('시간표·학사일정 새로고침'),
                   style: AppType.body.copyWith(color: sh.ink)),
               onTap: () {
                 Navigator.pop(mctx);
@@ -619,7 +620,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
             children: [
               Expanded(
                 child: Text(
-                    _designMode ? '스케줄표 · 디자인' : '스케줄표',
+                    _designMode ? tr('스케줄표 · 디자인') : tr('스케줄표'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppType.title.copyWith(
@@ -792,7 +793,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
             bottom: BorderSide(color: _gridLine(sh), width: 1.5),
           ),
         ),
-        child: Text(_dowNames[i],
+        child: Text(tr(_dowNames[i]),
             style: AppType.body.copyWith(
                 fontSize: _tight ? 14 : 16,
                 fontWeight: FontWeight.w800,
@@ -833,7 +834,7 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
                         fontWeight: FontWeight.w800,
                         color: sh.accentInk,
                         height: 1.0)),
-                Text('교시',
+                Text(tr('교시'),
                     style: TextStyle(
                         fontSize: 9.5,
                         fontWeight: FontWeight.w600,
@@ -1122,7 +1123,7 @@ class _DesignPanelState extends State<_DesignPanel> {
             ),
           ),
           Row(children: [
-            Text('셀 디자인', style: AppType.section.copyWith(
+            Text(tr('셀 디자인'), style: AppType.section.copyWith(
                 fontWeight: FontWeight.w800, color: sh.ink)),
             const Spacer(),
             TextButton(
@@ -1131,11 +1132,11 @@ class _DesignPanelState extends State<_DesignPanel> {
                 Navigator.pop(context);
               },
               style: TextButton.styleFrom(foregroundColor: sh.danger),
-              child: const Text('초기화'),
+              child: Text(tr('초기화')),
             ),
           ]),
           const SizedBox(height: Gap.md),
-          Text('배경색', style: AppType.caption.copyWith(color: sh.inkSoft)),
+          Text(tr('배경색'), style: AppType.caption.copyWith(color: sh.inkSoft)),
           const SizedBox(height: Gap.xs),
           Wrap(
             spacing: Gap.sm,
@@ -1173,7 +1174,7 @@ class _DesignPanelState extends State<_DesignPanel> {
           ),
           const SizedBox(height: Gap.md),
           Row(children: [
-            Text('굵게', style: AppType.caption.copyWith(color: sh.inkSoft)),
+            Text(tr('굵게'), style: AppType.caption.copyWith(color: sh.inkSoft)),
             const SizedBox(width: Gap.sm),
             Switch(
               value: _bold,
@@ -1194,8 +1195,8 @@ class _DesignPanelState extends State<_DesignPanel> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text('적용',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: Text(tr('적용'),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ),
           ),
         ],
@@ -1257,7 +1258,7 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
     try {
       final bytes = await _capture();
       if (bytes == null) {
-        _toast('이미지를 만들지 못했어요');
+        _toast(tr('이미지를 만들지 못했어요'));
         return;
       }
       final dir = await getTemporaryDirectory();
@@ -1266,11 +1267,11 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
       await file.writeAsBytes(bytes);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        text: 'HourSpace 시간표',
+        text: tr('HourSpace 시간표'),
         sharePositionOrigin: origin,
       );
     } catch (e) {
-      _toast('공유 실패: $e');
+      _toast(trf('공유 실패: {0}', [e]));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1284,9 +1285,9 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
       if (bytes == null) return;
       await Gal.putImageBytes(bytes,
           name: 'HourSpace_timetable_${DateTime.now().millisecondsSinceEpoch}');
-      _toast('이미지를 갤러리에 저장했어요');
+      _toast(tr('이미지를 갤러리에 저장했어요'));
     } catch (_) {
-      _toast('저장하지 못했어요');
+      _toast(tr('저장하지 못했어요'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1331,7 +1332,7 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
           icon: Icon(Icons.close_rounded, color: sh.ink),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('시간표 공유',
+        title: Text(tr('시간표 공유'),
             style: AppType.title.copyWith(
                 fontSize: 18, fontWeight: FontWeight.w800, color: sh.ink)),
       ),
@@ -1344,11 +1345,11 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _toggleChip('주말 포함', _weekend,
+                _toggleChip(tr('주말 포함'), _weekend,
                     () => setState(() => _weekend = !_weekend), sh),
-                _toggleChip('전체 시간', _full,
+                _toggleChip(tr('전체 시간'), _full,
                     () => setState(() => _full = !_full), sh),
-                _toggleChip(_light ? '밝게' : '어둡게', true,
+                _toggleChip(_light ? tr('밝게') : tr('어둡게'), true,
                     () => setState(() => _light = !_light), sh),
               ],
             ),
@@ -1382,7 +1383,7 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
                     child: OutlinedButton.icon(
                       onPressed: _busy ? null : _save,
                       icon: const Icon(Icons.download_rounded, size: 19),
-                      label: const Text('저장'),
+                      label: Text(tr('저장')),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: sh.inkSoft,
                         side: BorderSide(color: sh.ink.withValues(alpha: 0.14)),
@@ -1403,8 +1404,8 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.ios_share_rounded, size: 19),
-                      label: const Text('공유하기',
-                          style: TextStyle(
+                      label: Text(tr('공유하기'),
+                          style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w800)),
                       style: FilledButton.styleFrom(
                         backgroundColor: sh.accent,
@@ -1507,7 +1508,7 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
               const Icon(Icons.calendar_view_week_rounded,
                   size: 18, color: _accent),
               const SizedBox(width: 6),
-              Text('내 시간표',
+              Text(tr('내 시간표'),
                   style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
@@ -1541,7 +1542,7 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
                               color: _accent,
                               borderRadius: BorderRadius.circular(999))
                           : null,
-                      child: Text(_dow[i],
+                      child: Text(tr(_dow[i]),
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -1566,14 +1567,14 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
                         height: heights[ri],
                         child: Center(
                           child: rows[ri].type == _RType.lunch
-                              ? Text('점심',
+                              ? Text(tr('점심'),
                                   style: TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
                                       color: _accent))
                               : rows[ri].type == _RType.free
                                   // 전체 시간 모드의 빈 시간 — 시각 라벨.
-                                  ? Text('${rows[ri].hour}시',
+                                  ? Text(trf('{0}시', [rows[ri].hour]),
                                       style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -1587,7 +1588,7 @@ class _TimetableExportPageState extends ConsumerState<TimetableExportPage> {
                                                 fontWeight: FontWeight.w800,
                                                 color: ink,
                                                 height: 1)),
-                                        Text('교시',
+                                        Text(tr('교시'),
                                             style: TextStyle(
                                                 fontSize: 9,
                                                 fontWeight: FontWeight.w600,

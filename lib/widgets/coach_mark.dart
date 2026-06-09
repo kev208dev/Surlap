@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/strings.dart';
 
 /// 단계별 튜토리얼(coach mark / 제품 투어).
 /// 마스크(어둡게) + 스포트라이트(강조 cutout) + 툴팁(N/M 단계 + 이전/다음)로
@@ -30,48 +31,48 @@ class CoachStep {
 }
 
 /// 정적 타겟 기반 기본 투어.
-final List<CoachStep> kCoachSteps = [
-  const CoachStep(
-    title: '사용법을 안내해드릴게요',
-    desc: '강조된 부분을 보면서 [다음 →]으로 따라오시면 됩니다. '
-        '오른쪽 위 ✕ 로 언제든 종료할 수 있어요.',
-  ),
-  CoachStep(
-    targetKey: coachKeyBottomNav,
-    title: '아래 바로 화면 전환',
-    desc: '꾸미기 · 일정 · 플래너 · 시간표 · 프로필. 화면 아래 둥근 바에서 '
-        '원하는 화면으로 바로 이동해요.',
-  ),
-  CoachStep(
-    targetKey: coachKeyTabTimetable,
-    title: '시간표',
-    desc: '요일 + 교시 시간표예요. 학교를 연결하면 수업과 급식이 자동으로 '
-        '채워지고, 빈 칸은 직접 눌러 입력할 수 있어요.',
-  ),
-  CoachStep(
-    targetKey: coachKeyBtnSettings,
-    title: '설정 · 보기 옵션',
-    desc: '카테고리 필터, 지난 날 표시 / 알림 / 연속 보기, '
-        '반복 시간표 설정과 학교 연결(NEIS)을 여기서 관리해요.',
-  ),
-  CoachStep(
-    targetKey: coachKeyBtnCategory,
-    title: '카테고리',
-    desc: '일정 카테고리(캘린더)를 만들고 색을 지정할 수 있어요. '
-        '색으로 일정을 한눈에 구분해요.',
-  ),
-  CoachStep(
-    targetKey: coachKeyTabProfile,
-    title: '프로필',
-    desc: '이름 · 프로필 사진 · 학교 연결 · 정보 백업 · 로그아웃은 '
-        '프로필에서 관리해요.',
-  ),
-  const CoachStep(
-    title: '준비 완료!',
-    desc: '핵심 기능을 다 둘러봤어요. 필요할 땐 언제든 '
-        '설정 ▸ 사용법 안내 에서 다시 볼 수 있어요.',
-  ),
-];
+List<CoachStep> get kCoachSteps => [
+      CoachStep(
+        title: tr('사용법을 안내해드릴게요'),
+        desc: tr('강조된 부분을 보면서 [다음 →]으로 따라오시면 됩니다. '
+            '오른쪽 위 ✕ 로 언제든 종료할 수 있어요.'),
+      ),
+      CoachStep(
+        targetKey: coachKeyBottomNav,
+        title: tr('아래 바로 화면 전환'),
+        desc: tr('꾸미기 · 일정 · 플래너 · 시간표 · 프로필. 화면 아래 둥근 바에서 '
+            '원하는 화면으로 바로 이동해요.'),
+      ),
+      CoachStep(
+        targetKey: coachKeyTabTimetable,
+        title: tr('시간표'),
+        desc: tr('요일 + 교시 시간표예요. 학교를 연결하면 수업과 급식이 자동으로 '
+            '채워지고, 빈 칸은 직접 눌러 입력할 수 있어요.'),
+      ),
+      CoachStep(
+        targetKey: coachKeyBtnSettings,
+        title: tr('설정 · 보기 옵션'),
+        desc: tr('카테고리 필터, 지난 날 표시 / 알림 / 연속 보기, '
+            '반복 시간표 설정과 학교 연결(NEIS)을 여기서 관리해요.'),
+      ),
+      CoachStep(
+        targetKey: coachKeyBtnCategory,
+        title: tr('카테고리'),
+        desc: tr('일정 카테고리(캘린더)를 만들고 색을 지정할 수 있어요. '
+            '색으로 일정을 한눈에 구분해요.'),
+      ),
+      CoachStep(
+        targetKey: coachKeyTabProfile,
+        title: tr('프로필'),
+        desc: tr('이름 · 프로필 사진 · 학교 연결 · 정보 백업 · 로그아웃은 '
+            '프로필에서 관리해요.'),
+      ),
+      CoachStep(
+        title: tr('준비 완료!'),
+        desc: tr('핵심 기능을 다 둘러봤어요. 필요할 땐 언제든 '
+            '설정 ▸ 사용법 안내 에서 다시 볼 수 있어요.'),
+      ),
+    ];
 
 /// 코치마크 투어를 띄운다. 페이지 위젯(타겟 키)은 그대로 뒤에 남아 있어
 /// 측정이 가능하다.
@@ -280,12 +281,12 @@ class _Card extends StatelessWidget {
                 TextButton(
                   onPressed: onPrev,
                   style: TextButton.styleFrom(foregroundColor: sh.inkSoft),
-                  child: const Text('이전'),
+                  child: Text(tr('이전')),
                 ),
               const Spacer(),
               FilledButton(
                 onPressed: onNext,
-                child: Text(isLast ? '완료' : '다음 →'),
+                child: Text(isLast ? tr('완료') : tr('다음 →')),
               ),
             ],
           ),

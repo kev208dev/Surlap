@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../i18n/strings.dart';
 import '../../widgets/mascot/mascot.dart';
 
 /// 주요 기능 소개 — 대형 앱 스타일 풀스크린 캐러셀.
@@ -32,50 +33,50 @@ class _Feature {
   });
 }
 
-const _features = <_Feature>[
-  _Feature(
-    c1: Color(0xFF6B3DF9),
-    c2: Color(0xFF9B6BFF),
-    title: '일정을 한눈에',
-    desc: '월·주·일을 자유롭게 오가며, 흩어진 일정을 색으로 구분해 한눈에 정리해요.',
-    mock: _Mock.calendar,
-  ),
-  _Feature(
-    c1: Color(0xFF14B8C4),
-    c2: Color(0xFF35B97A),
-    title: '시간표도 자동으로',
-    desc: '학교만 연결하면 NEIS 시간표와 급식 메뉴가 스케줄표에 자동으로 채워져요.',
-    mock: _Mock.timetable,
-  ),
-  _Feature(
-    c1: Color(0xFFF2A33C),
-    c2: Color(0xFFEC6AA8),
-    title: '매일을 기록해요',
-    desc: '공부·독서·운동을 기간 단위로 트래킹. 달력 셀에 이모지와 숫자로 한눈에 보여요.',
-    mock: _Mock.tracker,
-  ),
-  _Feature(
-    c1: Color(0xFF4F8DFD),
-    c2: Color(0xFF6B3DF9),
-    title: '함께 보는 캘린더',
-    desc: '공유 코드로 일정을 나누면, 추가·수정이 구독자에게 실시간으로 반영돼요.',
-    mock: _Mock.share,
-  ),
-  _Feature(
-    c1: Color(0xFF35B97A),
-    c2: Color(0xFF4F8DFD),
-    title: '좋아하는 팀 경기까지',
-    desc: '팀·대회를 구독하면 경기 일정이 색으로 캘린더에 자동으로 표시돼요.',
-    mock: _Mock.sports,
-  ),
-  _Feature(
-    c1: Color(0xFF6B3DF9),
-    c2: Color(0xFF9B6BFF),
-    title: '이제 시작해요',
-    desc: '당신의 하루를 더 단순하고 단단하게. HourSpace와 함께해요.',
-    mock: _Mock.start,
-  ),
-];
+List<_Feature> get _features => [
+      _Feature(
+        c1: const Color(0xFF6B3DF9),
+        c2: const Color(0xFF9B6BFF),
+        title: tr('일정을 한눈에'),
+        desc: tr('월·주·일을 자유롭게 오가며, 흩어진 일정을 색으로 구분해 한눈에 정리해요.'),
+        mock: _Mock.calendar,
+      ),
+      _Feature(
+        c1: const Color(0xFF14B8C4),
+        c2: const Color(0xFF35B97A),
+        title: tr('시간표도 자동으로'),
+        desc: tr('학교만 연결하면 NEIS 시간표와 급식 메뉴가 스케줄표에 자동으로 채워져요.'),
+        mock: _Mock.timetable,
+      ),
+      _Feature(
+        c1: const Color(0xFFF2A33C),
+        c2: const Color(0xFFEC6AA8),
+        title: tr('매일을 기록해요'),
+        desc: tr('공부·독서·운동을 기간 단위로 트래킹. 달력 셀에 이모지와 숫자로 한눈에 보여요.'),
+        mock: _Mock.tracker,
+      ),
+      _Feature(
+        c1: const Color(0xFF4F8DFD),
+        c2: const Color(0xFF6B3DF9),
+        title: tr('함께 보는 캘린더'),
+        desc: tr('공유 코드로 일정을 나누면, 추가·수정이 구독자에게 실시간으로 반영돼요.'),
+        mock: _Mock.share,
+      ),
+      _Feature(
+        c1: const Color(0xFF35B97A),
+        c2: const Color(0xFF4F8DFD),
+        title: tr('좋아하는 팀 경기까지'),
+        desc: tr('팀·대회를 구독하면 경기 일정이 색으로 캘린더에 자동으로 표시돼요.'),
+        mock: _Mock.sports,
+      ),
+      _Feature(
+        c1: const Color(0xFF6B3DF9),
+        c2: const Color(0xFF9B6BFF),
+        title: tr('이제 시작해요'),
+        desc: tr('당신의 하루를 더 단순하고 단단하게. HourSpace와 함께해요.'),
+        mock: _Mock.start,
+      ),
+    ];
 
 class FeatureIntroScreen extends StatefulWidget {
   const FeatureIntroScreen({super.key});
@@ -130,7 +131,7 @@ class _FeatureIntroScreenState extends State<FeatureIntroScreen> {
                   child: TextButton(
                     onPressed:
                         last ? null : () => Navigator.of(context).maybePop(),
-                    child: Text('건너뛰기',
+                    child: Text(tr('건너뛰기'),
                         style: AppType.body.copyWith(
                             fontWeight: FontWeight.w700, color: sh.inkSoft)),
                   ),
@@ -183,7 +184,7 @@ class _FeatureIntroScreenState extends State<FeatureIntroScreen> {
                             borderRadius: BorderRadius.circular(18)),
                       ),
                       onPressed: _next,
-                      child: Text(last ? '시작하기' : '다음',
+                      child: Text(last ? tr('시작하기') : tr('다음'),
                           style: const TextStyle(
                               fontSize: 16.5, fontWeight: FontWeight.w800)),
                     ),
@@ -335,8 +336,8 @@ class _FeaturePage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(children: [
-          const Text('6월',
-              style: TextStyle(
+          Text(tr('6월'),
+              style: const TextStyle(
                   fontSize: 16, fontWeight: FontWeight.w900, color: ink)),
           const Spacer(),
           Icon(Icons.chevron_left_rounded, size: 16, color: faint),
@@ -344,7 +345,7 @@ class _FeaturePage extends StatelessWidget {
         ]),
         const SizedBox(height: 8),
         Row(
-          children: ['일', '월', '화', '수', '목', '금', '토']
+          children: [tr('일'), tr('월'), tr('화'), tr('수'), tr('목'), tr('금'), tr('토')]
               .map((d) => Expanded(
                   child: Center(
                       child: Text(d,
@@ -412,7 +413,7 @@ class _FeaturePage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
-          children: ['월', '화', '수', '목']
+          children: [tr('월'), tr('화'), tr('수'), tr('목')]
               .map((d) => Expanded(
                   child: Center(
                       child: Text(d,
@@ -423,8 +424,8 @@ class _FeaturePage extends StatelessWidget {
               .toList(),
         ),
         const SizedBox(height: 4),
-        Row(children: [block('국어'), block('수학'), block('영어'), block('과학')]),
-        Row(children: [block('수학'), block('체육'), block('국어'), block('미술')]),
+        Row(children: [block(tr('국어')), block(tr('수학')), block(tr('영어')), block(tr('과학'))]),
+        Row(children: [block(tr('수학')), block(tr('체육')), block(tr('국어')), block(tr('미술'))]),
         Row(children: [
           Expanded(
             child: Container(
@@ -435,11 +436,11 @@ class _FeaturePage extends StatelessWidget {
                 color: const Color(0xFFE8943A).withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('🍱 급식',
-                      style: TextStyle(
+                  Text(tr('🍱 급식'),
+                      style: const TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFFB46A1E))),
@@ -468,31 +469,31 @@ class _FeaturePage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(children: [
-          Icon(Icons.menu_book_rounded, size: 18, color: accent),
-          SizedBox(width: 6),
-          Text('공부 트래커',
-              style: TextStyle(
+        Row(children: [
+          const Icon(Icons.menu_book_rounded, size: 18, color: accent),
+          const SizedBox(width: 6),
+          Text(tr('공부 트래커'),
+              style: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w900, color: ink)),
         ]),
         const SizedBox(height: 10),
-        const Row(crossAxisAlignment: CrossAxisAlignment.baseline,
+        Row(crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text('4.5',
+            const Text('4.5',
                 style: TextStyle(
                     fontSize: 34, fontWeight: FontWeight.w900, color: accent)),
-            SizedBox(width: 3),
+            const SizedBox(width: 3),
             Padding(
-              padding: EdgeInsets.only(bottom: 5),
-              child: Text('시간',
-                  style: TextStyle(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Text(tr('시간'),
+                  style: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w700, color: ink)),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Row(children: [tag('수학'), const SizedBox(width: 6), tag('영어')]),
+        Row(children: [tag(tr('수학')), const SizedBox(width: 6), tag(tr('영어'))]),
         const SizedBox(height: 12),
         // 달력 셀 미리보기
         Row(
@@ -527,8 +528,8 @@ class _FeaturePage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('공유 코드',
-            style: TextStyle(
+        Text(tr('공유 코드'),
+            style: const TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9A93B0))),
         const SizedBox(height: 8),
         Row(children: [
@@ -557,11 +558,11 @@ class _FeaturePage extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
                 color: accent, borderRadius: BorderRadius.circular(10)),
-            child: const Row(children: [
-              Icon(Icons.copy_rounded, size: 14, color: Colors.white),
-              SizedBox(width: 4),
-              Text('복사',
-                  style: TextStyle(
+            child: Row(children: [
+              const Icon(Icons.copy_rounded, size: 14, color: Colors.white),
+              const SizedBox(width: 4),
+              Text(tr('복사'),
+                  style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: Colors.white)),
@@ -575,11 +576,11 @@ class _FeaturePage extends StatelessWidget {
             color: const Color(0xFF35B97A).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Row(children: [
-            Icon(Icons.sync_rounded, size: 14, color: Color(0xFF2E9E68)),
-            SizedBox(width: 6),
-            Text('실시간 동기화 중',
-                style: TextStyle(
+          child: Row(children: [
+            const Icon(Icons.sync_rounded, size: 14, color: Color(0xFF2E9E68)),
+            const SizedBox(width: 6),
+            Text(tr('실시간 동기화 중'),
+                style: const TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF2E9E68))),
@@ -620,8 +621,8 @@ class _FeaturePage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          chip('⚽ 토트넘', orange, true),
-          chip('🏀 NBA', const Color(0xFF4F8DFD), false),
+          chip(tr('⚽ 토트넘'), orange, true),
+          chip(tr('🏀 NBA'), const Color(0xFF4F8DFD), false),
         ]),
         const SizedBox(height: 14),
         Container(
@@ -631,13 +632,13 @@ class _FeaturePage extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border(left: BorderSide(color: orange, width: 3)),
           ),
-          child: const Row(children: [
-            Text('22:00  ',
+          child: Row(children: [
+            const Text('22:00  ',
                 style: TextStyle(
                     fontSize: 11, fontWeight: FontWeight.w800, color: orange)),
             Expanded(
-              child: Text('토트넘 vs 아스널',
-                  style: TextStyle(
+              child: Text(tr('토트넘 vs 아스널'),
+                  style: const TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       color: ink)),

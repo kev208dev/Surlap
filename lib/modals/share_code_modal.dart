@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/strings.dart';
 
 /// 테마 공유 — OS 공유창 대신 앱 자체 모달.
 /// 공유 코드 + 링크를 각각 박스로 보여주고, 옆 버튼으로 클립보드에 직접 복사.
@@ -52,7 +53,7 @@ class _ShareCodeModal extends StatelessWidget {
                 Icon(Icons.ios_share_rounded, size: 20, color: sh.accent),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('"$name" 공유',
+                  child: Text(trf('"{0}" 공유', [name]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppType.section.copyWith(
@@ -63,18 +64,18 @@ class _ShareCodeModal extends StatelessWidget {
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
                   visualDensity: VisualDensity.compact,
-                  tooltip: '닫기',
+                  tooltip: tr('닫기'),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            Text('코드나 링크를 복사해 친구에게 보내세요.',
+            Text(tr('코드나 링크를 복사해 친구에게 보내세요.'),
                 style: AppType.caption.copyWith(color: sh.inkSoft)),
             const SizedBox(height: 18),
 
-            _CopyField(label: '공유 코드', value: code, mono: true, sh: sh),
+            _CopyField(label: tr('공유 코드'), value: code, mono: true, sh: sh),
             const SizedBox(height: 14),
-            _CopyField(label: '링크', value: link, mono: false, sh: sh),
+            _CopyField(label: tr('링크'), value: link, mono: false, sh: sh),
             const SizedBox(height: 10),
           ],
         ),
@@ -170,7 +171,7 @@ class _CopyFieldState extends State<_CopyField> {
                       color: _copied ? sh.accent : Colors.white,
                     ),
                     const SizedBox(width: 5),
-                    Text(_copied ? '복사됨' : '복사',
+                    Text(_copied ? tr('복사됨') : tr('복사'),
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/strings.dart';
 import '../models/user_type.dart';
 import '../providers/user_type_provider.dart';
 import '../providers/neis_cache_provider.dart';
@@ -86,7 +87,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: '닫기',
+      barrierLabel: tr('닫기'),
       barrierColor: Colors.black.withValues(alpha: 0.45),
       transitionDuration: const Duration(milliseconds: 260),
       pageBuilder: (dctx, _, _) {
@@ -129,7 +130,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                     Icon(Icons.check_circle_rounded,
                         size: 16, color: sh.accent),
                     const SizedBox(width: 4),
-                    Text('선택됨',
+                    Text(tr('선택됨'),
                         style: AppType.caption.copyWith(
                             color: sh.accent, fontWeight: FontWeight.w700)),
                   ]),
@@ -182,7 +183,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
               ),
               Row(
                 children: [
-                  Text('🏫 학교 연결',
+                  Text(tr('🏫 학교 연결'),
                       style: AppType.section.copyWith(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -195,12 +196,12 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    tooltip: '닫기',
+                    tooltip: tr('닫기'),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              Text('초·중·고는 시간표·급식·학사일정을 자동으로 가져와요.',
+              Text(tr('초·중·고는 시간표·급식·학사일정을 자동으로 가져와요.'),
                   style: AppType.caption.copyWith(color: sh.inkSoft)),
               const SizedBox(height: Gap.lg),
 
@@ -208,7 +209,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
               if (_existing != null && _selected == null) ...[
                 _SchoolPreviewCard(sh: sh, logo: _previewLogo,
                     logoFallback: _previewLogoFallback, name: _existing!.name,
-                    sub: '${_existing!.kind} · ${_existing!.grade}학년 ${_existing!.classNm}반'),
+                    sub: '${tr(_existing!.kind)} · ${trf('{0}학년 {1}반', [_existing!.grade, _existing!.classNm])}'),
                 const SizedBox(height: 14),
               ],
 
@@ -217,8 +218,8 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                 Expanded(child: TextField(
                   controller: _nameCtrl,
                   decoration: InputDecoration(
-                    labelText: _existing == null ? '학교명' : '다른 학교로 변경',
-                    hintText: '예) 한국디지털미디어고등학교',
+                    labelText: _existing == null ? tr('학교명') : tr('다른 학교로 변경'),
+                    hintText: tr('예) 한국디지털미디어고등학교'),
                     hintStyle: TextStyle(color: sh.inkFaint),
                   ),
                   textInputAction: TextInputAction.search,
@@ -230,7 +231,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                   child: _loading
                       ? const SizedBox(width: 16, height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('검색'),
+                      : Text(tr('검색')),
                 ),
               ]),
               if (_status != null)
@@ -280,13 +281,13 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('학년', style: AppType.caption.copyWith(color: sh.inkSoft)),
+                      Text(tr('학년'), style: AppType.caption.copyWith(color: sh.inkSoft)),
                       DropdownButton<int>(
                         value: _grade.clamp(1, _maxGrade),
                         isExpanded: true,
                         items: List.generate(_maxGrade, (i) => i + 1)
                             .map((g) => DropdownMenuItem(value: g,
-                                child: Text('$g학년'))).toList(),
+                                child: Text(trf('{0}학년', [g])))).toList(),
                         onChanged: (v) { if (v != null) setState(() => _grade = v); },
                       ),
                     ],
@@ -295,7 +296,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('반', style: AppType.caption.copyWith(color: sh.inkSoft)),
+                      Text(tr('반'), style: AppType.caption.copyWith(color: sh.inkSoft)),
                       TextField(
                         keyboardType: TextInputType.number,
                         controller: _classCtrl,
@@ -318,8 +319,8 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16))),
-                  child: const Text('취소',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(tr('취소'),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                 )),
                 const SizedBox(width: Gap.md),
                 Expanded(flex: 2, child: FilledButton(
@@ -329,7 +330,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16))),
-                  child: Text(_existing != null && _selected == null ? '저장' : '연결',
+                  child: Text(_existing != null && _selected == null ? tr('저장') : tr('연결'),
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                 )),
               ]),
@@ -343,16 +344,16 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
   Future<void> _search() async {
     final q = _nameCtrl.text.trim();
     if (q.isEmpty) { return; }
-    setState(() { _loading = true; _status = '검색 중…'; _results = []; _selected = null; });
+    setState(() { _loading = true; _status = tr('검색 중…'); _results = []; _selected = null; });
     try {
       final rows = await searchSchools(q);
       setState(() {
         _results = rows;
-        _status = rows.isEmpty ? '검색 결과가 없습니다' : null;
+        _status = rows.isEmpty ? tr('검색 결과가 없습니다') : null;
         _loading = false;
       });
     } catch (e) {
-      setState(() { _status = '오류: $e'; _loading = false; });
+      setState(() { _status = trf('오류: {0}', [e]); _loading = false; });
     }
   }
 
@@ -396,7 +397,7 @@ class _NeisSetupModalState extends ConsumerState<NeisSetupModal> {
     ref.read(neisCacheProvider.notifier).refresh();
     ref.read(academicScheduleProvider.notifier).refresh();
     if (mounted) {
-      MascotToast.success(context, '${school.name} 연결 완료!');
+      MascotToast.success(context, trf('{0} 연결 완료!', [school.name]));
       Navigator.pop(context);
     }
   }

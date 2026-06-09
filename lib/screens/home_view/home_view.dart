@@ -163,7 +163,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       .any((t) => t.id == id && t.status == 1);
                   ref.read(todosProvider.notifier).toggleDone(id);
                   if (willComplete) {
-                    MascotToast.success(context, '좋아요! 하나 끝냈어요');
+                    MascotToast.success(context, tr('좋아요! 하나 끝냈어요'));
                   }
                 },
                 onTapTodo: (t) => showAddTodoModal(context, edit: t),
@@ -461,13 +461,13 @@ class _NextEventCard extends StatelessWidget {
     final mins = diff.inMinutes;
     String rel;
     if (mins <= 0) {
-      rel = '곧 시작';
+      rel = tr('곧 시작');
     } else if (mins < 60) {
-      rel = '$mins분 후 시작';
+      rel = trf('{0}분 후 시작', [mins]);
     } else {
       final hh = diff.inHours;
       final mm = mins % 60;
-      rel = mm == 0 ? '$hh시간 후 시작' : '$hh시간 $mm분 후 시작';
+      rel = mm == 0 ? trf('{0}시간 후 시작', [hh]) : trf('{0}시간 {1}분 후 시작', [hh, mm]);
     }
     final range = e.te != null ? '$tm ~ ${e.te}' : tm;
     return '$range · $rel';
@@ -545,7 +545,7 @@ class _MealCard extends StatelessWidget {
             _LinkLine(
               sh: sh,
               text: tr('급식 정보를 불러오지 못했어요'),
-              action: '다시 시도',
+              action: tr('다시 시도'),
               onTap: onRetry,
             )
           else
@@ -801,7 +801,7 @@ class _UpcomingBirthdaysCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              _iconBadge(sh, Icons.cake_rounded, '다가오는 생일',
+              _iconBadge(sh, Icons.cake_rounded, tr('다가오는 생일'),
                   color: sh.birthdayColor),
               const Spacer(),
               Icon(Icons.chevron_right_rounded, size: 18, color: sh.inkFaint),
@@ -836,7 +836,7 @@ class _UpcomingBirthdaysCard extends StatelessWidget {
                           : sh.birthdayColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(d == 0 ? '오늘' : 'D-$d',
+                    child: Text(d == 0 ? tr('오늘') : 'D-$d',
                         style: AppType.label.copyWith(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,

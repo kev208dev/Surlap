@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../core/constants/storage_keys.dart';
+import '../i18n/strings.dart';
 import '../providers/events_provider.dart';
 import '../providers/themes_provider.dart';
 import '../storage/local_store.dart';
@@ -61,7 +62,7 @@ class _BackupModalState extends ConsumerState<BackupModal> {
               padding: const EdgeInsets.fromLTRB(20, 18, 12, 10),
               child: Row(children: [
                 const Text('💾 ', style: TextStyle(fontSize: 20)),
-                Text('정보 백업',
+                Text(tr('정보 백업'),
                     style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                 const Spacer(),
                 IconButton(icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
@@ -74,25 +75,25 @@ class _BackupModalState extends ConsumerState<BackupModal> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   // ── 파일 백업 ──
-                  _Section('📁 파일 백업', sh),
+                  _Section(tr('📁 파일 백업'), sh),
                   const SizedBox(height: 10),
                   Row(children: [
-                    Expanded(child: _Btn('⬇️ 파일로 내보내기', sh,
+                    Expanded(child: _Btn(tr('⬇️ 파일로 내보내기'), sh,
                         onTap: _export, loading: _loading)),
                     const SizedBox(width: 10),
-                    Expanded(child: _Btn('⬆️ 파일에서 복원', sh,
+                    Expanded(child: _Btn(tr('⬆️ 파일에서 복원'), sh,
                         onTap: _import, loading: _loading)),
                   ]),
                   // ── 클라우드 백업 (로그인 시) ──
                   if (isLoggedIn) ...[
                     const SizedBox(height: 20),
-                    _Section('☁️ 클라우드 동기화 (${userDisplayName(user)})', sh),
+                    _Section(trf('☁️ 클라우드 동기화 ({0})', [userDisplayName(user)]), sh),
                     const SizedBox(height: 10),
                     Row(children: [
-                      Expanded(child: _Btn('⬆️ 클라우드 업로드', sh,
+                      Expanded(child: _Btn(tr('⬆️ 클라우드 업로드'), sh,
                           onTap: _cloudPush, loading: _loading)),
                       const SizedBox(width: 10),
-                      Expanded(child: _Btn('⬇️ 클라우드 내려받기', sh,
+                      Expanded(child: _Btn(tr('⬇️ 클라우드 내려받기'), sh,
                           onTap: _cloudPull, loading: _loading)),
                     ]),
                   ],
@@ -129,9 +130,9 @@ class _BackupModalState extends ConsumerState<BackupModal> {
       final fname = '달력_백업_${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}.json';
       final file = File('${dir.path}/$fname');
       await file.writeAsString(json);
-      setState(() => _msg = '저장됨: ${file.path}');
+      setState(() => _msg = trf('저장됨: {0}', [file.path]));
     } catch (e) {
-      setState(() => _msg = '오류: $e');
+      setState(() => _msg = trf('오류: {0}', [e]));
     } finally {
       setState(() => _loading = false);
     }
@@ -156,9 +157,9 @@ class _BackupModalState extends ConsumerState<BackupModal> {
       // providers 재로드
       ref.invalidate(eventsProvider);
       ref.invalidate(themesProvider);
-      setState(() => _msg = '복원 완료 (${snap['_ts'] ?? ''})');
+      setState(() => _msg = trf('복원 완료 ({0})', [snap['_ts'] ?? '']));
     } catch (e) {
-      setState(() => _msg = '오류: $e');
+      setState(() => _msg = trf('오류: {0}', [e]));
     } finally {
       setState(() => _loading = false);
     }
@@ -171,9 +172,9 @@ class _BackupModalState extends ConsumerState<BackupModal> {
       await UserDataSync.pushAll();
       final events = ref.read(eventsProvider);
       await EventsSync.pushAll(events);
-      setState(() => _msg = '클라우드 업로드 완료');
+      setState(() => _msg = tr('클라우드 업로드 완료'));
     } catch (e) {
-      setState(() => _msg = '오류: $e');
+      setState(() => _msg = trf('오류: {0}', [e]));
     } finally {
       setState(() => _loading = false);
     }
@@ -185,9 +186,9 @@ class _BackupModalState extends ConsumerState<BackupModal> {
       await UserDataSync.pullAll();
       ref.invalidate(eventsProvider);
       ref.invalidate(themesProvider);
-      setState(() => _msg = '클라우드 내려받기 완료 — 앱을 재시작하면 모두 반영됩니다.');
+      setState(() => _msg = tr('클라우드 내려받기 완료 — 앱을 재시작하면 모두 반영됩니다.'));
     } catch (e) {
-      setState(() => _msg = '오류: $e');
+      setState(() => _msg = trf('오류: {0}', [e]));
     } finally {
       setState(() => _loading = false);
     }

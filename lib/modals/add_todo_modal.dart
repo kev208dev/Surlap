@@ -114,7 +114,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
     if (!_speechReady) {
       if (mounted) {
         final detail = _speechErr != null ? ' ($_speechErr)' : '';
-        _snack('음성 인식을 사용할 수 없어요. 설정에서 마이크·음성 인식 권한을 허용해 주세요.$detail');
+        _snack(trf('음성 인식을 사용할 수 없어요. 설정에서 마이크·음성 인식 권한을 허용해 주세요.{0}', [detail]));
       }
       return;
     }
@@ -142,7 +142,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
     } catch (e) {
       if (mounted) {
         setState(() => _listening = false);
-        _snack('음성 인식을 시작하지 못했어요 ($e)');
+        _snack(trf('음성 인식을 시작하지 못했어요 ({0})', [e]));
       }
     }
   }
@@ -290,7 +290,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                       autofocus: true,
                       style: AppType.body.copyWith(color: sh.ink),
                       decoration: InputDecoration(
-                        hintText: '내일 p1 빨래하기',
+                        hintText: tr('내일 p1 빨래하기'),
                         hintStyle: TextStyle(color: sh.inkFaint),
                         border: InputBorder.none,
                         isDense: true,
@@ -313,7 +313,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
               child: Text(
                 _listening
                     ? tr('듣고 있어요… 말한 뒤 손을 떼세요')
-                    : '마이크를 꾹 누른 채로 말하고 떼면 입력돼요 (예: "내일 p1 빨래하기"). 첫 사용 시 권한 허용 필요',
+                    : tr('마이크를 꾹 누른 채로 말하고 떼면 입력돼요 (예: "내일 p1 빨래하기"). 첫 사용 시 권한 허용 필요'),
                 style: AppType.caption.copyWith(
                     color: _listening ? sh.accent : sh.inkFaint,
                     height: 1.3),
@@ -323,7 +323,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                 parsed.content != _textCtrl.text.trim())
               Padding(
                 padding: const EdgeInsets.only(top: 6, left: 4),
-                child: Text('내용: ${parsed.content}',
+                child: Text(trf('내용: {0}', [parsed.content]),
                     style: AppType.caption.copyWith(color: sh.accent)),
               ),
             const SizedBox(height: 16),

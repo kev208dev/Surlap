@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/strings.dart';
 import '../supabase/auth_service.dart';
 import 'login_modal.dart';
 import 'backup_modal.dart';
@@ -22,7 +23,7 @@ class ProfileModal extends ConsumerWidget {
     final sh = context.sh;
     final user = ref.watch(authProvider);
     final isLoggedIn = user != null;
-    final displayName = isLoggedIn ? userDisplayName(user) : '로그인 안 됨';
+    final displayName = isLoggedIn ? userDisplayName(user) : tr('로그인 안 됨');
 
     return FractionallySizedBox(
       heightFactor: 0.6,
@@ -50,7 +51,7 @@ class ProfileModal extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 12, 10),
               child: Row(children: [
-                Text('프로필 설정',
+                Text(tr('프로필 설정'),
                     style: AppType.section.copyWith(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -81,7 +82,7 @@ class ProfileModal extends ConsumerWidget {
                 ),
                 const SizedBox(width: 14),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(isLoggedIn ? displayName : '로그인 없이 사용 중',
+                  Text(isLoggedIn ? displayName : tr('로그인 없이 사용 중'),
                       style: AppType.section.copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                   if (user?.email != null)
                     Text(user!.email!, style: AppType.caption.copyWith(color: sh.inkSoft)),
@@ -91,7 +92,7 @@ class ProfileModal extends ConsumerWidget {
             Divider(color: sh.border, height: 1),
             _Row(
               icon: Icons.backup_outlined,
-              label: '정보 백업',
+              label: tr('정보 백업'),
               sh: sh,
               onTap: () {
                 Navigator.pop(context);
@@ -101,7 +102,7 @@ class ProfileModal extends ConsumerWidget {
             if (!isLoggedIn)
               _Row(
                 icon: Icons.login_rounded,
-                label: '로그인하여 클라우드 동기화',
+                label: tr('로그인하여 클라우드 동기화'),
                 sh: sh,
                 onTap: () {
                   Navigator.pop(context);
@@ -111,7 +112,7 @@ class ProfileModal extends ConsumerWidget {
             else
               _Row(
                 icon: Icons.logout_rounded,
-                label: '로그아웃',
+                label: tr('로그아웃'),
                 sh: sh,
                 color: sh.danger,
                 onTap: () async {

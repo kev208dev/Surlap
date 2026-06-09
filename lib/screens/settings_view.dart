@@ -45,11 +45,11 @@ class SettingsSections extends ConsumerWidget {
         // ── 내 유형 ──
         SettingsSectionCard(
           sh: sh,
-          title: '내 정보',
+          title: tr('내 정보'),
           child: SettingsRow(
             sh: sh,
             icon: Icons.badge_outlined,
-            title: '내 유형',
+            title: tr('내 유형'),
             trailing: _TypePill(
                 type: userType,
                 sh: sh,
@@ -62,13 +62,13 @@ class SettingsSections extends ConsumerWidget {
         // ── 카테고리 ──
         SettingsSectionCard(
           sh: sh,
-          title: '카테고리',
+          title: tr('카테고리'),
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               CategoryFilterChip(
-                label: '전체',
+                label: tr('전체'),
                 color: sh.inkSoft,
                 selected: hidden.isEmpty,
                 sh: sh,
@@ -92,7 +92,7 @@ class SettingsSections extends ConsumerWidget {
               // 생일 — 별도 카테고리. 등록된 생일이 있을 때만 노출.
               if (birthdays.isNotEmpty)
                 CategoryFilterChip(
-                  label: '생일',
+                  label: tr('생일'),
                   color: sh.birthdayColor,
                   selected: !hidden.contains(birthdayThemeId),
                   sh: sh,
@@ -103,7 +103,7 @@ class SettingsSections extends ConsumerWidget {
               // 학사일정(NEIS) — 별도 카테고리. 데이터가 있을 때만 노출.
               if (ref.watch(academicScheduleProvider).isNotEmpty)
                 CategoryFilterChip(
-                  label: '학사일정',
+                  label: tr('학사일정'),
                   color: sh.academicColor,
                   selected: !hidden.contains(academicThemeId),
                   sh: sh,
@@ -119,7 +119,7 @@ class SettingsSections extends ConsumerWidget {
         // ── 보기 옵션 ──
         SettingsSectionCard(
           sh: sh,
-          title: '보기 옵션',
+          title: tr('보기 옵션'),
           child: Column(
             children: [
               SettingsRow(
@@ -176,13 +176,13 @@ class SettingsSections extends ConsumerWidget {
         // ── 더보기 ──
         SettingsSectionCard(
           sh: sh,
-          title: '더보기',
+          title: tr('더보기'),
           child: Column(
             children: [
               SettingsRow(
                 sh: sh,
                 icon: Icons.lightbulb_outline_rounded,
-                title: '사용법 안내',
+                title: tr('사용법 안내'),
                 onTap: () {
                   // 코치마크는 루트(하단 nav)를 가리킨다. settings는 이제 뷰이므로
                   // 페이지를 닫을 필요 없이 루트 컨텍스트로 바로 표시한다.
@@ -194,7 +194,7 @@ class SettingsSections extends ConsumerWidget {
               SettingsRow(
                 sh: sh,
                 icon: Icons.auto_awesome_rounded,
-                title: '기능 둘러보기',
+                title: tr('기능 둘러보기'),
                 onTap: () => showFeatureIntro(context),
               ),
               if (showSchool)
@@ -207,8 +207,8 @@ class SettingsSections extends ConsumerWidget {
                 sh: sh,
                 icon: Icons.cake_outlined,
                 title: birthdays.isEmpty
-                    ? '생일 챙기기'
-                    : '생일 챙기기 (${birthdays.length}명)',
+                    ? tr('생일 챙기기')
+                    : trf('생일 챙기기 ({0}명)', [birthdays.length]),
                 onTap: () => showBirthdayManagerModal(context),
               ),
             ],
@@ -404,7 +404,7 @@ class _TypePill extends StatelessWidget {
               Text(t.emoji, style: const TextStyle(fontSize: 14)),
               const SizedBox(width: 6),
             ],
-            Text(t?.label ?? '선택하기',
+            Text(t?.label ?? tr('선택하기'),
                 style: AppType.body.copyWith(
                     fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
             const SizedBox(width: 4),
@@ -451,11 +451,11 @@ void _showTypePicker(BuildContext context, WidgetRef ref, UserType? current) {
               ),
             ),
           ),
-          Text('내 유형',
+          Text(tr('내 유형'),
               style: AppType.section.copyWith(
                   fontSize: 18, fontWeight: FontWeight.w800, color: sh.ink)),
           const SizedBox(height: 4),
-          Text('유형에 따라 급식·학교 연동 표시가 달라져요.',
+          Text(tr('유형에 따라 급식·학교 연동 표시가 달라져요.'),
               style: AppType.caption.copyWith(color: sh.inkSoft)),
           const SizedBox(height: 12),
           ...order.map((t) {
@@ -498,14 +498,14 @@ class _SchoolRow extends StatelessWidget {
       return SettingsRow(
         sh: sh,
         icon: Icons.school_outlined,
-        title: '학교 연결 (NEIS)',
+        title: tr('학교 연결 (NEIS)'),
         onTap: onTap,
       );
     }
     final logo = s.logoUrl;
     final sub = s.slogan.isNotEmpty
         ? s.slogan
-        : '${s.kind} · ${s.grade}학년 ${s.classNm}반';
+        : '${tr(s.kind)} · ${trf('{0}학년 {1}반', [s.grade, s.classNm])}';
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,

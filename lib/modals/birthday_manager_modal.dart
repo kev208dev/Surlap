@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
+import '../i18n/strings.dart';
 import '../providers/birthdays_provider.dart';
 import '../providers/birthday_notify_provider.dart';
 import '../widgets/mascot/mascot.dart';
@@ -60,7 +61,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
   void _addManual() {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty || _picked == null) {
-      _snack('이름과 생일을 입력해 주세요');
+      _snack(tr('이름과 생일을 입력해 주세요'));
       return;
     }
     ref
@@ -78,7 +79,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
       _nameCtrl.clear();
       _picked = null;
     });
-    MascotToast.success(context, '$name 생일을 추가했어요');
+    MascotToast.success(context, trf('{0} 생일을 추가했어요', [name]));
   }
 
   @override
@@ -112,7 +113,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                     Icon(Icons.cake_rounded, color: sh.birthdayColor, size: 22),
                     const SizedBox(width: 8),
                     Text(
-                      '생일 챙기기',
+                      tr('생일 챙기기'),
                       style: AppType.title.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -152,7 +153,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  '생일 알림',
+                                  tr('생일 알림'),
                                   style: AppType.body.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: sh.ink,
@@ -173,7 +174,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                             Row(
                               children: [
                                 Text(
-                                  '며칠 전 알림',
+                                  tr('며칠 전 알림'),
                                   style: AppType.label.copyWith(
                                     color: sh.inkSoft,
                                   ),
@@ -183,7 +184,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                                   Padding(
                                     padding: const EdgeInsets.only(left: 6),
                                     child: _DayChip(
-                                      label: d == 0 ? '당일만' : '$d일 전',
+                                      label: d == 0 ? tr('당일만') : trf('{0}일 전', [d]),
                                       selected: notify.daysBefore == d,
                                       color: sh.birthdayColor,
                                       sh: sh,
@@ -202,7 +203,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
 
                     // ── 직접 추가 ──
                     Text(
-                      '직접 추가',
+                      tr('직접 추가'),
                       style: AppType.label.copyWith(
                         fontWeight: FontWeight.w700,
                         color: sh.inkSoft,
@@ -218,7 +219,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                             controller: _nameCtrl,
                             style: AppType.body.copyWith(color: sh.ink),
                             decoration: InputDecoration(
-                              hintText: '이름',
+                              hintText: tr('이름'),
                               hintStyle: TextStyle(color: sh.inkFaint),
                               isDense: true,
                               border: InputBorder.none,
@@ -239,10 +240,10 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                                     const SizedBox(width: 8),
                                     Text(
                                       _picked == null
-                                          ? '생일 선택'
+                                          ? tr('생일 선택')
                                           : _includeYear
                                           ? '${_picked!.year}.${_picked!.month}.${_picked!.day}'
-                                          : '${_picked!.month}월 ${_picked!.day}일',
+                                          : trf('{0}월 {1}일', [_picked!.month, _picked!.day]),
                                       style: AppType.body.copyWith(
                                         color: _picked == null
                                             ? sh.inkFaint
@@ -273,7 +274,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '연도 포함',
+                                      tr('연도 포함'),
                                       style: AppType.label.copyWith(
                                         color: sh.inkSoft,
                                       ),
@@ -295,9 +296,9 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
-                              child: const Text(
-                                '추가',
-                                style: TextStyle(fontWeight: FontWeight.w800),
+                              child: Text(
+                                tr('추가'),
+                                style: const TextStyle(fontWeight: FontWeight.w800),
                               ),
                             ),
                           ),
@@ -310,7 +311,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                     Row(
                       children: [
                         Text(
-                          '등록된 생일 (${birthdays.length})',
+                          trf('등록된 생일 ({0})', [birthdays.length]),
                           style: AppType.label.copyWith(
                             fontWeight: FontWeight.w700,
                             color: sh.inkSoft,
@@ -320,12 +321,12 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
                     ),
                     const SizedBox(height: 8),
                     if (birthdays.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: MascotEmptyState(
                           expression: MascotExpression.neutral,
-                          title: '아직 등록된 생일이 없어요',
-                          message: '위에서 직접 추가해 보세요',
+                          title: tr('아직 등록된 생일이 없어요'),
+                          message: tr('위에서 직접 추가해 보세요'),
                           mascotSize: 88,
                           showStars: false,
                         ),
@@ -359,7 +360,7 @@ class _BirthdayManagerModalState extends ConsumerState<BirthdayManagerModal> {
 // ── D-day/나이 표기 헬퍼 ──
 String dDayLabel(Birthday b) {
   final d = b.daysUntilNext();
-  return d == 0 ? '오늘 🎉' : 'D-$d';
+  return d == 0 ? tr('오늘 🎉') : 'D-$d';
 }
 
 class _BirthdayRow extends StatelessWidget {
@@ -376,8 +377,8 @@ class _BirthdayRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final dday = b.daysUntilNext();
     final sub = b.year != null
-        ? '${b.month}월 ${b.day}일 · ${b.year}년생'
-        : '${b.month}월 ${b.day}일';
+        ? trf('{0}월 {1}일 · {2}년생', [b.month, b.day, b.year!])
+        : trf('{0}월 {1}일', [b.month, b.day]);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: 12),

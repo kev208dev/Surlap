@@ -5,6 +5,7 @@ import '../core/theme/design_tokens.dart';
 import '../models/record_template.dart';
 import '../providers/record_templates_provider.dart';
 import '../widgets/record_glyph.dart';
+import '../i18n/strings.dart';
 
 /// 새 템플릿 만들기 / 커스텀 템플릿 편집.
 /// [base] 가 있으면 그 값으로 시작(복제/편집), 없으면 빈 새 템플릿.
@@ -114,7 +115,7 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
               ),
               Row(
                 children: [
-                  Text(widget.editingId != null ? '템플릿 편집' : '새 템플릿',
+                  Text(widget.editingId != null ? tr('템플릿 편집') : tr('새 템플릿'),
                       style: AppType.section.copyWith(
                           fontWeight: FontWeight.w800, color: sh.ink)),
                   const Spacer(),
@@ -125,13 +126,13 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    tooltip: '닫기',
+                    tooltip: tr('닫기'),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
 
-              _label('아이콘', sh),
+              _label(tr('아이콘'), sh),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 10,
@@ -165,23 +166,23 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
               ),
               const SizedBox(height: 18),
 
-              _label('이름', sh),
+              _label(tr('이름'), sh),
               const SizedBox(height: 8),
-              _field(_name, '예: 집중 독서', sh, onChanged: (_) => setState(() {})),
+              _field(_name, tr('예: 집중 독서'), sh, onChanged: (_) => setState(() {})),
               const SizedBox(height: 18),
 
-              _label('대표 숫자 항목', sh),
+              _label(tr('대표 숫자 항목'), sh),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     flex: 2,
-                    child: _field(_primaryLabel, '라벨 (예: 읽은 페이지)', sh,
+                    child: _field(_primaryLabel, tr('라벨 (예: 읽은 페이지)'), sh,
                         onChanged: (_) => setState(() {})),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _field(_unit, '단위 (예: p)', sh),
+                    child: _field(_unit, tr('단위 (예: p)'), sh),
                   ),
                 ],
               ),
@@ -189,7 +190,7 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
 
               // 태그 on/off
               _ToggleRow(
-                label: '태그 항목',
+                label: tr('태그 항목'),
                 value: _hasTags,
                 sh: sh,
                 onChanged: (v) => setState(() => _hasTags = v),
@@ -197,11 +198,11 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
               if (_hasTags)
                 Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 4),
-                  child: _field(_tagsLabel, '태그 라벨 (예: 책 제목)', sh),
+                  child: _field(_tagsLabel, tr('태그 라벨 (예: 책 제목)'), sh),
                 ),
               // 메모 on/off
               _ToggleRow(
-                label: '한 줄 메모',
+                label: tr('한 줄 메모'),
                 value: _hasMemo,
                 sh: sh,
                 onChanged: (v) => setState(() => _hasMemo = v),
@@ -218,8 +219,8 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
                         borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: _valid ? _save : null,
-                  child: const Text('저장',
-                      style: TextStyle(
+                  child: Text(tr('저장'),
+                      style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w800)),
                 ),
               ),

@@ -64,7 +64,7 @@ class ThemeManagerModal extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('공유 캘린더',
+                        Text(tr('공유 캘린더'),
                             style: AppType.title.copyWith(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
@@ -118,31 +118,31 @@ class ThemeManagerBody extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (allEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
             child: MascotEmptyState(
               expression: MascotExpression.neutral,
-              title: '아직 만든 캘린더가 없어요',
-              message: '캘린더를 만들어 일정을 색으로 구분해요',
+              title: tr('아직 만든 캘린더가 없어요'),
+              message: tr('캘린더를 만들어 일정을 색으로 구분해요'),
               mascotSize: 92,
               showStars: false,
             ),
           ),
         if (local.isNotEmpty) ...[
-          _GroupLabel('내 카테고리', sh),
+          _GroupLabel(tr('내 카테고리'), sh),
           ...local.map((t) => _ThemeRow(
               key: ValueKey(t.id),
               theme: t, editable: true, ref: ref, sh: sh)),
         ],
         if (owned.isNotEmpty) ...[
-          _GroupLabel('공유 중 · 내가 공유', sh),
+          _GroupLabel(tr('공유 중 · 내가 공유'), sh),
           ...owned.map((t) => _ThemeRow(
               key: ValueKey(t.id),
               theme: t, editable: true, ref: ref, sh: sh,
               shareCode: t.shareCode)),
         ],
         if (subbed.isNotEmpty) ...[
-          _GroupLabel('구독 중', sh),
+          _GroupLabel(tr('구독 중'), sh),
           ...subbed.map((t) => _ThemeRow(
               key: ValueKey(t.id),
               theme: t, editable: false, ref: ref, sh: sh,
@@ -171,10 +171,10 @@ class ThemeManagerBody extends ConsumerWidget {
             const SizedBox(width: 10),
             // 가져오기 — 아이콘 버튼.
             Tooltip(
-              message: '공유 코드로 가져오기',
+              message: tr('공유 코드로 가져오기'),
               child: Semantics(
                 button: true,
-                label: '공유 코드로 가져오기',
+                label: tr('공유 코드로 가져오기'),
                 child: SizedBox(
                   width: 54,
                   height: 54,
@@ -217,7 +217,7 @@ class ThemeManagerBody extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: sh.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('공유 코드 입력', style: AppType.section.copyWith(color: sh.ink)),
+        title: Text(tr('공유 코드 입력'), style: AppType.section.copyWith(color: sh.ink)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -228,7 +228,7 @@ class ThemeManagerBody extends ConsumerWidget {
           textCapitalization: TextCapitalization.characters,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('취소'))),
           FilledButton(
             onPressed: () async {
               final code = ctrl.text.trim();
@@ -238,7 +238,7 @@ class ThemeManagerBody extends ConsumerWidget {
                 final theme = await ThemeShareService.fetchByCode(code);
                 if (theme == null) {
                   if (context.mounted) {
-                    MascotToast.error(context, '해당 코드의 캘린더를 찾을 수 없어요');
+                    MascotToast.error(context, tr('해당 코드의 캘린더를 찾을 수 없어요'));
                   }
                   return;
                 }
@@ -246,15 +246,15 @@ class ThemeManagerBody extends ConsumerWidget {
                 final subTheme = theme.copyWith(shareRole: 'subscriber');
                 ref.read(themesProvider.notifier).add(subTheme);
                 if (context.mounted) {
-                  MascotToast.success(context, '캘린더 "${theme.name}" 가져왔어요');
+                  MascotToast.success(context, trf('캘린더 "{0}" 가져왔어요', [theme.name]));
                 }
               } catch (e) {
                 if (context.mounted) {
-                  MascotToast.error(context, '가져오기에 실패했어요');
+                  MascotToast.error(context, tr('가져오기에 실패했어요'));
                 }
               }
             },
-            child: const Text('가져오기'),
+            child: Text(tr('가져오기')),
           ),
         ],
       ),
@@ -339,10 +339,10 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     final sh = widget.sh;
     final t = widget.theme;
     final subtitle = t.shareRole == 'owner'
-        ? '내가 공유 중'
+        ? tr('내가 공유 중')
         : t.shareRole == 'subscriber'
-            ? '구독 중'
-            : '공유 안 됨';
+            ? tr('구독 중')
+            : tr('공유 안 됨');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -417,7 +417,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
           filled: false,
           border: InputBorder.none,
           contentPadding: EdgeInsets.zero,
-          hintText: '캘린더 이름',
+          hintText: tr('캘린더 이름'),
           hintStyle: TextStyle(color: sh.inkFaint),
         ),
         onSubmitted: (v) {
@@ -428,7 +428,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     }
     final empty = widget.theme.name.trim().isEmpty;
     final title = Text(
-      empty ? '캘린더 이름' : widget.theme.name,
+      empty ? tr('캘린더 이름') : widget.theme.name,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: empty ? titleStyle.copyWith(color: sh.inkFaint) : titleStyle,
@@ -446,20 +446,20 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     final t = widget.theme;
     if (t.shareRole == 'subscriber') {
       return [
-        _chip(Icons.refresh_rounded, '받기', sh.inkSoft, _refreshSubscribed, sh),
-        _chip(Icons.copy_rounded, '복제', sh.accent, _duplicateToMine, sh),
-        _chip(Icons.delete_outline_rounded, '구독 취소', sh.danger, _delete, sh),
+        _chip(Icons.refresh_rounded, tr('받기'), sh.inkSoft, _refreshSubscribed, sh),
+        _chip(Icons.copy_rounded, tr('복제'), sh.accent, _duplicateToMine, sh),
+        _chip(Icons.delete_outline_rounded, tr('구독 취소'), sh.danger, _delete, sh),
       ];
     }
     final chips = <Widget>[];
     if (widget.shareCode != null) {
-      chips.add(_chip(Icons.ios_share_rounded, '공유', sh.accent,
+      chips.add(_chip(Icons.ios_share_rounded, tr('공유'), sh.accent,
           () => _shareLink(t.name, widget.shareCode!), sh));
     } else if (widget.editable) {
       chips.add(_chip(
-          Icons.link_rounded, '공유', sh.accent, () => _shareTheme(context), sh));
+          Icons.link_rounded, tr('공유'), sh.accent, () => _shareTheme(context), sh));
     }
-    chips.add(_chip(Icons.delete_outline_rounded, '삭제', sh.danger, _delete, sh));
+    chips.add(_chip(Icons.delete_outline_rounded, tr('삭제'), sh.danger, _delete, sh));
     return chips;
   }
 
@@ -516,7 +516,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
       final latest = await ThemeShareService.fetchByCode(code);
       if (latest == null) {
         messenger.showSnackBar(
-            const SnackBar(content: Text('원본 캘린더를 찾을 수 없어요(삭제됨?)')));
+            SnackBar(content: Text(tr('원본 캘린더를 찾을 수 없어요(삭제됨?)'))));
         return;
       }
       // id/역할/코드는 유지, 내용(이름·색·이미지)만 최신으로.
@@ -526,9 +526,9 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
             image: latest.image,
           ));
       messenger.showSnackBar(
-          SnackBar(content: Text('"${latest.name}" 최신 내용 반영됨')));
+          SnackBar(content: Text(trf('"{0}" 최신 내용 반영됨', [latest.name]))));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('새로고침 실패: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(trf('새로고침 실패: {0}', [e]))));
     }
   }
 
@@ -542,7 +542,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
       // shareCode/shareRole 없음 → 내가 편집할 수 있는 로컬 테마
     );
     ref.read(themesProvider.notifier).add(copy);
-    MascotToast.success(context, '"${copy.name}" 내 캘린더로 복제했어요');
+    MascotToast.success(context, trf('"{0}" 내 캘린더로 복제했어요', [copy.name]));
   }
 
   void _pickColor() async {
@@ -559,7 +559,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
         return AlertDialog(
           backgroundColor: sh.card,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('색상 선택', style: AppType.section.copyWith(color: sh.ink)),
+          title: Text(tr('색상 선택'), style: AppType.section.copyWith(color: sh.ink)),
           content: Wrap(
             spacing: 10, runSpacing: 10,
             children: presets.map((hex) {
@@ -591,7 +591,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     // 로그인 안 된 경우: 예외 대신 친절한 안내.
     if (ref.read(authProvider) == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인해야 이용할 수 있는 서비스입니다')),
+        SnackBar(content: Text(tr('로그인해야 이용할 수 있는 서비스입니다'))),
       );
       return;
     }
@@ -604,7 +604,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('로그인해야 이용할 수 있는 서비스입니다')),
+          SnackBar(content: Text(tr('로그인해야 이용할 수 있는 서비스입니다'))),
         );
       }
     }

@@ -8,6 +8,7 @@ import '../models/template_range.dart';
 import '../widgets/record_glyph.dart';
 import '../providers/template_ranges_provider.dart';
 import '../providers/record_templates_provider.dart';
+import '../i18n/strings.dart';
 import 'record_template_edit_sheet.dart';
 
 /// 기록 템플릿 적용/관리 시트.
@@ -32,8 +33,8 @@ class _RecordTemplateSheet extends ConsumerWidget {
       lastDate: DateTime(now.year + 3),
       initialDateRange: initial ??
           DateTimeRange(start: now, end: now.add(const Duration(days: 6))),
-      helpText: '적용 기간 선택',
-      saveText: '적용',
+      helpText: tr('적용 기간 선택'),
+      saveText: tr('적용'),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme:
@@ -73,7 +74,8 @@ class _RecordTemplateSheet extends ConsumerWidget {
     final s = du.fromDateKey(start);
     final e = du.fromDateKey(end);
     final days = e.difference(s).inDays + 1;
-    return '${s.month}/${s.day} ~ ${e.month}/${e.day} · $days일';
+    return trf('{0}/{1} ~ {2}/{3} · {4}일',
+        [s.month, s.day, e.month, e.day, days]);
   }
 
   @override
@@ -111,7 +113,7 @@ class _RecordTemplateSheet extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('기록 템플릿',
+                  child: Text(tr('기록 템플릿'),
                       style: AppType.section.copyWith(
                           fontWeight: FontWeight.w800, color: sh.ink)),
                 ),
@@ -130,7 +132,7 @@ class _RecordTemplateSheet extends ConsumerWidget {
                       children: [
                         Icon(Icons.add_rounded, size: 16, color: sh.accent),
                         const SizedBox(width: 4),
-                        Text('새 템플릿',
+                        Text(tr('새 템플릿'),
                             style: AppType.label.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: sh.accent)),
@@ -143,12 +145,12 @@ class _RecordTemplateSheet extends ConsumerWidget {
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(Icons.close, color: sh.inkSoft, size: 20),
                   visualDensity: VisualDensity.compact,
-                  tooltip: '닫기',
+                  tooltip: tr('닫기'),
                 ),
               ],
             ),
             const SizedBox(height: 2),
-            Text('기간을 정해 적용하면 그 기간 동안 매일 빠르게 기록할 수 있어요.',
+            Text(tr('기간을 정해 적용하면 그 기간 동안 매일 빠르게 기록할 수 있어요.'),
                 style: AppType.caption.copyWith(color: sh.inkSoft)),
             const SizedBox(height: 14),
 
@@ -157,7 +159,7 @@ class _RecordTemplateSheet extends ConsumerWidget {
                   sh: sh,
                   onApply: () => _apply(context, ref, sh, tpl),
                   onDuplicate: () => showRecordTemplateEditSheet(context,
-                      base: tpl.copyWith(name: '${tpl.name} 복사')),
+                      base: tpl.copyWith(name: trf('{0} 복사', [tpl.name]))),
                   onEdit: tpl.isPreset
                       ? null
                       : () => showRecordTemplateEditSheet(context,
@@ -171,7 +173,7 @@ class _RecordTemplateSheet extends ConsumerWidget {
 
             if (ranges.isNotEmpty) ...[
               const SizedBox(height: 22),
-              Text('적용된 기간',
+              Text(tr('적용된 기간'),
                   style: AppType.label.copyWith(
                       fontWeight: FontWeight.w700, color: sh.inkSoft)),
               const SizedBox(height: 8),
@@ -252,7 +254,7 @@ class _TemplateCard extends StatelessWidget {
     final parts = <String>[
       '${tpl.primaryLabel}${tpl.primaryUnit.isNotEmpty ? '(${tpl.primaryUnit})' : ''}',
       if (tpl.hasTags) tpl.tagsLabel,
-      if (tpl.hasMemo) '메모',
+      if (tpl.hasMemo) tr('메모'),
     ];
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -288,7 +290,7 @@ class _TemplateCard extends StatelessWidget {
                           color: sh.ink.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text('기본',
+                        child: Text(tr('기본'),
                             style: AppType.caption.copyWith(
                                 fontSize: 10, color: sh.inkSoft)),
                       ),
@@ -314,8 +316,8 @@ class _TemplateCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: onApply,
-            child: const Text('적용',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+            child: Text(tr('적용'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
           ),
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert_rounded, size: 18, color: sh.inkSoft),
@@ -326,11 +328,11 @@ class _TemplateCard extends StatelessWidget {
               if (v == 'del') onDelete?.call();
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'dup', child: Text('복제해서 수정')),
+              PopupMenuItem(value: 'dup', child: Text(tr('복제해서 수정'))),
               if (onEdit != null)
-                const PopupMenuItem(value: 'edit', child: Text('편집')),
+                PopupMenuItem(value: 'edit', child: Text(tr('편집'))),
               if (onDelete != null)
-                const PopupMenuItem(value: 'del', child: Text('삭제')),
+                PopupMenuItem(value: 'del', child: Text(tr('삭제'))),
             ],
           ),
         ],

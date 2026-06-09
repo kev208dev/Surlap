@@ -58,7 +58,7 @@ class ViewNotifier extends Notifier<ViewState> {
   @override
   ViewState build() {
     final now = DateTime.now();
-    return ViewState(viewYear: now.year, viewMonth: now.month);
+    return ViewState(viewYear: now.year, viewMonth: now.month, mode: ViewMode.events);
   }
 
   void setMode(ViewMode mode) {

@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/date_utils.dart' as du;
 import '../../i18n/dates.dart' as i18nd;
+import '../../i18n/strings.dart';
 import '../../models/event_item.dart';
 import '../../models/calendar_theme.dart';
 import '../../providers/events_provider.dart';
@@ -908,7 +909,7 @@ class _PlannerNav extends StatelessWidget {
                   icon: Icon(Icons.more_vert_rounded,
                       size: 20, color: sh.inkSoft),
                   padding: EdgeInsets.zero,
-                  tooltip: '더보기',
+                  tooltip: tr('더보기'),
                   color: sh.card,
                   onSelected: (v) {
                     switch (v) {
@@ -917,13 +918,13 @@ class _PlannerNav extends StatelessWidget {
                     }
                   },
                   itemBuilder: (_) => [
-                    _item('search', Icons.search_rounded, '일정 검색'),
+                    _item('search', Icons.search_rounded, tr('일정 검색')),
                     _item(
                         'schedule',
                         showTimetable
                             ? Icons.event_available_rounded
                             : Icons.event_busy_rounded,
-                        showTimetable ? '스케줄 숨기기' : '스케줄 표시',
+                        showTimetable ? tr('스케줄 숨기기') : tr('스케줄 표시'),
                         active: showTimetable),
                   ],
                 ),
