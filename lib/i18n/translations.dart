@@ -232,4 +232,174 @@ const Map<String, Map<AppLang, String>> kTranslations = {
   '공휴일': {AppLang.en: 'Holidays', AppLang.ja: '祝日', AppLang.zh: '节假日', AppLang.es: 'Festivos'},
   '학사일정': {AppLang.en: 'School schedule', AppLang.ja: '学事日程', AppLang.zh: '校历', AppLang.es: 'Calendario escolar'},
   '생일': {AppLang.en: 'Birthdays', AppLang.ja: '誕生日', AppLang.zh: '生日', AppLang.es: 'Cumpleaños'},
+
+  // ── 온보딩 슬라이드 ──
+  '학교 시간표·급식,\n자동으로 채워져요': {
+    AppLang.en: 'School timetable & meals,\nfilled in automatically',
+    AppLang.ja: '学校の時間割・給食が\n自動で入ります',
+    AppLang.zh: '校园课程表·餐食\n自动填入',
+    AppLang.es: 'Horario y comidas\nse llenan solos',
+  },
+  '학년·반만 알려주면 시간표와 급식이 매일 들어와요. (NEIS 연동)': {
+    AppLang.en: 'Just enter grade & class — timetable and meals arrive daily. (NEIS)',
+    AppLang.ja: '学年・組を入れるだけで時間割と給食が毎日届きます。(NEIS連携)',
+    AppLang.zh: '只需填写年级·班级，课程表与餐食每天自动更新。(NEIS)',
+    AppLang.es: 'Indica curso y clase: horario y comidas cada día. (NEIS)',
+  },
+  '일정·할 일·기록을\n앱 하나로': {
+    AppLang.en: 'Events, to-dos & notes\nin one app',
+    AppLang.ja: '予定・ToDo・記録を\nひとつのアプリで',
+    AppLang.zh: '日程·待办·记录\n一个应用搞定',
+    AppLang.es: 'Eventos, tareas y notas\nen una sola app',
+  },
+  '달력, 할 일, 하루 기록까지 — 여러 앱을 오갈 필요 없어요.': {
+    AppLang.en: 'Calendar, to-dos, daily notes — no app-switching.',
+    AppLang.ja: 'カレンダー、ToDo、記録まで — アプリを行き来する必要なし。',
+    AppLang.zh: '日历、待办、每日记录 — 无需在多个应用间切换。',
+    AppLang.es: 'Calendario, tareas y notas — sin cambiar de app.',
+  },
+  '백호가 함께해요': {
+    AppLang.en: 'The white tiger is with you',
+    AppLang.ja: '白虎が一緒です',
+    AppLang.zh: '白虎与你同行',
+    AppLang.es: 'El tigre blanco te acompaña',
+  },
+  '오늘을 응원하고, 비어 있는 하루엔 쉼을 권하는 작은 친구.': {
+    AppLang.en: 'A little friend cheering you on, and nudging you to rest.',
+    AppLang.ja: '今日を応援し、空いた日には休息をすすめる小さな友達。',
+    AppLang.zh: '为你的每一天加油，空闲时也提醒你休息的小伙伴。',
+    AppLang.es: 'Un amiguito que te anima y te invita a descansar.',
+  },
+  '어떤 분이세요?': {
+    AppLang.en: 'Who are you?',
+    AppLang.ja: 'どんな方ですか?',
+    AppLang.zh: '你是哪类用户?',
+    AppLang.es: '¿Quién eres?',
+  },
+  '유형에 맞춰 화면을 채워드려요. 나중에 설정에서 바꿀 수 있어요.': {
+    AppLang.en: "We'll tailor the app to you. Change it later in settings.",
+    AppLang.ja: 'タイプに合わせて画面を整えます。あとで設定から変更できます。',
+    AppLang.zh: '我们会按类型为你定制界面。稍后可在设置中更改。',
+    AppLang.es: 'Adaptamos la app a ti. Puedes cambiarlo en ajustes.',
+  },
+
+  // ── 공통(모달 필드/단어) ──
+  '날짜': {AppLang.en: 'Date', AppLang.ja: '日付', AppLang.zh: '日期', AppLang.es: 'Fecha'},
+  '날짜 없음': {AppLang.en: 'No date', AppLang.ja: '日付なし', AppLang.zh: '无日期', AppLang.es: 'Sin fecha'},
+  '시간 (선택)': {AppLang.en: 'Time (optional)', AppLang.ja: '時間 (任意)', AppLang.zh: '时间（可选）', AppLang.es: 'Hora (opcional)'},
+  '우선순위': {AppLang.en: 'Priority', AppLang.ja: '優先度', AppLang.zh: '优先级', AppLang.es: 'Prioridad'},
+  '없음': {AppLang.en: 'None', AppLang.ja: 'なし', AppLang.zh: '无', AppLang.es: 'Ninguno'},
+  '지움': {AppLang.en: 'Clear', AppLang.ja: 'クリア', AppLang.zh: '清除', AppLang.es: 'Borrar'},
+  '이름': {AppLang.en: 'Name', AppLang.ja: '名前', AppLang.zh: '名称', AppLang.es: 'Nombre'},
+
+  // ── 일정 추가/편집 ── ('일정 추가'는 FAB 블록에 이미 있음)
+  '일정 편집': {AppLang.en: 'Edit event', AppLang.ja: '予定を編集', AppLang.zh: '编辑日程', AppLang.es: 'Editar evento'},
+  '일정 내용': {AppLang.en: 'Event details', AppLang.ja: '予定の内容', AppLang.zh: '日程内容', AppLang.es: 'Detalle del evento'},
+  '제목을 입력해주세요': {AppLang.en: 'Please enter a title', AppLang.ja: 'タイトルを入力してください', AppLang.zh: '请输入标题', AppLang.es: 'Escribe un título'},
+  '일정을 추가했어요': {AppLang.en: 'Event added', AppLang.ja: '予定を追加しました', AppLang.zh: '已添加日程', AppLang.es: 'Evento añadido'},
+  '일정을 수정했어요': {AppLang.en: 'Event updated', AppLang.ja: '予定を更新しました', AppLang.zh: '已更新日程', AppLang.es: 'Evento actualizado'},
+  '캘린더 (여러 개 선택 가능)': {AppLang.en: 'Calendars (multi-select)', AppLang.ja: 'カレンダー (複数選択可)', AppLang.zh: '日历（可多选）', AppLang.es: 'Calendarios (varios)'},
+
+  // ── 할 일 추가/편집 ──
+  '할 일 편집': {AppLang.en: 'Edit to-do', AppLang.ja: 'ToDoを編集', AppLang.zh: '编辑待办', AppLang.es: 'Editar tarea'},
+  '할 일을 입력해주세요': {AppLang.en: 'Please enter a to-do', AppLang.ja: 'ToDoを入力してください', AppLang.zh: '请输入待办', AppLang.es: 'Escribe una tarea'},
+  '할 일을 수정했어요': {AppLang.en: 'To-do updated', AppLang.ja: 'ToDoを更新しました', AppLang.zh: '已更新待办', AppLang.es: 'Tarea actualizada'},
+  '좋아요! 할 일을 추가했어요': {AppLang.en: 'Nice! To-do added', AppLang.ja: 'いいね！ToDoを追加しました', AppLang.zh: '太好了！已添加待办', AppLang.es: '¡Bien! Tarea añadida'},
+
+  // ── 검색 ──
+  '일정·할 일 검색': {AppLang.en: 'Search events & to-dos', AppLang.ja: '予定・ToDoを検索', AppLang.zh: '搜索日程·待办', AppLang.es: 'Buscar eventos y tareas'},
+  '일정과 할 일을 검색해요': {AppLang.en: 'Search your events and to-dos', AppLang.ja: '予定とToDoを検索します', AppLang.zh: '搜索你的日程与待办', AppLang.es: 'Busca tus eventos y tareas'},
+  '무엇을 찾고 있나요?': {AppLang.en: 'What are you looking for?', AppLang.ja: '何をお探しですか?', AppLang.zh: '想找什么?', AppLang.es: '¿Qué buscas?'},
+  '검색 결과가 없어요': {AppLang.en: 'No results', AppLang.ja: '検索結果がありません', AppLang.zh: '没有结果', AppLang.es: 'Sin resultados'},
+  '다른 단어로 찾아볼까요?': {AppLang.en: 'Try another word?', AppLang.ja: '別の言葉で検索しますか?', AppLang.zh: '换个词试试?', AppLang.es: '¿Probar otra palabra?'},
+  '일정': {AppLang.en: 'Event', AppLang.ja: '予定', AppLang.zh: '日程', AppLang.es: 'Evento'},
+  '할 일': {AppLang.en: 'To-do', AppLang.ja: 'ToDo', AppLang.zh: '待办', AppLang.es: 'Tarea'},
+
+  // ── 프로필 ──
+  '프로필': {AppLang.en: 'Profile', AppLang.ja: 'プロフィール', AppLang.zh: '个人', AppLang.es: 'Perfil'},
+  '계정': {AppLang.en: 'Account', AppLang.ja: 'アカウント', AppLang.zh: '账户', AppLang.es: 'Cuenta'},
+  '앱': {AppLang.en: 'App', AppLang.ja: 'アプリ', AppLang.zh: '应用', AppLang.es: 'App'},
+  '다크 모드': {AppLang.en: 'Dark mode', AppLang.ja: 'ダークモード', AppLang.zh: '深色模式', AppLang.es: 'Modo oscuro'},
+  '로그아웃': {AppLang.en: 'Sign out', AppLang.ja: 'ログアウト', AppLang.zh: '退出登录', AppLang.es: 'Cerrar sesión'},
+  '로그인': {AppLang.en: 'Sign in', AppLang.ja: 'ログイン', AppLang.zh: '登录', AppLang.es: 'Iniciar sesión'},
+  '로그인하고 동기화하기': {AppLang.en: 'Sign in to sync', AppLang.ja: 'ログインして同期', AppLang.zh: '登录并同步', AppLang.es: 'Inicia sesión y sincroniza'},
+  '로그인하여 클라우드 동기화': {AppLang.en: 'Sign in for cloud sync', AppLang.ja: 'ログインしてクラウド同期', AppLang.zh: '登录以云同步', AppLang.es: 'Inicia sesión para sincronizar'},
+  '일정·시간표·캘린더를 기기 간 동기화': {
+    AppLang.en: 'Sync events, timetable & calendars across devices',
+    AppLang.ja: '予定・時間割・カレンダーを端末間で同期',
+    AppLang.zh: '在设备间同步日程·课程表·日历',
+    AppLang.es: 'Sincroniza eventos, horario y calendarios',
+  },
+  '정보 백업': {AppLang.en: 'Backup', AppLang.ja: 'バックアップ', AppLang.zh: '数据备份', AppLang.es: 'Copia de seguridad'},
+  '회원 탈퇴': {AppLang.en: 'Delete account', AppLang.ja: '退会', AppLang.zh: '注销账户', AppLang.es: 'Eliminar cuenta'},
+  '탈퇴': {AppLang.en: 'Delete', AppLang.ja: '退会', AppLang.zh: '注销', AppLang.es: 'Eliminar'},
+  '계정이 삭제되었어요': {AppLang.en: 'Account deleted', AppLang.ja: 'アカウントを削除しました', AppLang.zh: '账户已删除', AppLang.es: 'Cuenta eliminada'},
+  '계정과 클라우드에 저장된 데이터가 영구히 삭제돼요.\n이 작업은 되돌릴 수 없어요.': {
+    AppLang.en: 'Your account and cloud data will be permanently deleted.\nThis cannot be undone.',
+    AppLang.ja: 'アカウントとクラウドのデータが完全に削除されます。\nこの操作は元に戻せません。',
+    AppLang.zh: '账户及云端数据将被永久删除。\n此操作无法撤销。',
+    AppLang.es: 'Tu cuenta y datos en la nube se eliminarán para siempre.\nNo se puede deshacer.',
+  },
+
+  // ── 생일 ──
+  '생일 알림': {AppLang.en: 'Birthday reminder', AppLang.ja: '誕生日通知', AppLang.zh: '生日提醒', AppLang.es: 'Recordatorio'},
+  '생일 선택': {AppLang.en: 'Pick a date', AppLang.ja: '誕生日を選択', AppLang.zh: '选择生日', AppLang.es: 'Elige fecha'},
+  '연도 포함': {AppLang.en: 'Include year', AppLang.ja: '年を含む', AppLang.zh: '包含年份', AppLang.es: 'Incluir año'},
+  '직접 추가': {AppLang.en: 'Add manually', AppLang.ja: '手動で追加', AppLang.zh: '手动添加', AppLang.es: 'Añadir manual'},
+  '당일만': {AppLang.en: 'On the day', AppLang.ja: '当日のみ', AppLang.zh: '仅当天', AppLang.es: 'El mismo día'},
+  '며칠 전 알림': {AppLang.en: 'Days before', AppLang.ja: '何日前に通知', AppLang.zh: '提前几天', AppLang.es: 'Días antes'},
+  '아직 등록된 생일이 없어요': {AppLang.en: 'No birthdays yet', AppLang.ja: 'まだ誕生日がありません', AppLang.zh: '还没有生日', AppLang.es: 'Aún no hay cumpleaños'},
+  '위에서 직접 추가해 보세요': {AppLang.en: 'Add one above', AppLang.ja: '上から追加してください', AppLang.zh: '在上方添加', AppLang.es: 'Añade uno arriba'},
+  '이름과 생일을 입력해 주세요': {AppLang.en: 'Enter a name and date', AppLang.ja: '名前と誕生日を入力してください', AppLang.zh: '请输入姓名和生日', AppLang.es: 'Escribe nombre y fecha'},
+  '오늘 🎉': {AppLang.en: 'Today 🎉', AppLang.ja: '今日 🎉', AppLang.zh: '今天 🎉', AppLang.es: 'Hoy 🎉'},
+
+  // ── 공유 캘린더(테마) ──
+  '새 캘린더 만들기': {AppLang.en: 'New calendar', AppLang.ja: '新しいカレンダー', AppLang.zh: '新建日历', AppLang.es: 'Nuevo calendario'},
+  '캘린더 이름': {AppLang.en: 'Calendar name', AppLang.ja: 'カレンダー名', AppLang.zh: '日历名称', AppLang.es: 'Nombre del calendario'},
+  '색상 선택': {AppLang.en: 'Pick a color', AppLang.ja: '色を選択', AppLang.zh: '选择颜色', AppLang.es: 'Elige color'},
+  '공유 코드로 가져오기': {AppLang.en: 'Import by code', AppLang.ja: '共有コードで取得', AppLang.zh: '用分享码导入', AppLang.es: 'Importar por código'},
+  '공유 코드 입력': {AppLang.en: 'Enter share code', AppLang.ja: '共有コードを入力', AppLang.zh: '输入分享码', AppLang.es: 'Escribe el código'},
+  '가져오기': {AppLang.en: 'Import', AppLang.ja: '取得', AppLang.zh: '导入', AppLang.es: 'Importar'},
+  '받기': {AppLang.en: 'Get', AppLang.ja: '受け取る', AppLang.zh: '获取', AppLang.es: 'Obtener'},
+  '복제': {AppLang.en: 'Duplicate', AppLang.ja: '複製', AppLang.zh: '复制', AppLang.es: 'Duplicar'},
+  '구독 중': {AppLang.en: 'Subscribed', AppLang.ja: '購読中', AppLang.zh: '已订阅', AppLang.es: 'Suscrito'},
+  '구독 취소': {AppLang.en: 'Unsubscribe', AppLang.ja: '購読解除', AppLang.zh: '取消订阅', AppLang.es: 'Cancelar'},
+  '공유': {AppLang.en: 'Share', AppLang.ja: '共有', AppLang.zh: '分享', AppLang.es: 'Compartir'},
+  '공유 안 됨': {AppLang.en: 'Not shared', AppLang.ja: '未共有', AppLang.zh: '未分享', AppLang.es: 'No compartido'},
+  '내 카테고리': {AppLang.en: 'My categories', AppLang.ja: 'マイカテゴリ', AppLang.zh: '我的分类', AppLang.es: 'Mis categorías'},
+  '아직 만든 캘린더가 없어요': {AppLang.en: 'No calendars yet', AppLang.ja: 'まだカレンダーがありません', AppLang.zh: '还没有日历', AppLang.es: 'Aún no hay calendarios'},
+  '캘린더를 만들어 일정을 색으로 구분해요': {
+    AppLang.en: 'Create calendars to color-code your events',
+    AppLang.ja: 'カレンダーを作って予定を色分けします',
+    AppLang.zh: '创建日历，用颜色区分日程',
+    AppLang.es: 'Crea calendarios para colorear tus eventos',
+  },
+  '로그인해야 이용할 수 있는 서비스입니다': {
+    AppLang.en: 'Sign in to use this',
+    AppLang.ja: 'ログインが必要です',
+    AppLang.zh: '需要登录才能使用',
+    AppLang.es: 'Inicia sesión para usar esto',
+  },
+
+  // ── 위젯(기록 템플릿) 시트 ──
+  '아직 만든 위젯이 없어요. 새로 만들어 보세요.': {
+    AppLang.en: 'No widgets yet. Create one.',
+    AppLang.ja: 'まだウィジェットがありません。作成しましょう。',
+    AppLang.zh: '还没有小组件，去创建吧。',
+    AppLang.es: 'Aún no hay widgets. Crea uno.',
+  },
+  '추가할 위젯을 선택하세요.': {
+    AppLang.en: 'Choose a widget to add.',
+    AppLang.ja: '追加するウィジェットを選んでください。',
+    AppLang.zh: '选择要添加的小组件。',
+    AppLang.es: 'Elige un widget para añadir.',
+  },
+  '새 위젯 만들기': {AppLang.en: 'New widget', AppLang.ja: '新しいウィジェット', AppLang.zh: '新建小组件', AppLang.es: 'Nuevo widget'},
+
+  // ── trf(치환) ──
+  '이 날의 일정 ({0})': {AppLang.en: "Events ({0})", AppLang.ja: 'この日の予定 ({0})', AppLang.zh: '当天日程 ({0})', AppLang.es: 'Eventos ({0})'},
+  '이 날의 할 일 ({0})': {AppLang.en: "To-dos ({0})", AppLang.ja: 'この日のToDo ({0})', AppLang.zh: '当天待办 ({0})', AppLang.es: 'Tareas ({0})'},
+  '{0} 기록하기': {AppLang.en: 'Log {0}', AppLang.ja: '{0}を記録', AppLang.zh: '记录{0}', AppLang.es: 'Registrar {0}'},
+  '{0}개 항목': {AppLang.en: '{0} fields', AppLang.ja: '{0}項目', AppLang.zh: '{0} 个项目', AppLang.es: '{0} campos'},
+  '등록된 생일 ({0})': {AppLang.en: 'Birthdays ({0})', AppLang.ja: '登録した誕生日 ({0})', AppLang.zh: '已登记生日 ({0})', AppLang.es: 'Cumpleaños ({0})'},
 };

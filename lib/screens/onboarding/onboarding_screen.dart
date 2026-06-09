@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../i18n/strings.dart';
 import '../../models/user_type.dart';
 import '../../providers/user_type_provider.dart';
 import '../../widgets/mascot/mascot.dart';
@@ -191,7 +192,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 borderRadius: BorderRadius.circular(999)),
                           ),
                           child: Text(
-                            _isPicker ? '시작하기' : '다음',
+                            _isPicker ? tr('시작하기') : tr('다음'),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
@@ -229,7 +230,7 @@ class _SlideView extends StatelessWidget {
               expression: slide.expression, size: 168, showStars: true),
           const SizedBox(height: 40),
           Text(
-            slide.headline,
+            tr(slide.headline),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 30,
@@ -241,7 +242,7 @@ class _SlideView extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            slide.sub,
+            tr(slide.sub),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15.5,
@@ -278,9 +279,9 @@ class _TypePickerView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '어떤 분이세요?',
-            style: TextStyle(
+          Text(
+            tr('어떤 분이세요?'),
+            style: const TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -289,7 +290,7 @@ class _TypePickerView extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '유형에 맞춰 화면을 채워드려요. 나중에 설정에서 바꿀 수 있어요.',
+            tr('유형에 맞춰 화면을 채워드려요. 나중에 설정에서 바꿀 수 있어요.'),
             style: TextStyle(
               fontSize: 14,
               height: 1.45,
@@ -353,7 +354,7 @@ class _TypeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    type.label,
+                    tr(type.label),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,

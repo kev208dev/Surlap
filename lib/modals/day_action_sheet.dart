@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../core/utils/todo_style.dart';
+import '../i18n/strings.dart';
+import '../i18n/dates.dart' as i18nd;
 import '../providers/events_provider.dart';
 import '../providers/todos_provider.dart';
 import '../providers/day_widget_provider.dart';
@@ -63,7 +65,7 @@ class DayActionSheet extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Text('${date.month}월 ${date.day}일',
+                Text(i18nd.monthDay(date),
                     style: AppType.body
                         .copyWith(fontWeight: FontWeight.w700, color: sh.ink)),
                 const Spacer(),
@@ -74,7 +76,7 @@ class DayActionSheet extends ConsumerWidget {
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  tooltip: '닫기',
+                  tooltip: tr('닫기'),
                 ),
               ],
             ),
@@ -102,7 +104,7 @@ class DayActionSheet extends ConsumerWidget {
                           recordGlyph(tpl.emoji, size: 20, color: sh.accent),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text('${tpl.name} 기록하기',
+                            child: Text(trf('{0} 기록하기', [tpl.name]),
                                 style: AppType.body.copyWith(
                                     fontWeight: FontWeight.w800,
                                     color: sh.accent)),
@@ -116,7 +118,7 @@ class DayActionSheet extends ConsumerWidget {
                 )),
             _Tile(
               icon: Icons.event_rounded,
-              label: '일정 추가',
+              label: tr('일정 추가'),
               color: sh.accent,
               onTap: () {
                 Navigator.pop(context);
@@ -125,7 +127,7 @@ class DayActionSheet extends ConsumerWidget {
             ),
             _Tile(
               icon: Icons.check_circle_outline_rounded,
-              label: '할 일 추가',
+              label: tr('할 일 추가'),
               color: sh.accent,
               onTap: () {
                 Navigator.pop(context);
@@ -134,7 +136,7 @@ class DayActionSheet extends ConsumerWidget {
             ),
             _Tile(
               icon: Icons.widgets_outlined,
-              label: '위젯 추가',
+              label: tr('위젯 추가'),
               color: sh.ink,
               onTap: () {
                 Navigator.pop(context);
@@ -143,7 +145,7 @@ class DayActionSheet extends ConsumerWidget {
             ),
             _Tile(
               icon: Icons.today_outlined,
-              label: '이날 자세히 보기',
+              label: tr('이날 자세히 보기'),
               color: sh.ink,
               onTap: () {
                 Navigator.pop(context);
@@ -154,7 +156,7 @@ class DayActionSheet extends ConsumerWidget {
             // 이 날의 일정
             if (events.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('이 날의 일정 (${events.length})',
+              Text(trf('이 날의 일정 ({0})', [events.length]),
                   style: AppType.label.copyWith(
                       fontWeight: FontWeight.w700, color: sh.inkSoft)),
               ...events.asMap().entries.map((e) => ListTile(
@@ -178,7 +180,7 @@ class DayActionSheet extends ConsumerWidget {
             // 이 날의 할 일
             if (todos.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('이 날의 할 일 (${todos.length})',
+              Text(trf('이 날의 할 일 ({0})', [todos.length]),
                   style: AppType.label.copyWith(
                       fontWeight: FontWeight.w700, color: sh.inkSoft)),
               ...todos.map((t) => ListTile(
@@ -230,18 +232,18 @@ void _showWidgetPicker(BuildContext context, WidgetRef ref, String dateKey) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('위젯 추가',
+            Text(tr('위젯 추가'),
                 style: AppType.section
                     .copyWith(fontWeight: FontWeight.w800, color: sh.ink)),
             const SizedBox(height: 4),
             if (templates.isEmpty)
-              const MascotNote(
+              MascotNote(
                 expression: MascotExpression.neutral,
-                text: '아직 만든 위젯이 없어요. 새로 만들어 보세요.',
+                text: tr('아직 만든 위젯이 없어요. 새로 만들어 보세요.'),
                 mascotSize: 44,
               )
             else
-              Text('추가할 위젯을 선택하세요.',
+              Text(tr('추가할 위젯을 선택하세요.'),
                   style: AppType.label.copyWith(color: sh.inkSoft)),
             const SizedBox(height: Gap.sm),
             ...templates.map((tpl) {
@@ -252,7 +254,7 @@ void _showWidgetPicker(BuildContext context, WidgetRef ref, String dateKey) {
                     size: 20, color: sh.accent),
                 title: Text(tpl.name,
                     style: AppType.body.copyWith(color: sh.ink)),
-                subtitle: Text('${tpl.fields.length}개 항목',
+                subtitle: Text(trf('{0}개 항목', [tpl.fields.length]),
                     style: AppType.caption.copyWith(color: sh.inkSoft)),
                 trailing: applied
                     ? Icon(Icons.check_rounded, size: 18, color: sh.accent)
@@ -290,7 +292,7 @@ void _showWidgetPicker(BuildContext context, WidgetRef ref, String dateKey) {
                   children: [
                     Icon(Icons.add_rounded, size: 20, color: sh.accent),
                     const SizedBox(width: 6),
-                    Text('새 위젯 만들기',
+                    Text(tr('새 위젯 만들기'),
                         style: AppType.body.copyWith(
                             fontWeight: FontWeight.w800, color: sh.accent)),
                   ],
