@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../core/utils/date_utils.dart' as du;
+import '../i18n/strings.dart';
 import '../core/utils/todo_parser.dart';
 import '../core/utils/todo_style.dart';
 import '../models/todo_item.dart';
@@ -159,7 +160,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
     final parsed = _parsed;
     final title = parsed.content.isNotEmpty ? parsed.content : _textCtrl.text.trim();
     if (title.isEmpty) {
-      MascotToast.error(context, '할 일을 입력해주세요');
+      MascotToast.error(context, tr('할 일을 입력해주세요'));
       return;
     }
     final notifier = ref.read(todosProvider.notifier);
@@ -181,7 +182,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
         createdAt: DateTime.now().toIso8601String(),
       ));
     }
-    MascotToast.success(context, isEdit ? '할 일을 수정했어요' : '좋아요! 할 일을 추가했어요');
+    MascotToast.success(context, isEdit ? tr('할 일을 수정했어요') : tr('좋아요! 할 일을 추가했어요'));
     Navigator.pop(context);
   }
 
@@ -241,7 +242,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
             ),
             Row(
               children: [
-                Text(isEdit ? '할 일 편집' : '할 일 추가',
+                Text(isEdit ? tr('할 일 편집') : tr('할 일 추가'),
                     style: AppType.title.copyWith(
                         fontSize: 21,
                         fontWeight: FontWeight.w800,
@@ -256,21 +257,21 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                     },
                     style: TextButton.styleFrom(
                         foregroundColor: sh.danger, padding: EdgeInsets.zero),
-                    child: const Text('삭제', style: TextStyle(fontSize: 13)),
+                    child: Text(tr('삭제'), style: const TextStyle(fontSize: 13)),
                   ),
                 // 항상 보이는 닫기(×) 버튼.
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(Icons.close, color: sh.inkSoft),
                   visualDensity: VisualDensity.compact,
-                  tooltip: '닫기',
+                  tooltip: tr('닫기'),
                 ),
               ],
             ),
             const SizedBox(height: 14),
 
             // ── 제목 + 마이크 ──────────────────────────────────────
-            Text('할 일 (예: 내일 p1 빨래하기)',
+            Text(tr('할 일 (예: 내일 p1 빨래하기)'),
                 style: AppType.label.copyWith(color: sh.inkSoft)),
             const SizedBox(height: Gap.xs),
             Container(
@@ -311,7 +312,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
                 _listening
-                    ? '듣고 있어요… 말한 뒤 손을 떼세요'
+                    ? tr('듣고 있어요… 말한 뒤 손을 떼세요')
                     : '마이크를 꾹 누른 채로 말하고 떼면 입력돼요 (예: "내일 p1 빨래하기"). 첫 사용 시 권한 허용 필요',
                 style: AppType.caption.copyWith(
                     color: _listening ? sh.accent : sh.inkFaint,
@@ -332,7 +333,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
               children: [
                 Icon(Icons.event_outlined, size: 18, color: sh.inkSoft),
                 const SizedBox(width: 8),
-                Text('날짜', style: AppType.body.copyWith(color: sh.inkSoft)),
+                Text(tr('날짜'), style: AppType.body.copyWith(color: sh.inkSoft)),
                 const Spacer(),
                 if (effDate != null)
                   TextButton(
@@ -342,7 +343,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                     }),
                     style: TextButton.styleFrom(
                         foregroundColor: sh.inkFaint, padding: EdgeInsets.zero),
-                    child: const Text('지움', style: TextStyle(fontSize: 12)),
+                    child: Text(tr('지움'), style: const TextStyle(fontSize: 12)),
                   ),
                 const SizedBox(width: 4),
                 GestureDetector(
@@ -361,7 +362,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                               : sh.ink.withValues(alpha: 0.1)),
                     ),
                     child: Text(
-                      effDate ?? '날짜 없음',
+                      effDate ?? tr('날짜 없음'),
                       style: AppType.body.copyWith(
                           color: effDate != null ? sh.accentInk : sh.inkFaint,
                           fontWeight: FontWeight.w600),
@@ -373,7 +374,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
             const SizedBox(height: 14),
 
             // ── 우선순위 ──────────────────────────────────────────
-            Text('우선순위', style: AppType.label.copyWith(color: sh.inkSoft)),
+            Text(tr('우선순위'), style: AppType.label.copyWith(color: sh.inkSoft)),
             const SizedBox(height: Gap.sm),
             Row(
               children: [
@@ -406,7 +407,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                         minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16))),
-                    child: const Text('취소',
+                    child: Text(tr('취소'),
                         style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
@@ -421,7 +422,7 @@ class _AddTodoModalState extends ConsumerState<AddTodoModal> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text(isEdit ? '저장' : '추가',
+                    child: Text(isEdit ? tr('저장') : tr('추가'),
                         style: const TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w800)),
                   ),
@@ -487,7 +488,7 @@ class _PrioChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = todoPriorityColor(priority, sh);
-    final label = priority == 0 ? '없음' : 'P$priority';
+    final label = priority == 0 ? tr('없음') : 'P$priority';
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(

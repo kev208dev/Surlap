@@ -402,4 +402,16 @@ const Map<String, Map<AppLang, String>> kTranslations = {
   '{0} 기록하기': {AppLang.en: 'Log {0}', AppLang.ja: '{0}を記録', AppLang.zh: '记录{0}', AppLang.es: 'Registrar {0}'},
   '{0}개 항목': {AppLang.en: '{0} fields', AppLang.ja: '{0}項目', AppLang.zh: '{0} 个项目', AppLang.es: '{0} campos'},
   '등록된 생일 ({0})': {AppLang.en: 'Birthdays ({0})', AppLang.ja: '登録した誕生日 ({0})', AppLang.zh: '已登记生日 ({0})', AppLang.es: 'Cumpleaños ({0})'},
+  '할 일 (예: 내일 p1 빨래하기)': {
+    AppLang.en: 'To-do (e.g. laundry tomorrow p1)',
+    AppLang.ja: 'ToDo（例：明日 p1 洗濯）',
+    AppLang.zh: '待办（例：明天 p1 洗衣服）',
+    AppLang.es: 'Tarea (ej: lavar ropa mañana p1)',
+  },
+  '듣고 있어요… 말한 뒤 손을 떼세요': {
+    AppLang.en: 'Listening… release when done',
+    AppLang.ja: '聞いています…話し終えたら離してください',
+    AppLang.zh: '正在聆听…说完后松开',
+    AppLang.es: 'Escuchando… suelta al terminar',
+  },
 };

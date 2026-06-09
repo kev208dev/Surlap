@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../core/utils/date_utils.dart' as du;
+import '../i18n/strings.dart';
 import '../models/event_item.dart';
 import '../models/calendar_theme.dart';
 import '../providers/events_provider.dart';
@@ -106,7 +107,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
             Row(
               children: [
                 Text(
-                  isEdit ? '일정 편집' : '일정 추가',
+                  isEdit ? tr('일정 편집') : tr('일정 추가'),
                   style: AppType.title.copyWith(
                       fontSize: 21,
                       fontWeight: FontWeight.w800,
@@ -120,14 +121,14 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
                     style: TextButton.styleFrom(
                         foregroundColor: sh.danger,
                         padding: EdgeInsets.zero),
-                    child: const Text('삭제', style: TextStyle(fontSize: 13)),
+                    child: Text(tr('삭제'), style: const TextStyle(fontSize: 13)),
                   ),
                 // 항상 보이는 닫기(×) 버튼.
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(Icons.close, color: sh.inkSoft),
                   visualDensity: VisualDensity.compact,
-                  tooltip: '닫기',
+                  tooltip: tr('닫기'),
                 ),
               ],
             ),
@@ -135,7 +136,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
 
             // 날짜
             _FieldRow(
-              label: '날짜',
+              label: tr('날짜'),
               sh: sh,
               child: GestureDetector(
                 onTap: _pickDate,
@@ -150,7 +151,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
 
             // 일정 내용
             _FieldRow(
-              label: '일정 내용',
+              label: tr('일정 내용'),
               sh: sh,
               child: TextField(
                 controller: _textCtrl,
@@ -171,7 +172,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
 
             // 시간
             _FieldRow(
-              label: '시간 (선택)',
+              label: tr('시간 (선택)'),
               sh: sh,
               child: Row(
                 children: [
@@ -198,7 +199,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
                       style: TextButton.styleFrom(
                           foregroundColor: sh.inkSoft,
                           padding: const EdgeInsets.only(left: 8)),
-                      child: const Text('지움', style: TextStyle(fontSize: 12)),
+                      child: Text(tr('지움'), style: const TextStyle(fontSize: 12)),
                     ),
                 ],
               ),
@@ -207,7 +208,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
 
             // 캘린더(카테고리) 선택
             if (themes.isNotEmpty) ...[
-              Text('캘린더 (여러 개 선택 가능)',
+              Text(tr('캘린더 (여러 개 선택 가능)'),
                   style: AppType.label.copyWith(color: sh.inkSoft)),
               const SizedBox(height: Gap.sm),
               Wrap(
@@ -243,7 +244,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
                         minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16))),
-                    child: const Text('취소',
+                    child: Text(tr('취소'),
                         style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
@@ -258,7 +259,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text(isEdit ? '저장' : '추가',
+                    child: Text(isEdit ? tr('저장') : tr('추가'),
                         style: const TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w800)),
                   ),
@@ -319,7 +320,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
   void _save() {
     final text = _textCtrl.text.trim();
     if (text.isEmpty) {
-      MascotToast.error(context, '제목을 입력해주세요');
+      MascotToast.error(context, tr('제목을 입력해주세요'));
       return;
     }
 
@@ -352,7 +353,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
       eventsNotifier.addEvent(_dateKey, item);
     }
 
-    MascotToast.success(context, isEdit ? '일정을 수정했어요' : '일정을 추가했어요');
+    MascotToast.success(context, isEdit ? tr('일정을 수정했어요') : tr('일정을 추가했어요'));
     Navigator.pop(context);
   }
 
