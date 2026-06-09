@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/category_colors.dart';
 import '../i18n/strings.dart';
 import '../core/theme/design_tokens.dart';
 import '../models/calendar_theme.dart';
@@ -546,12 +547,13 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
   }
 
   void _pickColor() async {
-    // 간단한 색상 선택: 미리 정의된 색상 팔레트
-    final presets = [
-      '#d33333','#e67e22','#f1c40f','#2ecc71','#1abc9c',
-      '#3498db','#5b9bd5','#9b59b6','#e91e63','#607d8b',
-      '#795548','#ff5722','#4caf50','#00bcd4','#673ab7',
-    ];
+    // 16색 카테고리 팔레트 — 다크/라이트 페어, 현재 brightness 변형 사용.
+    final brightness = Theme.of(context).brightness;
+    String hex(Color c) {
+      final v = c.toARGB32() & 0xFFFFFF;
+      return '#${v.toRadixString(16).padLeft(6, '0')}';
+    }
+    final palette = CategoryColors.palette;
     final picked = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -560,18 +562,35 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
           backgroundColor: sh.card,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(tr('색상 선택'), style: AppType.section.copyWith(color: sh.ink)),
-          content: Wrap(
-            spacing: 10, runSpacing: 10,
-            children: presets.map((hex) {
-              final c = Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
-              return GestureDetector(
-                onTap: () => Navigator.pop(ctx, hex),
-                child: Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-                ),
-              );
-            }).toList(),
+          content: SizedBox(
+            width: 280,
+            child: Wrap(
+              spacing: 10, runSpacing: 10,
+              children: palette.map((cc) {
+                final c = cc.of(brightness);
+                final selected = _color.toARGB32() == c.toARGB32();
+                return GestureDetector(
+                  onTap: () => Navigator.pop(ctx, hex(c)),
+                  child: Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: c,
+                      shape: BoxShape.circle,
+                      border: selected
+                          ? Border.all(color: sh.ink, width: 2.5)
+                          : Border.all(color: c.withValues(alpha: 0.4), width: 1),
+                      boxShadow: selected
+                          ? [BoxShadow(color: c.withValues(alpha: 0.4), blurRadius: 8)]
+                          : null,
+                    ),
+                    child: selected
+                        ? const Icon(Icons.check_rounded,
+                            color: Colors.white, size: 20)
+                        : null,
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         );
       },

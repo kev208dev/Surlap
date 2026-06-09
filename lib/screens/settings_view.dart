@@ -6,6 +6,7 @@ import '../i18n/app_lang.dart';
 import '../i18n/strings.dart';
 import '../providers/locale_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/event_notify_provider.dart';
 import '../providers/themes_provider.dart';
 import '../providers/filter_provider.dart';
 import '../providers/birthdays_provider.dart';
@@ -141,15 +142,31 @@ class SettingsSections extends ConsumerWidget {
                     onChanged: notifier.setShowPast,
                     sh: sh),
               ),
-              SettingsRow(
-                sh: sh,
-                icon: Icons.notifications_outlined,
-                title: tr('알림'),
-                trailing: _IosSwitch(
-                    value: settings.notifyEnabled,
-                    onChanged: notifier.setNotify,
-                    sh: sh),
-              ),
+              Builder(builder: (_) {
+                final en = ref.watch(eventNotifyProvider);
+                final enNotifier = ref.read(eventNotifyProvider.notifier);
+                return Column(children: [
+                  SettingsRow(
+                    sh: sh,
+                    icon: Icons.notifications_outlined,
+                    title: tr('일정 알림'),
+                    trailing: _IosSwitch(
+                        value: en.enabled,
+                        onChanged: enNotifier.setEnabled,
+                        sh: sh),
+                  ),
+                  if (en.enabled)
+                    SettingsRow(
+                      sh: sh,
+                      icon: Icons.alarm_outlined,
+                      title: tr('시작 전 알림'),
+                      trailing: _LeadMinutesPill(
+                          minutes: en.leadMinutes,
+                          onSelected: enNotifier.setLeadMinutes,
+                          sh: sh),
+                    ),
+                ]);
+              }),
               SettingsRow(
                 sh: sh,
                 icon: Icons.view_stream_outlined,
@@ -650,3 +667,52 @@ class _WeekStartPill extends StatelessWidget {
   }
 }
 
+class _LeadMinutesPill extends StatelessWidget {
+  final int minutes; // 0/5/15/30/60
+  final ValueChanged<int> onSelected;
+  final SpaceHourColors sh;
+  const _LeadMinutesPill(
+      {required this.minutes, required this.onSelected, required this.sh});
+
+  static const _opts = [0, 5, 15, 30, 60];
+
+  String _label(int m) => m == 0 ? tr('정각') : trf('{0}분 전', [m]);
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<int>(
+      onSelected: onSelected,
+      color: sh.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      itemBuilder: (_) => [
+        for (final m in _opts)
+          PopupMenuItem(
+            value: m,
+            child: Text(_label(m),
+                style: AppType.body.copyWith(
+                    color: sh.ink,
+                    fontWeight:
+                        m == minutes ? FontWeight.w700 : FontWeight.w400)),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: sh.ink.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_label(minutes),
+                style: AppType.body.copyWith(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: sh.ink.withValues(alpha: 0.55)),
+          ],
+        ),
+      ),
+    );
+  }
+}

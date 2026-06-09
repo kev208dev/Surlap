@@ -47,3 +47,9 @@ app.*.map.json
 # dart-define secrets
 .dart_define
 supabase-config.js
+
+# Runtime/diagnostic noise
+*.err
+
+# Understand-Anything analysis artifacts (regenerable via /understand)
+.understand-anything/

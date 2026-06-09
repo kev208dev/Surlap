@@ -650,4 +650,9 @@ const Map<String, Map<AppLang, String>> kTranslations = {
   '토': {AppLang.en: 'Sat', AppLang.ja: '土', AppLang.zh: '六', AppLang.es: 'S'},
   // 기간 라벨 (date range)
   '{0}/{1} ~ {2}/{3} · {4}일': {AppLang.en: '{0}/{1} – {2}/{3} · {4} days', AppLang.ja: '{0}/{1}–{2}/{3} · {4}日間', AppLang.zh: '{0}/{1} – {2}/{3} · 共{4}天', AppLang.es: '{0}/{1} – {2}/{3} · {4} días'},
+  // 일정 알림
+  '일정 알림': {AppLang.en: 'Event reminders', AppLang.ja: '予定の通知', AppLang.zh: '日程提醒', AppLang.es: 'Recordatorios'},
+  '시작 전 알림': {AppLang.en: 'Lead time', AppLang.ja: '開始前に通知', AppLang.zh: '提前提醒', AppLang.es: 'Tiempo de aviso'},
+  '정각': {AppLang.en: 'On time', AppLang.ja: '開始時', AppLang.zh: '准时', AppLang.es: 'A tiempo'},
+  '{0}분 전': {AppLang.en: '{0} min before', AppLang.ja: '{0}分前', AppLang.zh: '提前{0}分钟', AppLang.es: '{0} min antes'},
 };

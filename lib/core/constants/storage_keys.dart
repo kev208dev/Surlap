@@ -43,6 +43,9 @@ abstract final class StorageKeys {
   // 생일 알림 설정 — 기기 설정값.
   static const birthdayNotifyEnabled = 'calendar-bday-notify-enabled-v1';
   static const birthdayNotifyDaysBefore = 'calendar-bday-notify-days-v1';
+  // 일정 알림 설정 — 기기 설정값.
+  static const eventNotifyEnabled = 'calendar-event-notify-enabled-v1';
+  static const eventNotifyLeadMinutes = 'calendar-event-notify-lead-v1';
   static const cellDesign    = 'calendar-cell-design-v1';
   static const neisSchool    = 'calendar-neis-school-v1';
   // 사용자 유형(일반인/초·중·고·대) — 로그인 없이 기기에 저장. 온보딩에서 선택.
