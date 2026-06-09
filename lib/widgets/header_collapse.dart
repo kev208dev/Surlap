@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 스크롤로 상단 헤더 접힘/펼침 상태(전역). true = 접힘.
@@ -31,7 +32,19 @@ class _CollapseOnScrollState extends ConsumerState<CollapseOnScroll> {
   }
 
   void _set(bool v) {
-    if (ref.read(headerCollapsedProvider) != v) {
+    if (ref.read(headerCollapsedProvider) == v) return;
+    // 중첩 스크롤 동기화(planner의 jumpTo 등)가 레이아웃 단계에서 스크롤 알림을
+    // 발생시키면, 여기서 provider를 바꾸는 순간 헤더(AppHeader Row=RenderFlex)가
+    // 레이아웃 도중 리빌드돼 "RenderFlex was mutated" 크래시. 그 단계면 다음
+    // 프레임으로 미룬다.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && ref.read(headerCollapsedProvider) != v) {
+          ref.read(headerCollapsedProvider.notifier).state = v;
+        }
+      });
+    } else {
       ref.read(headerCollapsedProvider.notifier).state = v;
     }
   }
