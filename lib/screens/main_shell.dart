@@ -344,9 +344,16 @@ class _SlideTransition extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-    // 방향 없는 전환(스케줄표·프로필 등)은 부드러운 페이드.
+    // 방향 없는 전환(연·월·주·일·프로필 등)은 페이드 + 미세 줌으로 부드럽게
+    // — 높이 다른 뷰끼리 바뀔 때 툭 끊기는 느낌 완화(살짝 확대되며 안착).
     if (direction == 0) {
-      return FadeTransition(opacity: curve, child: child);
+      return FadeTransition(
+        opacity: curve,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.96, end: 1.0).animate(curve),
+          child: child,
+        ),
+      );
     }
     // 좌우 전환은 페이드 없이 슬라이드만 — 불투명 배경이 덮어 스와이프처럼.
     final offset = Tween<Offset>(

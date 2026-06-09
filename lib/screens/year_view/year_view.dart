@@ -1,3 +1,4 @@
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
@@ -35,11 +36,160 @@ class YearView extends ConsumerWidget {
           month: month,
           events: events,
           sh: sh,
-          // 줌 애니메이션 없이 곧바로 월간으로 전환.
-          onTap: () {
-            ref.read(viewProvider.notifier).setYearMonth(year, month);
-            ref.read(viewProvider.notifier).setMode(ViewMode.events);
-          },
+          // 셀이 제자리에서 커지며 펼쳐지는 zoom-in 후 월간으로 전환.
+          onTap: (cardCtx) =>
+              _zoomToMonth(cardCtx, ref, year, month, sh, events),
+        );
+      },
+    );
+  }
+
+  // 탭한 미니 월 카드의 화면 위치를 잡아, 그 자리에서 풀스크린으로 커지는
+  // 오버레이를 띄운 뒤 월간 뷰로 전환한다(뒤에서 월간이 빌드돼 끝에 드러남).
+  void _zoomToMonth(BuildContext cardCtx, WidgetRef ref, int year, int month,
+      SpaceHourColors sh, Map<String, List<dynamic>> events) {
+    final notifier = ref.read(viewProvider.notifier);
+    final box = cardCtx.findRenderObject();
+    // rect/overlay를 전환 전에 확보(전환 시작하면 year 뷰가 사라짐).
+    if (box is! RenderBox || !box.hasSize) {
+      notifier.setYearMonth(year, month);
+      notifier.setMode(ViewMode.events);
+      return;
+    }
+    final rect = box.localToGlobal(Offset.zero) & box.size;
+    final overlay = Overlay.of(cardCtx);
+
+    // 월간 뷰를 먼저 띄워 오버레이 뒤에서 빌드되게 한다.
+    notifier.setYearMonth(year, month);
+    notifier.setMode(ViewMode.events);
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _ZoomOverlay(
+        startRect: rect,
+        year: year,
+        month: month,
+        sh: sh,
+        events: events,
+        onDone: () => entry.remove(),
+      ),
+    );
+    overlay.insert(entry);
+  }
+}
+
+// ── 연간→월간 줌인 오버레이 ───────────────────────────────────────────
+// 미니 월 카드를 시작 위치(startRect)에서 풀스크린까지 키우며, 마지막 구간엔
+// 페이드아웃해 뒤에서 빌드된 실제 월간 뷰가 드러나게 한다.
+class _ZoomOverlay extends StatefulWidget {
+  final Rect startRect;
+  final int year, month;
+  final SpaceHourColors sh;
+  final Map<String, List<dynamic>> events;
+  final VoidCallback onDone;
+
+  const _ZoomOverlay({
+    required this.startRect,
+    required this.year,
+    required this.month,
+    required this.sh,
+    required this.events,
+    required this.onDone,
+  });
+
+  @override
+  State<_ZoomOverlay> createState() => _ZoomOverlayState();
+}
+
+class _ZoomOverlayState extends State<_ZoomOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 360));
+
+  @override
+  void initState() {
+    super.initState();
+    _c.addStatusListener((s) {
+      if (s == AnimationStatus.completed) widget.onDone();
+    });
+    _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  static const _monthNames = [
+    '1월', '2월', '3월', '4월', '5월', '6월',
+    '7월', '8월', '9월', '10월', '11월', '12월',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final sh = widget.sh;
+    final full = Offset.zero & MediaQuery.of(context).size;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, _) {
+        final t = Curves.easeOutCubic.transform(_c.value);
+        final rect = Rect.lerp(widget.startRect, full, t)!;
+        final radius = lerpDouble(_yRadius, 0, t)!;
+        // 마지막 22% 구간에 카드 페이드아웃 → 실제 월간 뷰 노출.
+        final fade = (1 - ((t - 0.78) / 0.22)).clamp(0.0, 1.0);
+        return IgnorePointer(
+          child: Stack(
+            children: [
+              Positioned.fromRect(
+                rect: rect,
+                child: Opacity(
+                  opacity: fade,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: sh.card,
+                      borderRadius: BorderRadius.circular(radius),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black
+                              .withValues(alpha: sh.dark ? 0.3 : 0.12),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          width: double.infinity,
+                          color: sh.card2,
+                          child: Center(
+                            child: Text(
+                              _monthNames[widget.month - 1],
+                              style: AppType.label.copyWith(
+                                  fontSize: 12 + 8 * t,
+                                  fontWeight: FontWeight.w800,
+                                  color: sh.inkSoft),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: _MiniMonthGrid(
+                            year: widget.year,
+                            month: widget.month,
+                            sh: sh,
+                            events: widget.events,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -52,7 +202,7 @@ class _MiniMonthCard extends StatelessWidget {
   final int year, month;
   final Map<String, List<dynamic>> events;
   final SpaceHourColors sh;
-  final VoidCallback onTap;
+  final void Function(BuildContext cardContext) onTap;
 
   const _MiniMonthCard({
     required this.year,
@@ -73,7 +223,7 @@ class _MiniMonthCard extends StatelessWidget {
     final isCurrentMonth = year == now.year && month == now.month;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => onTap(context),
       child: Container(
         decoration: BoxDecoration(
           color: sh.card,

@@ -13,7 +13,6 @@ import '../../supabase/neis_service.dart'
     show NeisSchool, academicVisibleForGrade;
 import '../timetable_view/timetable_view.dart'
     show timetableSubjectsForDate, getDisplaySubjectName;
-import '../../widgets/zoom_button.dart';
 import '../../widgets/view_segment_control.dart';
 import '../../widgets/calendar_filter_strip.dart';
 import '../../widgets/header_collapse.dart';
@@ -46,7 +45,8 @@ class DayView extends ConsumerStatefulWidget {
 class _DayViewState extends ConsumerState<DayView> {
   static const _timeColW = 44.0;
   static const _baseRowH = 48.0;
-  double _zoom = 1.0; // 확대/축소 — 주간 뷰와 동일.
+  double _zoom = 1.0; // 확대/축소 — 두 손가락 핀치(주간 뷰와 동일).
+  double _zoomStart = 1.0;
   double get _rowH => _baseRowH * _zoom;
 
   late final ScrollController _scroll;
@@ -152,19 +152,12 @@ class _DayViewState extends ConsumerState<DayView> {
       child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 헤더(세그먼트 + 날짜 이동 + 필터칩) — 스크롤 시 부드럽게 접힘.
-        CollapsibleHeader(
-          collapsed: ref.watch(headerCollapsedProvider),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-        // 통합 뷰 전환 세그먼트(연·월·주·일)
+        // 세그먼트(항상 표시) — 주/월/연 헤더와 위치·높이 통일(전환 시 버튼 안 튐).
         const Padding(
           padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
           child: ViewSegmentControl(),
         ),
-        // 날짜 헤더 — 한 줄(날짜 + 스케줄 토글 + 확대축소).
+        // 날짜 헤더 — 한 줄(날짜 + 스케줄 토글). 줌은 두 손가락 핀치.
         Padding(
           padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.sm),
           child: Row(
@@ -215,26 +208,13 @@ class _DayViewState extends ConsumerState<DayView> {
                       color: showTt ? sh.accent : sh.inkSoft),
                 ),
               ),
-              const SizedBox(width: 6),
-              // 컴팩트 줌(+/−).
-              ZoomButton(
-                  icon: Icons.remove_rounded,
-                  sh: sh,
-                  onTap: () =>
-                      setState(() => _zoom = (_zoom - 0.2).clamp(0.6, 2.0))),
-              const SizedBox(width: 6),
-              ZoomButton(
-                  icon: Icons.add_rounded,
-                  sh: sh,
-                  onTap: () =>
-                      setState(() => _zoom = (_zoom + 0.2).clamp(0.6, 2.0))),
             ],
           ),
         ),
-        // 카테고리 필터칩 — 헤더 묶음 안에.
-        const CalendarFilterStrip(),
-            ],
-          ),
+        // 필터칩만 스크롤 시 접힘(주/월/연 헤더와 동일).
+        CollapsibleHeader(
+          collapsed: ref.watch(headerCollapsedProvider),
+          child: const CalendarFilterStrip(),
         ),
         // 종일 일정
         if (allDay.isNotEmpty) _AllDayBar(items: allDay, themes: themes, sh: sh),
@@ -254,9 +234,16 @@ class _DayViewState extends ConsumerState<DayView> {
             },
             onTapTodo: (t) => showAddTodoModal(context, edit: t),
           ),
-        // 시간 축 + 하루 타임라인
+        // 시간 축 + 하루 타임라인 — 두 손가락 핀치로 확대/축소.
         Expanded(
-          child: LayoutBuilder(builder: (context, constraints) {
+          child: GestureDetector(
+            onScaleStart: (_) => _zoomStart = _zoom,
+            onScaleUpdate: (d) {
+              if (d.pointerCount < 2) return;
+              final z = (_zoomStart * d.scale).clamp(0.6, 2.0);
+              if (z != _zoom) setState(() => _zoom = z);
+            },
+            child: LayoutBuilder(builder: (context, constraints) {
             final dayColW = constraints.maxWidth - _timeColW;
             final timeline = SingleChildScrollView(
               controller: _scroll,
@@ -365,6 +352,7 @@ class _DayViewState extends ConsumerState<DayView> {
               ],
             );
           }),
+          ),
         ),
       ],
       ),

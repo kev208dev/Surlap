@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_utils.dart' as du;
@@ -81,7 +82,19 @@ class _ContinuousWeekViewState extends ConsumerState<ContinuousWeekView> {
     final mid = _weekStartForIndex(topIndex).add(const Duration(days: 3));
     final cur = ref.read(viewProvider);
     if (cur.viewYear != mid.year || cur.viewMonth != mid.month) {
-      ref.read(viewProvider.notifier).setYearMonth(mid.year, mid.month);
+      // 스크롤 위치 정착이 레이아웃/빌드 단계에서 발생하면, 여기서 viewProvider를
+      // 바꾸는 순간 형제 위젯(AppHeader 등)의 RenderFlex가 레이아웃 도중 변형돼
+      // "A RenderFlex was mutated…" 크래시. 그 단계면 다음 프레임으로 미룬다.
+      if (SchedulerBinding.instance.schedulerPhase ==
+          SchedulerPhase.persistentCallbacks) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref.read(viewProvider.notifier).setYearMonth(mid.year, mid.month);
+          }
+        });
+      } else {
+        ref.read(viewProvider.notifier).setYearMonth(mid.year, mid.month);
+      }
     }
   }
 

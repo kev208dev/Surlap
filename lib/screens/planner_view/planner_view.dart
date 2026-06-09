@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
@@ -55,6 +56,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
   final _leadVN = ValueNotifier<int>(_kCenter);
 
   double _zoom = 1.0;
+  double _zoomStart = 1.0; // 핀치 시작 시점의 줌
   double get _rowH => _baseRowH * _zoom;
 
   static DateTime get _today {
@@ -110,7 +112,19 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
         _hHeaderCtrl!.position.maxScrollExtent);
     if (_hHeaderCtrl!.offset != o) _hHeaderCtrl!.jumpTo(o);
     final lead = (h.offset / _dayW).round();
-    if (lead != _leadVN.value) _leadVN.value = lead;
+    if (lead != _leadVN.value) {
+      // 스크롤 정착이 레이아웃/빌드 단계에서 일어나면, 여기서 _leadVN을 바꾸는 순간
+      // 헤더 제목(Row=RenderFlex)이 레이아웃 도중 리빌드돼 "RenderFlex was mutated"
+      // 크래시가 날 수 있다. 그 단계면 다음 프레임으로 미룬다.
+      if (SchedulerBinding.instance.schedulerPhase ==
+          SchedulerPhase.persistentCallbacks) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _leadVN.value = lead;
+        });
+      } else {
+        _leadVN.value = lead;
+      }
+    }
   }
 
   void _scrollToNow({bool animate = true}) {
@@ -238,16 +252,6 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
             onToggleSchedule: () => ref
                 .read(settingsProvider.notifier)
                 .setShowTimetable(!showTt),
-            onZoomIn: () {
-              setState(() => _zoom = (_zoom + 0.2).clamp(0.6, 2.0));
-              WidgetsBinding.instance
-                  .addPostFrameCallback((_) => _scrollToNow(animate: false));
-            },
-            onZoomOut: () {
-              setState(() => _zoom = (_zoom - 0.2).clamp(0.6, 2.0));
-              WidgetsBinding.instance
-                  .addPostFrameCallback((_) => _scrollToNow(animate: false));
-            },
             onPrev: () => _shiftDays(-_daysPerScreen),
             onNext: () => _shiftDays(_daysPerScreen),
             onToday: _goToday,
@@ -284,7 +288,15 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                         ),
                       ),
                       Expanded(
-                        child: Row(
+                        // 두 손가락 핀치로 시간축 확대/축소(버튼 없이).
+                        child: GestureDetector(
+                          onScaleStart: (_) => _zoomStart = _zoom,
+                          onScaleUpdate: (d) {
+                            if (d.pointerCount < 2) return;
+                            final z = (_zoomStart * d.scale).clamp(0.6, 2.0);
+                            if (z != _zoom) setState(() => _zoom = z);
+                          },
+                          child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // 고정 시간 라벨 열
@@ -322,18 +334,26 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                                 controller: _vCtrl,
                                 child: SizedBox(
                                   height: _rowH * 24 + _bottomPad,
-                                  child: ListView.builder(
-                                    controller: _hCtrl,
-                                    scrollDirection: Axis.horizontal,
-                                    itemExtent: _dayW,
-                                    physics: _DaySnapPhysics(itemW: _dayW),
-                                    itemBuilder: (_, i) =>
-                                        _dayColumn(_dateFor(i), showTt, sh),
+                                  child: Stack(
+                                    children: [
+                                      ListView.builder(
+                                        controller: _hCtrl,
+                                        scrollDirection: Axis.horizontal,
+                                        itemExtent: _dayW,
+                                        physics: _DaySnapPhysics(itemW: _dayW),
+                                        itemBuilder: (_, i) =>
+                                            _dayColumn(_dateFor(i), showTt, sh),
+                                      ),
+                                      // 현재 시각선 — 한 컬럼이 아니라 보이는 모든
+                                      // 날짜를 가로질러 길게(시간축 따라 세로 스크롤).
+                                      _NowLineFull(rowH: _rowH, sh: sh),
+                                    ],
                                   ),
                                 ),
                               ),
                             ),
                           ],
+                        ),
                         ),
                       ),
                     ],
@@ -466,7 +486,6 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
   // ── 하루 컬럼(그리드 라인 + 시간표 + 이벤트 + now) ──
   Widget _dayColumn(DateTime d, bool showTt, SpaceHourColors sh) {
     final isToday = du.isSameDay(d, DateTime.now());
-    final now = DateTime.now();
     final timed = _timedFor(d);
     final placed = _placeTimed(timed);
     final recurring = showTt
@@ -532,25 +551,6 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
                 sh: sh,
                 onTap: () => _onEventTap(p.e, du.toDateKey(d)),
               ),
-            ),
-          // 현재 시각선
-          if (isToday)
-            Positioned(
-              top: (now.hour * 60 + now.minute) * _rowH / 60 - 4,
-              left: 0,
-              right: 0,
-              child: Row(children: [
-                Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.only(left: 1),
-                    decoration: BoxDecoration(
-                        color: sh.danger, shape: BoxShape.circle)),
-                Expanded(
-                    child: Container(
-                        height: 1.5,
-                        color: sh.danger.withValues(alpha: 0.7))),
-              ]),
             ),
         ],
       ),
@@ -808,20 +808,49 @@ class _RecurringBlock extends StatelessWidget {
   }
 }
 
+// 현재 시각선 — 보이는 모든 날짜 컬럼을 가로질러 그린다(시간축 따라 세로 위치).
+class _NowLineFull extends StatelessWidget {
+  final double rowH;
+  final SpaceHourColors sh;
+  const _NowLineFull({required this.rowH, required this.sh});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final top = (now.hour * 60 + now.minute) * rowH / 60 - 4;
+    return Positioned(
+      top: top,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: Row(children: [
+          Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(left: 1),
+              decoration:
+                  BoxDecoration(color: sh.danger, shape: BoxShape.circle)),
+          Expanded(
+              child: Container(
+                  height: 1.5, color: sh.danger.withValues(alpha: 0.7))),
+        ]),
+      ),
+    );
+  }
+}
+
 // ── 헤더(제목 + 세그먼트 + ⋮) ──
 class _PlannerNav extends StatelessWidget {
   final Widget title;
   final SpaceHourColors sh;
   final bool showTimetable;
-  final VoidCallback onToggleSchedule, onZoomIn, onZoomOut;
+  final VoidCallback onToggleSchedule;
   final VoidCallback onPrev, onNext, onToday, onSearch;
   const _PlannerNav({
     required this.title,
     required this.sh,
     required this.showTimetable,
     required this.onToggleSchedule,
-    required this.onZoomIn,
-    required this.onZoomOut,
     required this.onPrev,
     required this.onNext,
     required this.onToday,
@@ -870,8 +899,6 @@ class _PlannerNav extends StatelessWidget {
                     switch (v) {
                       case 'search': onSearch(); break;
                       case 'schedule': onToggleSchedule(); break;
-                      case 'zoomIn': onZoomIn(); break;
-                      case 'zoomOut': onZoomOut(); break;
                     }
                   },
                   itemBuilder: (_) => [
@@ -883,8 +910,6 @@ class _PlannerNav extends StatelessWidget {
                             : Icons.event_busy_rounded,
                         showTimetable ? '스케줄 숨기기' : '스케줄 표시',
                         active: showTimetable),
-                    _item('zoomIn', Icons.zoom_in_rounded, '확대'),
-                    _item('zoomOut', Icons.zoom_out_rounded, '축소'),
                   ],
                 ),
               ],
