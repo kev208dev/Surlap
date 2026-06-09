@@ -157,16 +157,53 @@ class MonthView extends ConsumerWidget {
             heroCells: true,
           ),
           // 이 달에 아무 데이터도 없으면 친근한 빈 상태를 그리드 위에 띄운다.
+          // 날짜 숫자와 겹쳐 안 보이지 않게 불투명 카드 박스로 감싼다.
           // IgnorePointer로 날짜 셀 탭은 그대로 통과시킨다.
           if (isMonthEmpty)
-            const Positioned.fill(
+            Positioned.fill(
               child: IgnorePointer(
-                child: MascotEmptyState(
-                  expression: MascotExpression.happy,
-                  title: '이 달은 아직 비어 있어요',
-                  message: '아래 + 버튼으로 일정을 추가해 보세요',
-                  mascotSize: 96,
-                  showStars: false,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 26, vertical: 22),
+                    decoration: BoxDecoration(
+                      color: sh.card,
+                      borderRadius: BorderRadius.circular(24),
+                      border:
+                          Border.all(color: sh.ink.withValues(alpha: 0.06)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black
+                              .withValues(alpha: sh.dark ? 0.4 : 0.12),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const MascotView(
+                            expression: MascotExpression.happy,
+                            size: 84,
+                            showStars: false),
+                        const SizedBox(height: 14),
+                        Text('이 달은 아직 비어 있어요',
+                            textAlign: TextAlign.center,
+                            style: AppType.body.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: sh.ink)),
+                        const SizedBox(height: 6),
+                        Text('아래 + 버튼으로 일정을 추가해 보세요',
+                            textAlign: TextAlign.center,
+                            style: AppType.label.copyWith(
+                                fontSize: 13,
+                                color: sh.inkSoft,
+                                height: 1.4)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
