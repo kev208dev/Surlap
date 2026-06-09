@@ -8,6 +8,7 @@ import '../../i18n/dates.dart' as i18nd;
 import '../../models/event_item.dart';
 import '../../models/calendar_theme.dart';
 import '../../providers/events_provider.dart';
+import '../../providers/holidays_provider.dart';
 import '../../providers/themes_provider.dart';
 import '../../providers/view_provider.dart';
 import '../../providers/recurring_provider.dart';
@@ -183,7 +184,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
   late List<CalendarTheme> _themes;
   late Map<String, List<String>> _academic;
   late List<dynamic> _birthdaysRaw;
-  late bool _academicHidden, _birthdayHidden;
+  late bool _academicHidden, _birthdayHidden, _holidayHidden;
   late int? _grade;
 
   List<EventItem> _allDayFor(DateTime d) {
@@ -195,9 +196,12 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
         for (final b in _birthdaysRaw)
           if (b.month == d.month && b.day == d.day)
             EventItem(t: b.name, th: birthdayThemeId, birthday: true),
+      if (!_holidayHidden) ...holidayEventsForDate(d),
       if (!_academicHidden)
-        ...(_academic[key] ?? const [])
-            .where((n) => academicVisibleForGrade(n, _grade))
+        ...dedupAcademicWithHolidays(
+                d,
+                (_academic[key] ?? const [])
+                    .where((n) => academicVisibleForGrade(n, _grade)))
             .map((n) => EventItem(t: n, th: academicThemeId, academic: true)),
     ];
   }
@@ -217,6 +221,7 @@ class _PlannerViewState extends ConsumerState<PlannerView> {
     _academicHidden = hidden.contains(academicThemeId);
     _birthdaysRaw = ref.watch(birthdaysProvider);
     _birthdayHidden = hidden.contains(birthdayThemeId);
+    _holidayHidden = hidden.contains(holidayThemeId);
     _grade = NeisSchool.load()?.grade;
     ref.watch(recurringProvider);
     ref.watch(neisCacheProvider);

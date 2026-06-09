@@ -611,8 +611,10 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
   }
 
   // OS 공유창 대신 앱 자체 모달(코드창)을 띄운다 — 코드/링크 각각 클립보드 복사.
+  // 링크는 앱이 실제 처리하는 커스텀 스킴(spacehour://theme/CODE)을 쓴다.
+  // (기존 https://kev208dev.github.io/theme/... 는 랜딩 페이지가 없어 404였음)
   void _shareLink(String name, String code) {
-    final httpsLink = ThemeShareService.httpsLinkForCode(code);
-    showShareCodeModal(context, name, code, httpsLink);
+    final link = ThemeShareService.linkForCode(code);
+    showShareCodeModal(context, name, code, link);
   }
 }

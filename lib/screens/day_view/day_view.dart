@@ -14,6 +14,7 @@ import '../../supabase/neis_service.dart'
 import '../timetable_view/timetable_view.dart'
     show timetableSubjectsForDate, getDisplaySubjectName;
 import '../../i18n/dates.dart' as i18nd;
+import '../../providers/holidays_provider.dart';
 import '../../widgets/view_segment_control.dart';
 import '../../widgets/calendar_filter_strip.dart';
 import '../../widgets/header_collapse.dart';
@@ -110,10 +111,15 @@ class _DayViewState extends ConsumerState<DayView> {
             .where((b) => b.month == date.month && b.day == date.day)
             .map((b) =>
                 EventItem(t: b.name, th: birthdayThemeId, birthday: true)),
-      // NEIS 학사일정(읽기 전용) — 다른 학년 항목은 숨김.
+      // 공휴일(빨강 'holidays' 테마).
+      if (!filter.contains(holidayThemeId)) ...holidayEventsForDate(date),
+      // NEIS 학사일정(읽기 전용) — 다른 학년 항목 숨김 + 공휴일과 중복 제거.
       if (!filter.contains(academicThemeId))
-        ...(ref.watch(academicScheduleProvider)[widget.dateKey] ?? const [])
-            .where((n) => academicVisibleForGrade(n, NeisSchool.load()?.grade))
+        ...dedupAcademicWithHolidays(
+                date,
+                (ref.watch(academicScheduleProvider)[widget.dateKey] ?? const [])
+                    .where((n) =>
+                        academicVisibleForGrade(n, NeisSchool.load()?.grade)))
             .map((n) =>
                 EventItem(t: n, th: academicThemeId, academic: true)),
     ];
