@@ -7,6 +7,7 @@ import '../i18n/strings.dart';
 import '../providers/locale_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/event_notify_provider.dart';
+import '../providers/briefing_notify_provider.dart';
 import '../providers/themes_provider.dart';
 import '../providers/filter_provider.dart';
 import '../providers/birthdays_provider.dart';
@@ -145,6 +146,8 @@ class SettingsSections extends ConsumerWidget {
               Builder(builder: (_) {
                 final en = ref.watch(eventNotifyProvider);
                 final enNotifier = ref.read(eventNotifyProvider.notifier);
+                final br = ref.watch(briefingNotifyProvider);
+                final brNotifier = ref.read(briefingNotifyProvider.notifier);
                 return Column(children: [
                   SettingsRow(
                     sh: sh,
@@ -165,6 +168,25 @@ class SettingsSections extends ConsumerWidget {
                           onSelected: enNotifier.setLeadMinutes,
                           sh: sh),
                     ),
+                  SettingsRow(
+                    sh: sh,
+                    icon: Icons.wb_sunny_outlined,
+                    title: tr('오늘의 브리핑'),
+                    trailing: _IosSwitch(
+                        value: br.enabled,
+                        onChanged: brNotifier.setEnabled,
+                        sh: sh),
+                  ),
+                  if (br.enabled)
+                    SettingsRow(
+                      sh: sh,
+                      icon: Icons.schedule_outlined,
+                      title: tr('브리핑 시각'),
+                      trailing: _HourPill(
+                          hour: br.hour,
+                          onSelected: brNotifier.setHour,
+                          sh: sh),
+                    ),
                 ]);
               }),
               SettingsRow(
@@ -183,6 +205,15 @@ class SettingsSections extends ConsumerWidget {
                 trailing: _WeekStartPill(
                     dow: settings.weekStartDow,
                     onSelected: notifier.setWeekStart,
+                    sh: sh),
+              ),
+              SettingsRow(
+                sh: sh,
+                icon: Icons.event_note_outlined,
+                title: tr('빈 교시 라벨'),
+                trailing: _EmptyLabelPill(
+                    current: settings.timetableEmptyLabel,
+                    onSelected: notifier.setTimetableEmptyLabel,
                     sh: sh),
               ),
             ],
@@ -655,6 +686,106 @@ class _WeekStartPill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(tr(_labels[dow] ?? '월요일'),
+                style: AppType.body.copyWith(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: sh.ink.withValues(alpha: 0.55)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HourPill extends StatelessWidget {
+  final int hour;
+  final ValueChanged<int> onSelected;
+  final SpaceHourColors sh;
+  const _HourPill(
+      {required this.hour, required this.onSelected, required this.sh});
+
+  static const _opts = [6, 7, 8, 9, 10, 12, 18, 21];
+
+  String _label(int h) => trf('{0}시', [h]);
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<int>(
+      onSelected: onSelected,
+      color: sh.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      itemBuilder: (_) => [
+        for (final h in _opts)
+          PopupMenuItem(
+            value: h,
+            child: Text(_label(h),
+                style: AppType.body.copyWith(
+                    color: sh.ink,
+                    fontWeight:
+                        h == hour ? FontWeight.w700 : FontWeight.w400)),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: sh.ink.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_label(hour),
+                style: AppType.body.copyWith(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: sh.ink.withValues(alpha: 0.55)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyLabelPill extends StatelessWidget {
+  final String current;
+  final ValueChanged<String> onSelected;
+  final SpaceHourColors sh;
+  const _EmptyLabelPill(
+      {required this.current, required this.onSelected, required this.sh});
+
+  static const _opts = ['', '자습', '공강', '없음'];
+
+  String _label(String v) => v.isEmpty ? tr('표시 안 함') : v;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: onSelected,
+      color: sh.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      itemBuilder: (_) => [
+        for (final v in _opts)
+          PopupMenuItem(
+            value: v,
+            child: Text(_label(v),
+                style: AppType.body.copyWith(
+                    color: sh.ink,
+                    fontWeight:
+                        v == current ? FontWeight.w700 : FontWeight.w400)),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: sh.ink.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_label(current),
                 style: AppType.body.copyWith(
                     fontSize: 14, fontWeight: FontWeight.w700, color: sh.ink)),
             const SizedBox(width: 4),

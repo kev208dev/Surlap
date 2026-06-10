@@ -46,6 +46,11 @@ abstract final class StorageKeys {
   // 일정 알림 설정 — 기기 설정값.
   static const eventNotifyEnabled = 'calendar-event-notify-enabled-v1';
   static const eventNotifyLeadMinutes = 'calendar-event-notify-lead-v1';
+  // 시간표 빈 교시 라벨(자습/공강 등) — 빈 문자열이면 표시 안 함.
+  static const timetableEmptyLabel = 'calendar-timetable-empty-label-v1';
+  // 오늘의 브리핑 알림.
+  static const briefingEnabled = 'calendar-briefing-enabled-v1';
+  static const briefingHour = 'calendar-briefing-hour-v1';
   static const cellDesign    = 'calendar-cell-design-v1';
   static const neisSchool    = 'calendar-neis-school-v1';
   // 사용자 유형(일반인/초·중·고·대) — 로그인 없이 기기에 저장. 온보딩에서 선택.

@@ -11,8 +11,11 @@ import 'home_widget/widget_bridge.dart';
 import 'providers/color_preset_provider.dart';
 import 'providers/events_provider.dart';
 import 'providers/event_notify_provider.dart';
+import 'providers/briefing_notify_provider.dart';
 import 'providers/themes_provider.dart';
 import 'providers/todos_provider.dart';
+import 'providers/birthdays_provider.dart';
+import 'providers/filter_provider.dart';
 import 'screens/splash/splash_gate.dart';
 import 'supabase/theme_share_service.dart';
 
@@ -36,14 +39,18 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp>
     super.initState();
     _initDeepLinks();
     WidgetsBinding.instance.addObserver(this);
-    // 할 일/일정 변경 시 홈 위젯 자동 갱신 (build 밖에서 구독 → 위젯 트리와 분리)
+    // 할 일/일정/테마/생일/필터 변경 시 홈 위젯 자동 갱신.
     ref.listenManual(todosProvider, (_, _) => _syncWidget());
     ref.listenManual(eventsProvider, (_, _) => _syncWidget());
+    ref.listenManual(themesProvider, (_, _) => _syncWidget());
+    ref.listenManual(birthdaysProvider, (_, _) => _syncWidget());
+    ref.listenManual(filterProvider, (_, _) => _syncWidget());
     // 첫 프레임 후 홈 위젯 초기 동기화
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncWidget());
     // 일정 알림 notifier를 깨워 events 변경 listen + 초기 재스케줄 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(eventNotifyProvider.notifier).reschedule();
+      ref.read(briefingNotifyProvider.notifier).reschedule();
     });
   }
 

@@ -15,6 +15,7 @@ import '../../providers/neis_cache_provider.dart';
 import '../../providers/birthdays_provider.dart';
 import '../../providers/view_provider.dart';
 import '../../providers/recurring_events_provider.dart';
+import '../../providers/academic_schedule_provider.dart';
 import '../../providers/user_type_provider.dart';
 import '../../core/utils/todo_style.dart';
 import '../../supabase/neis_service.dart';
@@ -224,6 +225,14 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   onTap: () => showBirthdayManagerModal(context),
                 ),
               ],
+              Builder(builder: (_) {
+                final hi = ref.watch(nextAcademicHighlightProvider);
+                if (hi == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: _cardGap),
+                  child: _AcademicDDayCard(sh: sh, highlight: hi),
+                );
+              }),
               const SizedBox(height: _cardGap),
               _WeekStripCard(
                 sh: sh,
@@ -958,6 +967,66 @@ class _WeekStripCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AcademicDDayCard extends StatelessWidget {
+  final SpaceHourColors sh;
+  final AcademicHighlight highlight;
+  const _AcademicDDayCard({required this.sh, required this.highlight});
+
+  @override
+  Widget build(BuildContext context) {
+    final d = highlight.daysAway;
+    final dLabel = d == 0 ? tr('오늘') : 'D-$d';
+    final c = sh.academicColor;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _softCard(sh,
+          radius: 18, color: c.withValues(alpha: sh.dark ? 0.10 : 0.06)),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: c.withValues(alpha: sh.dark ? 0.22 : 0.14),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(Icons.school_rounded, size: 18, color: c),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(highlight.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.body.copyWith(
+                        fontWeight: FontWeight.w700, color: sh.ink)),
+                Text(highlight.dateKey,
+                    style: AppType.label
+                        .copyWith(fontSize: 12, color: sh.inkSoft)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: d == 0 ? c : c.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(dLabel,
+                style: AppType.label.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: d == 0 ? Colors.white : c)),
+          ),
+        ],
       ),
     );
   }

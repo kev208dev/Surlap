@@ -53,6 +53,7 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
   ParsedEvent? _suggestion;
   String? _recurFreq; // null | 'W' | 'M' | 'Y'
   String? _recurUntil; // YYYY-MM-DD or null
+  bool _conflictAcknowledged = false;
 
   bool get isEdit => widget.editIndex != null;
 
@@ -472,11 +473,21 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
     });
   }
 
-  void _save() {
+  void _save() async {
     final text = _textCtrl.text.trim();
     if (text.isEmpty) {
       MascotToast.error(context, tr('제목을 입력해주세요'));
       return;
+    }
+
+    // 충돌 감지 — 시작/종료 시각 둘 다 있을 때 + 미확정 상태일 때만 1회.
+    if (!_conflictAcknowledged && _startTime != null && _endTime != null) {
+      final conflicts = _findConflicts();
+      if (conflicts.isNotEmpty) {
+        final proceed = await _confirmConflict(conflicts);
+        if (proceed != true) return;
+        _conflictAcknowledged = true;
+      }
     }
 
     final eventsNotifier = ref.read(eventsProvider.notifier);
@@ -517,8 +528,82 @@ class _AddEditEventModalState extends ConsumerState<AddEditEventModal> {
       eventsNotifier.addEvent(_dateKey, item);
     }
 
+    if (!mounted) return;
     MascotToast.success(context, isEdit ? tr('일정을 수정했어요') : tr('일정을 추가했어요'));
     Navigator.pop(context);
+  }
+
+  // 같은 날짜에서 시간이 겹치는 이벤트 목록 반환(자신은 제외).
+  List<EventItem> _findConflicts() {
+    final list = ref.read(eventsProvider)[_dateKey] ?? const <EventItem>[];
+    int? toMin(String? hhmm) {
+      if (hhmm == null || !hhmm.contains(':')) return null;
+      final p = hhmm.split(':');
+      final h = int.tryParse(p[0]);
+      final m = int.tryParse(p[1]);
+      if (h == null || m == null) return null;
+      return h * 60 + m;
+    }
+    final mySt = toMin(_startTime);
+    final myEn = toMin(_endTime);
+    if (mySt == null || myEn == null || myEn <= mySt) return [];
+    final out = <EventItem>[];
+    for (var i = 0; i < list.length; i++) {
+      if (isEdit && i == widget.editIndex) continue;
+      final e = list[i];
+      if (e.isTimetable || !e.hasTime) continue;
+      final s = toMin(e.tm);
+      final n = toMin(e.te) ?? (s == null ? null : s + 60);
+      if (s == null || n == null) continue;
+      // 겹침: [mySt, myEn) ∩ [s, n) 비어있지 않음
+      if (s < myEn && mySt < n) out.add(e);
+    }
+    return out;
+  }
+
+  Future<bool?> _confirmConflict(List<EventItem> conflicts) {
+    final sh = context.sh;
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: sh.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(tr('시간 겹침'),
+            style: AppType.section.copyWith(color: sh.ink)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tr('이 시간 같은 날 일정과 겹쳐요:'),
+                style: AppType.body.copyWith(color: sh.inkSoft)),
+            const SizedBox(height: 8),
+            ...conflicts.take(4).map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(
+                      '• ${e.tm}${e.te != null ? "~${e.te}" : ""}  ${e.t}',
+                      style: AppType.body.copyWith(color: sh.ink)),
+                )),
+            if (conflicts.length > 4)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(trf('외 {0}개', [conflicts.length - 4]),
+                    style: AppType.caption.copyWith(color: sh.inkFaint)),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr('취소')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: sh.accent),
+            child: Text(tr('그래도 저장')),
+          ),
+        ],
+      ),
+    );
   }
 
   void _delete() {

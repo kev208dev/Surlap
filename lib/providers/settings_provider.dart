@@ -9,6 +9,7 @@ class AppSettings {
   final bool continuousView;
   final bool notifyEnabled;
   final bool showTimetable; // 주간·일간 뷰에 시간표 수업 표시 여부
+  final String timetableEmptyLabel; // 빈 교시 표시 라벨(""=off)
 
   const AppSettings({
     this.motto = '',
@@ -17,11 +18,13 @@ class AppSettings {
     this.continuousView = false,
     this.notifyEnabled = true,
     this.showTimetable = true,
+    this.timetableEmptyLabel = '',
   });
 
   AppSettings copyWith({
     String? motto, int? weekStartDow, bool? showPast,
     bool? continuousView, bool? notifyEnabled, bool? showTimetable,
+    String? timetableEmptyLabel,
   }) => AppSettings(
     motto: motto ?? this.motto,
     weekStartDow: weekStartDow ?? this.weekStartDow,
@@ -29,6 +32,7 @@ class AppSettings {
     continuousView: continuousView ?? this.continuousView,
     notifyEnabled: notifyEnabled ?? this.notifyEnabled,
     showTimetable: showTimetable ?? this.showTimetable,
+    timetableEmptyLabel: timetableEmptyLabel ?? this.timetableEmptyLabel,
   );
 }
 
@@ -45,7 +49,14 @@ class SettingsNotifier extends Notifier<AppSettings> {
       continuousView: s.getBool(StorageKeys.continuousView) ?? false,
       notifyEnabled: s.getBool(StorageKeys.notifyEnabled) ?? true,
       showTimetable: s.getBool(StorageKeys.showTimetable) ?? true,
+      timetableEmptyLabel:
+          s.getString(StorageKeys.timetableEmptyLabel) ?? '',
     );
+  }
+
+  Future<void> setTimetableEmptyLabel(String v) async {
+    state = state.copyWith(timetableEmptyLabel: v);
+    await LocalStore.instance.setString(StorageKeys.timetableEmptyLabel, v);
   }
 
   Future<void> setMotto(String v) async {

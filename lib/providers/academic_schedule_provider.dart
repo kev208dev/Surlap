@@ -81,3 +81,43 @@ class AcademicScheduleNotifier extends Notifier<Map<String, List<String>>> {
 final academicScheduleProvider =
     NotifierProvider<AcademicScheduleNotifier, Map<String, List<String>>>(
         AcademicScheduleNotifier.new);
+
+/// 다가오는 가장 가까운 주요 학사일정. 키워드 매칭으로 중요 행사만.
+class AcademicHighlight {
+  final String dateKey;
+  final String name;
+  final int daysAway; // 0=오늘
+  const AcademicHighlight(this.dateKey, this.name, this.daysAway);
+}
+
+final nextAcademicHighlightProvider = Provider<AcademicHighlight?>((ref) {
+  final m = ref.watch(academicScheduleProvider);
+  if (m.isEmpty) return null;
+  const keywords = ['시험', '방학', '개학', '졸업', '입학', '수능', '체육대회', '축제'];
+  final today = DateTime.now();
+  final todayKey = '${today.year.toString().padLeft(4, '0')}-'
+      '${today.month.toString().padLeft(2, '0')}-'
+      '${today.day.toString().padLeft(2, '0')}';
+  AcademicHighlight? best;
+  m.forEach((dateKey, names) {
+    if (dateKey.compareTo(todayKey) < 0) return;
+    DateTime d;
+    try {
+      d = DateTime.parse(dateKey);
+    } catch (_) {
+      return;
+    }
+    final days = d
+        .difference(DateTime(today.year, today.month, today.day))
+        .inDays;
+    for (final n in names) {
+      if (keywords.any((k) => n.contains(k))) {
+        if (best == null || days < best!.daysAway) {
+          best = AcademicHighlight(dateKey, n, days);
+        }
+        break;
+      }
+    }
+  });
+  return best;
+});

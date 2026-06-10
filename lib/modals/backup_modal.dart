@@ -8,6 +8,7 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../core/constants/storage_keys.dart';
 import '../i18n/strings.dart';
+import '../utils/ical_export.dart';
 import '../providers/events_provider.dart';
 import '../providers/themes_provider.dart';
 import '../storage/local_store.dart';
@@ -84,6 +85,9 @@ class _BackupModalState extends ConsumerState<BackupModal> {
                     Expanded(child: _Btn(tr('⬆️ 파일에서 복원'), sh,
                         onTap: _import, loading: _loading)),
                   ]),
+                  const SizedBox(height: 10),
+                  _Btn(tr('📅 iCal(.ics)로 내보내기'), sh,
+                      onTap: _exportIcal, loading: _loading),
                   // ── 클라우드 백업 (로그인 시) ──
                   if (isLoggedIn) ...[
                     const SizedBox(height: 20),
@@ -158,6 +162,19 @@ class _BackupModalState extends ConsumerState<BackupModal> {
       ref.invalidate(eventsProvider);
       ref.invalidate(themesProvider);
       setState(() => _msg = trf('복원 완료 ({0})', [snap['_ts'] ?? '']));
+    } catch (e) {
+      setState(() => _msg = trf('오류: {0}', [e]));
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _exportIcal() async {
+    setState(() { _loading = true; _msg = null; });
+    try {
+      final events = ref.read(eventsProvider);
+      await IcalExport.exportAndShare(events);
+      setState(() => _msg = tr('iCal 공유 시트를 열었어요'));
     } catch (e) {
       setState(() => _msg = trf('오류: {0}', [e]));
     } finally {

@@ -17,6 +17,7 @@ import '../../providers/recurring_provider.dart';
 import '../../providers/cell_design_provider.dart';
 import '../../providers/neis_cache_provider.dart';
 import '../../providers/academic_schedule_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../modals/neis_setup_modal.dart';
 import '../../widgets/zoom_button.dart';
 import '../../i18n/strings.dart';
@@ -885,6 +886,23 @@ class _TimetableViewState extends ConsumerState<TimetableView> {
         text: text, isToday: isToday, isLunch: isLunch,
         design: design, sh: sh,
       );
+    } else if (!isMerged && !filled && !isLunch && row.hour >= 0) {
+      // 빈 교시 라벨(자습/공강 등) — 설정에 라벨이 있을 때만.
+      final emptyLabel =
+          ref.read(settingsProvider).timetableEmptyLabel.trim();
+      if (emptyLabel.isNotEmpty) {
+        child = Center(
+          child: Text(
+            emptyLabel,
+            style: TextStyle(
+              fontSize: _subjectFont - 2,
+              fontWeight: FontWeight.w500,
+              color: sh.inkFaint,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        );
+      }
     }
 
     // 빈 셀도 아주 옅게 채워 허전함 제거(오늘 컬럼은 살짝 보랏빛).

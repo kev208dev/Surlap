@@ -342,7 +342,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     final subtitle = t.shareRole == 'owner'
         ? tr('내가 공유 중')
         : t.shareRole == 'subscriber'
-            ? tr('구독 중')
+            ? tr('구독 중 · 읽기 전용')
             : tr('공유 안 됨');
 
     return Container(
@@ -365,7 +365,15 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _nameField(sh),
+                    Row(children: [
+                      Expanded(child: _nameField(sh)),
+                      if (t.shareRole == 'subscriber')
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Icon(Icons.lock_outline_rounded,
+                              size: 16, color: sh.inkFaint),
+                        ),
+                    ]),
                     const SizedBox(height: 2),
                     Text(subtitle,
                         style: AppType.caption.copyWith(color: sh.inkSoft)),
