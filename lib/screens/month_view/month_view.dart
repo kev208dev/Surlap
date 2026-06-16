@@ -23,6 +23,7 @@ import '../../providers/sports_provider.dart';
 import '../../providers/shared_theme_events_provider.dart';
 import '../../modals/day_action_sheet.dart';
 import '../../widgets/mascot/mascot.dart';
+import '../../widgets/long_press_hint_bar.dart';
 import 'month_grid.dart';
 
 class MonthView extends ConsumerWidget {
@@ -141,9 +142,13 @@ class MonthView extends ConsumerWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
+      child: Column(
         children: [
-          MonthGrid(
+          const LongPressHintBar(),
+          Expanded(
+            child: Stack(
+              children: [
+                MonthGrid(
             year: view.viewYear,
             month: view.viewMonth,
             weekStartDow: settings.weekStartDow,
@@ -175,50 +180,65 @@ class MonthView extends ConsumerWidget {
             Positioned.fill(
               child: IgnorePointer(
                 child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 26, vertical: 22),
-                    decoration: BoxDecoration(
-                      color: sh.card,
-                      borderRadius: BorderRadius.circular(24),
-                      border:
-                          Border.all(color: sh.ink.withValues(alpha: 0.06)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: sh.dark ? 0.4 : 0.12),
-                          blurRadius: 24,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
+                  child: TweenAnimationBuilder<double>(
+                    duration: Motion.slow,
+                    curve: Motion.curve,
+                    tween: Tween(begin: 0, end: 1),
+                    builder: (_, v, child) => Opacity(
+                      opacity: v,
+                      child: Transform.translate(
+                        offset: Offset(0, (1 - v) * 8),
+                        child: child,
+                      ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const MascotView(
-                            expression: MascotExpression.happy,
-                            size: 84,
-                            showStars: false),
-                        const SizedBox(height: 14),
-                        Text(tr('이 달은 아직 비어 있어요'),
-                            textAlign: TextAlign.center,
-                            style: AppType.body.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: sh.ink)),
-                        const SizedBox(height: 6),
-                        Text(tr('아래 + 버튼으로 일정을 추가해 보세요'),
-                            textAlign: TextAlign.center,
-                            style: AppType.label.copyWith(
-                                fontSize: 13,
-                                color: sh.inkSoft,
-                                height: 1.4)),
-                      ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 26, vertical: 22),
+                      decoration: BoxDecoration(
+                        color: sh.card,
+                        borderRadius: BorderRadius.circular(Radii.hero),
+                        border: Border.all(
+                            color: sh.ink.withValues(alpha: 0.08)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black
+                                .withValues(alpha: sh.dark ? 0.4 : 0.12),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const MascotView(
+                              expression: MascotExpression.happy,
+                              size: 84,
+                              showStars: false),
+                          const SizedBox(height: 14),
+                          Text(tr('이 달은 아직 비어 있어요'),
+                              textAlign: TextAlign.center,
+                              style: AppType.body.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: sh.ink)),
+                          const SizedBox(height: 6),
+                          Text(tr('아래 + 버튼을 누르거나,\n날짜를 길게 눌러 일정을 추가해 보세요'),
+                              textAlign: TextAlign.center,
+                              style: AppType.label.copyWith(
+                                  fontSize: 13,
+                                  color: sh.inkSoft,
+                                  height: 1.45)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -7,6 +7,7 @@ import '../providers/view_provider.dart';
 import '../providers/settings_provider.dart';
 import '../screens/search_view.dart';
 import 'calendar_filter_strip.dart';
+import 'pressable.dart';
 import 'view_segment_control.dart';
 import 'header_collapse.dart';
 
@@ -136,7 +137,7 @@ class AppHeader extends ConsumerWidget {
   }
 }
 
-// ─── 탐색 화살표 버튼 (또렷한 박스형) ────────────────────────────
+// ─── 탐색 화살표 버튼 (또렷한 박스형 + 누름 반응) ────────────────────
 class _NavBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -145,9 +146,9 @@ class _NavBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      pressedScale: 0.92,
       child: Container(
         width: 38,
         height: 38,

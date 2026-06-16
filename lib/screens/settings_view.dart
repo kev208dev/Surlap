@@ -21,6 +21,7 @@ import '../modals/birthday_manager_modal.dart';
 import '../widgets/coach_mark.dart';
 import '../widgets/school_logo.dart';
 import 'feature_intro/feature_intro_screen.dart';
+import 'how_to_guide/how_to_guide_screen.dart';
 
 /// 보기 설정 — 하단 nav의 한 탭으로, 다른 뷰처럼 좌우 viewer(AnimatedSwitcher)
 /// 안에서 전환되는 in-shell 뷰. (push 페이지 아님 → 자체 헤더를 그린다)
@@ -230,11 +231,15 @@ class SettingsSections extends ConsumerWidget {
             children: [
               SettingsRow(
                 sh: sh,
-                icon: Icons.lightbulb_outline_rounded,
+                icon: Icons.menu_book_rounded,
                 title: tr('사용법 안내'),
+                onTap: () => showHowToGuide(context),
+              ),
+              SettingsRow(
+                sh: sh,
+                icon: Icons.tour_rounded,
+                title: tr('화면 투어'),
                 onTap: () {
-                  // 코치마크는 루트(하단 nav)를 가리킨다. settings는 이제 뷰이므로
-                  // 페이지를 닫을 필요 없이 루트 컨텍스트로 바로 표시한다.
                   final rootCtx =
                       Navigator.of(context, rootNavigator: true).context;
                   showCoachMarks(rootCtx);
@@ -272,7 +277,7 @@ class SettingsSections extends ConsumerWidget {
                 icon: Icons.description_outlined,
                 title: tr('이용약관'),
                 onTap: () => _openUrl(
-                    'https://kev208dev.github.io/HourSpace-app/'),
+                    'https://kev208dev.github.io/HourSpace-app/terms.html'),
               ),
             ],
           ),
@@ -283,9 +288,14 @@ class SettingsSections extends ConsumerWidget {
 
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      if (ok) return;
+    } catch (_) {}
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (ok) return;
+    } catch (_) {}
   }
 }
 
@@ -301,20 +311,21 @@ class SettingsSectionCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 섹션 eyebrow — 대문자 트래킹으로 정체성 강화.
         Padding(
-          padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
-          child: Text(title,
-              style: AppType.label.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: sh.ink.withValues(alpha: 0.42))),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: Text(title.toUpperCase(),
+              style: AppType.eyebrow.copyWith(
+                  fontSize: 11,
+                  color: sh.ink.withValues(alpha: 0.45))),
         ),
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: sh.card,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: sh.ink.withValues(alpha: 0.04)),
+            borderRadius: BorderRadius.circular(Radii.hero),
+            border: Border.all(color: sh.ink.withValues(alpha: 0.05)),
+            boxShadow: sh.dark ? null : Shadows.hairline,
           ),
           child: child,
         ),
@@ -398,27 +409,47 @@ class SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 11),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: sh.ink.withValues(alpha: 0.48)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(title,
-                  style: AppType.body.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
-                      color: sh.ink)),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        splashColor: sh.accent.withValues(alpha: 0.08),
+        highlightColor: sh.accent.withValues(alpha: 0.04),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: kMinTouch),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+            child: Row(
+              children: [
+                // 아이콘 배지 — soft 칩 배경으로 강조도 한 단계.
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: sh.ink.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon,
+                      size: 18, color: sh.ink.withValues(alpha: 0.62)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(title,
+                      style: AppType.body.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                          color: sh.ink)),
+                ),
+                ?trailing,
+                if (trailing == null && onTap != null)
+                  Icon(Icons.chevron_right_rounded,
+                      size: 20, color: sh.inkFaint),
+              ],
             ),
-            ?trailing,
-            if (trailing == null && onTap != null)
-              Icon(Icons.chevron_right_rounded, size: 20, color: sh.inkFaint),
-          ],
+          ),
         ),
       ),
     );

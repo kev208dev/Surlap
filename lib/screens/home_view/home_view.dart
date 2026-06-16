@@ -24,6 +24,7 @@ import '../../modals/birthday_manager_modal.dart';
 import '../../modals/neis_setup_modal.dart';
 import '../../widgets/mascot/mascot.dart';
 import '../../widgets/mascot/mascot_feedback.dart';
+import '../../widgets/pressable.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -262,7 +263,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 : tr('좋은 저녁이에요');
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.md),
+      padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.md, Gap.xl, Gap.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -270,12 +271,31 @@ class _HomeViewState extends ConsumerState<HomeView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(greeting,
-                    style: AppType.label.copyWith(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: sh.accent)),
-                const SizedBox(height: 4),
+                // 작은 도트로 강조 — 대기업 dashboard 헤더 패턴.
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: sh.accent,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: sh.accent.withValues(alpha: 0.45),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Text(greeting,
+                        style: AppType.eyebrow.copyWith(
+                            fontSize: 11.5,
+                            color: sh.accent)),
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Text(
                   i18nd.fullDate(now),
                   style: AppType.title.copyWith(
@@ -389,7 +409,7 @@ class _NextEventCard extends StatelessWidget {
     final themeColor = next != null ? _resolveColor(next) : null;
     final accent = themeColor ?? sh.accent;
 
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(18),
@@ -653,7 +673,7 @@ class _TodayStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -806,7 +826,7 @@ class _UpcomingBirthdaysCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -886,7 +906,7 @@ class _WeekStripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: () => onDayTap(today),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -934,7 +954,16 @@ class _WeekStripCard extends StatelessWidget {
                           alignment: Alignment.center,
                           decoration: isToday
                               ? BoxDecoration(
-                                  color: sh.accent, shape: BoxShape.circle)
+                                  color: sh.accent,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: sh.accent.withValues(alpha: 0.40),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                )
                               : null,
                           child: Text(
                             '${d.day}',

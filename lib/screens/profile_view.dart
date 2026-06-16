@@ -6,6 +6,7 @@ import '../i18n/strings.dart';
 import '../providers/color_preset_provider.dart';
 import '../supabase/auth_service.dart';
 import '../widgets/mascot/mascot.dart';
+import '../widgets/pressable.dart';
 import '../modals/backup_modal.dart';
 import 'login/login_screen.dart';
 import 'settings_view.dart'
@@ -28,12 +29,20 @@ class ProfileView extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
-          child: Text(tr('프로필'),
-              style: AppType.title.copyWith(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: sh.ink)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ACCOUNT',
+                  style: AppType.eyebrow.copyWith(color: sh.accent)),
+              const SizedBox(height: 4),
+              Text(tr('프로필'),
+                  style: AppType.title.copyWith(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                      color: sh.ink)),
+            ],
+          ),
         ),
 
         // ── 계정 카드 ──
@@ -169,21 +178,29 @@ class _AccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial =
         loggedIn && name.isNotEmpty ? name.substring(0, 1).toUpperCase() : null;
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
+      pressedScale: 0.985,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(Gap.lg),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              sh.accent.withValues(alpha: 0.14),
+              sh.accent.withValues(alpha: 0.16),
               sh.accent.withValues(alpha: 0.04),
             ],
           ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: sh.accent.withValues(alpha: 0.16)),
+          borderRadius: BorderRadius.circular(Radii.hero),
+          border: Border.all(color: sh.accent.withValues(alpha: 0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: sh.accent.withValues(alpha: sh.dark ? 0.18 : 0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
