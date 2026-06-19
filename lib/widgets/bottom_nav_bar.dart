@@ -1,103 +1,117 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
+import '../i18n/strings.dart';
 import '../providers/view_provider.dart';
-import '../widgets/glass_container.dart';
 import 'coach_mark.dart';
 
-// ─── Glassmorphism Floating Bottom Navigation ───────────────────
-// 유리판처럼 뒤 콘텐츠가 비치는 반투명 capsule. 화면 위에 overlay.
-// Active: 밝은 capsule + 진한 아이콘 / Inactive: 흐린 아이콘
+// ─── Liquid Glass Floating Bottom Navigation (2026 리디자인) ─────
+// 떠 있는 캡슐. 비활성 = 아이콘만, 활성 = 아이콘 + 라벨 알약(accent).
 class SpaceHourBottomNav extends ConsumerWidget {
   const SpaceHourBottomNav({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final view     = ref.watch(viewProvider);
+    final view = ref.watch(viewProvider);
     final notifier = ref.read(viewProvider.notifier);
-    final sh       = context.sh;
-    final dark     = sh.dark;
+    final sh = context.sh;
+    final dark = sh.dark;
 
-    // ── 탭 정의 ────────────────────────────────────────────────
-    final tabs = [
+    final tabs = <_Tab>[
       _Tab(
-        active: Icons.home_rounded,
-        inactive: Icons.home_outlined,
-        label: '홈',
-        isActive: view.mode == ViewMode.home,
+        icon: Icons.home_rounded,
+        label: tr('홈'),
+        active: view.mode == ViewMode.home,
         onTap: () => notifier.setMode(ViewMode.home),
       ),
       _Tab(
-        active: Icons.calendar_month_rounded,
-        inactive: Icons.calendar_month_outlined,
-        label: '캘린더',
-        isActive: const {
+        icon: Icons.calendar_month_rounded,
+        label: tr('캘린더'),
+        active: const {
           ViewMode.events,
           ViewMode.year,
           ViewMode.planner,
           ViewMode.day,
         }.contains(view.mode),
-        // 이미 캘린더 계열(연/월/주/일) 안이어도 탭하면 월간으로 복귀.
         onTap: () => notifier.setMode(ViewMode.events),
       ),
       _Tab(
-        active: Icons.grid_view_rounded,
-        inactive: Icons.grid_view_outlined,
-        label: '스케줄표',
-        isActive: view.mode == ViewMode.timetable,
+        icon: Icons.grid_view_rounded,
+        label: tr('스케줄'),
+        active: view.mode == ViewMode.timetable,
         onTap: () => notifier.setMode(ViewMode.timetable),
         coachKey: coachKeyTabTimetable,
       ),
       _Tab(
-        active: Icons.palette_rounded,
-        inactive: Icons.palette_outlined,
-        label: '공유 캘린더',
-        isActive: view.mode == ViewMode.themes,
+        icon: Icons.palette_rounded,
+        label: tr('공유'),
+        active: view.mode == ViewMode.themes,
         onTap: () => notifier.setMode(ViewMode.themes),
       ),
       _Tab(
-        active: Icons.person_rounded,
-        inactive: Icons.person_outline_rounded,
-        label: '프로필',
-        // 설정은 프로필 안에서 진입하므로 두 모드 모두 프로필 탭을 활성으로.
-        isActive: view.mode == ViewMode.profile || view.mode == ViewMode.settings,
+        icon: Icons.person_rounded,
+        label: tr('프로필'),
+        active: view.mode == ViewMode.profile ||
+            view.mode == ViewMode.settings,
         onTap: () => notifier.setMode(ViewMode.profile),
         coachKey: coachKeyTabProfile,
       ),
     ];
 
-    // ── glass 색상 (다크/라이트 분기) ──────────────────────────
-    // 밝은 배경에서도 사라지지 않도록 frost·border·shadow를 강하게.
+    final accent = dark ? const Color(0xFFC9B6F0) : const Color(0xFF5A2DF4);
+    final activeBg = dark
+        ? const Color(0x388B6CFF) // .22
+        : const Color(0x1F5A2DF4); // .12 — 액티브 알약 배경
+    final inactive = dark
+        ? Colors.white.withValues(alpha: 0.4)
+        : const Color(0xFF14131A).withValues(alpha: 0.34);
     final tint = dark
-        ? Colors.black.withValues(alpha: 0.40)
-        : Colors.white.withValues(alpha: 0.48);
-    final borderColor = dark
-        ? Colors.white.withValues(alpha: 0.16)
-        : Colors.white.withValues(alpha: 0.70);
-    final shadowColor = Colors.black.withValues(alpha: dark ? 0.50 : 0.12);
+        ? const Color(0xFF221E32).withValues(alpha: 0.6)
+        : Colors.white.withValues(alpha: 0.74);
+    final border = dark
+        ? Colors.white.withValues(alpha: 0.06)
+        : const Color(0xFF14131A).withValues(alpha: 0.05);
 
     return Positioned(
       left: 0,
       right: 0,
-      bottom: 12,
+      bottom: 16,
       child: SafeArea(
         top: false,
         child: Center(
-          child: GlassContainer(
-            key: coachKeyBottomNav,
-            borderRadius: 34,
-            blur: 24,
-            tint: tint,
-            borderColor: borderColor,
-            shadowColor: shadowColor,
-            shadowBlur: 30,
-            shadowOffset: const Offset(0, 12),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            child: SizedBox(
-              height: 44,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: tabs.map((t) => _NavBtn(tab: t, dark: dark)).toList(),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                key: coachKeyBottomNav,
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                decoration: BoxDecoration(
+                  color: tint,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4A1FD0).withValues(alpha: 0.30),
+                      blurRadius: 36,
+                      offset: const Offset(0, 16),
+                      spreadRadius: -16,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final t in tabs)
+                      _NavItem(
+                        tab: t,
+                        accent: accent,
+                        activeBg: activeBg,
+                        inactive: inactive,
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -107,9 +121,7 @@ class SpaceHourBottomNav extends ConsumerWidget {
   }
 }
 
-// ─── nav 뒤 하단 scrim ───────────────────────────────────────────
-// nav가 콘텐츠 위에 떠 있는 느낌을 강화. nav보다 아래 레이어에 두고,
-// IgnorePointer로 터치를 막지 않는다.
+// ─── nav 뒤 하단 scrim — 콘텐츠가 nav 뒤로 페이드 ──────────────────
 class BottomNavScrim extends ConsumerWidget {
   const BottomNavScrim({super.key});
 
@@ -140,45 +152,36 @@ class BottomNavScrim extends ConsumerWidget {
   }
 }
 
-// ─── 탭 데이터 모델 ──────────────────────────────────────────────
 class _Tab {
-  final IconData active;
-  final IconData inactive;
+  final IconData icon;
   final String label;
-  final bool isActive;
+  final bool active;
   final VoidCallback onTap;
   final GlobalKey? coachKey;
 
   const _Tab({
-    required this.active,
-    required this.inactive,
+    required this.icon,
     required this.label,
-    required this.isActive,
+    required this.active,
     required this.onTap,
     this.coachKey,
   });
 }
 
-// ─── 개별 탭 버튼 ────────────────────────────────────────────────
-class _NavBtn extends StatelessWidget {
+class _NavItem extends StatelessWidget {
   final _Tab tab;
-  final bool dark;
-
-  const _NavBtn({required this.tab, required this.dark});
+  final Color accent;
+  final Color activeBg;
+  final Color inactive;
+  const _NavItem({
+    required this.tab,
+    required this.accent,
+    required this.activeBg,
+    required this.inactive,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final active = tab.isActive;
-
-    // Active: glass 위에서 거의 흰 capsule로 또렷하게 강조
-    final activePillColor = dark
-        ? Colors.white.withValues(alpha: 0.90)
-        : Colors.white.withValues(alpha: 0.92);
-    final activeIconColor = Colors.black.withValues(alpha: 0.92);
-    final inactiveIconColor = dark
-        ? Colors.white.withValues(alpha: 0.55)
-        : Colors.black.withValues(alpha: 0.45);
-
     return Semantics(
       label: tab.label,
       button: true,
@@ -186,34 +189,35 @@ class _NavBtn extends StatelessWidget {
         key: tab.coachKey,
         onTap: tab.onTap,
         behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 50,
-          height: 44,
-          child: Center(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              width: active ? 44 : 36,
-              height: active ? 36 : 34,
-              decoration: BoxDecoration(
-                color: active ? activePillColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(23),
-                boxShadow: active
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: dark ? 0.22 : 0.10),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Icon(
-                active ? tab.active : tab.inactive,
-                size: 22,
-                color: active ? activeIconColor : inactiveIconColor,
-              ),
-            ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          height: 40,
+          padding: EdgeInsets.symmetric(horizontal: tab.active ? 15 : 0),
+          constraints: BoxConstraints(minWidth: tab.active ? 0 : 44),
+          decoration: BoxDecoration(
+            color: tab.active ? activeBg : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(tab.icon, size: tab.active ? 23 : 24,
+                  color: tab.active ? accent : inactive),
+              if (tab.active) ...[
+                const SizedBox(width: 6),
+                Text(
+                  tab.label,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                    color: accent,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

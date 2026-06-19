@@ -148,6 +148,16 @@ class SpaceHourColors extends ThemeExtension<SpaceHourColors> {
   const SpaceHourColors({required this.preset});
 
   Color get bg       => preset.app;
+  // 그라데이션 배경 — 최상위 Container 에서 BoxDecoration.gradient 로 깔기.
+  Color get bgTop    => preset.dark ? kAppBgTopDark : kAppBgTopLight;
+  Color get bgBottom => preset.dark ? kAppBgBottomDark : kAppBgBottomLight;
+  // 히어로 카드/액티브용 액센트 그라데이션 (135°).
+  List<Color> get accentGrad =>
+      preset.dark ? kAccentGradDark : kAccentGradLight;
+  // 알약/필터 활성 배경(라이트 .10 / 다크 .22).
+  Color get accentLight => preset.dark
+      ? const Color(0xFFA99FF8)
+      : preset.accent;
   Color get card     => preset.card;
   Color get card2    => preset.card2;
   Color get border   => preset.hairline;
