@@ -473,6 +473,18 @@ const Map<String, Map<AppLang, String>> kTranslations = {
     AppLang.zh: '{0} 与你分享了"{1}"共享日历。',
     AppLang.es: '{0} comparte el calendario "{1}".',
   },
+  '"{0}" 공유달력 구독을 취소할까요?': {
+    AppLang.en: 'Unsubscribe from "{0}" shared calendar?',
+    AppLang.ja: '「{0}」共有カレンダーの購読を解除しますか？',
+    AppLang.zh: '取消订阅"{0}"共享日历吗？',
+    AppLang.es: '¿Cancelar la suscripción al calendario "{0}"?',
+  },
+  '"{0}" 캘린더를 삭제할까요?': {
+    AppLang.en: 'Delete the "{0}" calendar?',
+    AppLang.ja: '「{0}」カレンダーを削除しますか？',
+    AppLang.zh: '删除"{0}"日历吗？',
+    AppLang.es: '¿Eliminar el calendario "{0}"?',
+  },
   '내용: {0}': {AppLang.en: 'Content: {0}', AppLang.ja: '内容：{0}', AppLang.zh: '内容: {0}', AppLang.es: 'Contenido: {0}'},
   '내일 p1 빨래하기': {AppLang.en: 'laundry tomorrow p1', AppLang.ja: '明日 p1 洗濯', AppLang.zh: '明天 p1 洗衣服', AppLang.es: 'lavar ropa mañana p1'},
   '마이크를 꾹 누른 채로 말하고 떼면 입력돼요 (예: "내일 p1 빨래하기"). 첫 사용 시 권한 허용 필요': {

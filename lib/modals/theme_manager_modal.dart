@@ -458,7 +458,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
       return [
         _chip(Icons.refresh_rounded, tr('받기'), sh.inkSoft, _refreshSubscribed, sh),
         _chip(Icons.copy_rounded, tr('복제'), sh.accent, _duplicateToMine, sh),
-        _chip(Icons.delete_outline_rounded, tr('구독 취소'), sh.danger, _delete, sh),
+        _chip(Icons.delete_outline_rounded, tr('구독 취소'), sh.danger, () => _delete(), sh),
       ];
     }
     final chips = <Widget>[];
@@ -469,7 +469,7 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
       chips.add(_chip(
           Icons.link_rounded, tr('공유'), sh.accent, () => _shareTheme(context), sh));
     }
-    chips.add(_chip(Icons.delete_outline_rounded, tr('삭제'), sh.danger, _delete, sh));
+    chips.add(_chip(Icons.delete_outline_rounded, tr('삭제'), sh.danger, () => _delete(), sh));
     return chips;
   }
 
@@ -611,7 +611,33 @@ class _ThemeRowState extends ConsumerState<_ThemeRow> {
     _syncOwned(updated);
   }
 
-  void _delete() {
+  Future<void> _delete() async {
+    // 구독자/오너 둘 다 한 번 더 묻는다 — 실수 삭제로 동기화된 공유 데이터까지
+    // 빠지는 사고 방지. 메시지는 역할에 맞춰 분기.
+    final isSubscriber = widget.theme.shareRole == 'subscriber';
+    final title = isSubscriber ? tr('구독 취소') : tr('삭제');
+    final msg = isSubscriber
+        ? trf('"{0}" 공유달력 구독을 취소할까요?', [widget.theme.name])
+        : trf('"{0}" 캘린더를 삭제할까요?', [widget.theme.name]);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(msg),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr('취소')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: context.sh.danger),
+            child: Text(title),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
     ref.read(themesProvider.notifier).delete(widget.theme.id);
   }
 
