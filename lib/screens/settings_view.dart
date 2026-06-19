@@ -128,6 +128,7 @@ class SettingsSections extends ConsumerWidget {
             children: [
               SettingsRow(
                 sh: sh,
+                iconColor: const Color(0xFFEC4899),
                 icon: Icons.language_rounded,
                 title: tr('언어'),
                 trailing: _LanguagePill(
@@ -138,6 +139,7 @@ class SettingsSections extends ConsumerWidget {
               ),
               SettingsRow(
                 sh: sh,
+                iconColor: const Color(0xFF8E8B98),
                 icon: Icons.history_rounded,
                 title: tr('지난 날 표시'),
                 trailing: _IosSwitch(
@@ -153,6 +155,7 @@ class SettingsSections extends ConsumerWidget {
                 return Column(children: [
                   SettingsRow(
                     sh: sh,
+                    iconColor: const Color(0xFFE8943A),
                     icon: Icons.notifications_outlined,
                     title: tr('일정 알림'),
                     trailing: _IosSwitch(
@@ -172,6 +175,7 @@ class SettingsSections extends ConsumerWidget {
                     ),
                   SettingsRow(
                     sh: sh,
+                    iconColor: const Color(0xFF0FB5AE),
                     icon: Icons.wb_sunny_outlined,
                     title: tr('오늘의 브리핑'),
                     trailing: _IosSwitch(
@@ -193,6 +197,7 @@ class SettingsSections extends ConsumerWidget {
               }),
               SettingsRow(
                 sh: sh,
+                iconColor: const Color(0xFF8B5CF6),
                 icon: Icons.view_stream_outlined,
                 title: tr('연속 보기'),
                 trailing: _IosSwitch(
@@ -202,6 +207,7 @@ class SettingsSections extends ConsumerWidget {
               ),
               SettingsRow(
                 sh: sh,
+                iconColor: const Color(0xFF3B82F6),
                 icon: Icons.calendar_today_outlined,
                 title: tr('주 시작일'),
                 trailing: _WeekStartPill(
@@ -265,6 +271,7 @@ class SettingsSections extends ConsumerWidget {
                 ),
               SettingsRow(
                 sh: sh,
+                iconColor: const Color(0xFFEC4899),
                 icon: Icons.cake_outlined,
                 title: birthdays.isEmpty
                     ? tr('생일 챙기기')
@@ -454,6 +461,8 @@ class SettingsRow extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
   final SpaceHourColors sh;
+  /// 30×30 컬러 아이콘 타일 색. null이면 중성 회색.
+  final Color? iconColor;
 
   const SettingsRow({
     super.key,
@@ -462,10 +471,16 @@ class SettingsRow extends StatelessWidget {
     required this.sh,
     this.trailing,
     this.onTap,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tileColor = iconColor;
+    final iconFill = tileColor != null
+        ? Colors.white
+        : sh.ink.withValues(alpha: 0.62);
+    final tileBg = tileColor ?? sh.ink.withValues(alpha: 0.05);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -479,17 +494,16 @@ class SettingsRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
             child: Row(
               children: [
-                // 아이콘 배지 — soft 칩 배경으로 강조도 한 단계.
+                // 컬러 아이콘 타일 (30×30, radius 9, 흰 아이콘 18) — Apple Settings 감성.
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
-                    color: sh.ink.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(10),
+                    color: tileBg,
+                    borderRadius: BorderRadius.circular(9),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon,
-                      size: 18, color: sh.ink.withValues(alpha: 0.62)),
+                  child: Icon(icon, size: 18, color: iconFill),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

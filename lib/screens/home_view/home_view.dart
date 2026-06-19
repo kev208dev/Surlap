@@ -425,31 +425,76 @@ class _NextEventCard extends StatelessWidget {
     final themeColor = next != null ? _resolveColor(next) : null;
     final accent = themeColor ?? sh.accent;
 
+    final hero = hasNext;
+    final heroTextColor = hero ? Colors.white : sh.ink;
+    final heroSubColor = hero ? Colors.white.withValues(alpha: 0.75) : sh.inkSoft;
     return Pressable(
       onTap: hasNext && onTapEvent != null ? () => onTapEvent!(next!) : onTap,
       child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: _softCard(
-          sh,
-          radius: 22,
-          color: hasNext
-              ? accent.withValues(alpha: sh.dark ? 0.16 : 0.08)
-              : sh.card,
-          border: hasNext
-              ? accent.withValues(alpha: 0.26)
-              : sh.ink.withValues(alpha: 0.06),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: hero
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: sh.accentGrad,
+                )
+              : null,
+          color: hero ? null : sh.card,
+          borderRadius: BorderRadius.circular(28),
+          border: hero
+              ? null
+              : Border.all(color: sh.ink.withValues(alpha: 0.06)),
+          boxShadow: hero
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF4A1FD0).withValues(alpha: 0.6),
+                    blurRadius: 44,
+                    offset: const Offset(0, 20),
+                    spreadRadius: -16,
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                    spreadRadius: -16,
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                _iconBadge(sh, Icons.event_rounded, tr('다음 일정'), color: accent),
+                // 히어로 일 때 흰 톤, 비히어로일 때 accent 톤.
+                Row(children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: hero
+                          ? Colors.white.withValues(alpha: 0.22)
+                          : accent.withValues(alpha: sh.dark ? 0.20 : 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(Icons.bolt_rounded,
+                        size: 17, color: hero ? Colors.white : accent),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(tr('다음 일정'),
+                      style: AppType.label.copyWith(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: heroSubColor)),
+                ]),
                 const Spacer(),
                 if (allToday.length > 1)
                   Text(trf('오늘 {0}개', [allToday.length]),
                       style: AppType.label
-                          .copyWith(fontSize: 12, color: sh.inkSoft)),
+                          .copyWith(fontSize: 12, color: heroSubColor)),
               ],
             ),
             const SizedBox(height: 12),
@@ -460,30 +505,38 @@ class _NextEventCard extends StatelessWidget {
                     child: Text(
                       next!.t,
                       style: AppType.title.copyWith(
-                          fontSize: 18,
+                          fontSize: 23,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                          color: sh.ink),
+                          letterSpacing: -0.4,
+                          color: heroTextColor),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded,
-                      size: 22, color: accent.withValues(alpha: 0.7)),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.chevron_right_rounded,
+                        size: 22, color: Colors.white),
+                  ),
                 ],
               ),
               if (next.tm != null) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.schedule_rounded, size: 15, color: accent),
+                    Icon(Icons.schedule_rounded, size: 15, color: heroSubColor),
                     const SizedBox(width: 5),
                     Text(
                       _startDesc(next),
                       style: AppType.body.copyWith(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
-                          color: sh.inkSoft),
+                          color: heroSubColor),
                     ),
                   ],
                 ),
