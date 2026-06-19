@@ -43,6 +43,8 @@ dependencies:
 
   # SVG 아이콘
   flutter_svg: ^2.0.17
+  # Surlap 워드마크 — Space Grotesk(Google Fonts)
+  google_fonts: ^6.2.1
   app_links: ^7.0.0
 
   # 음성 인식 (할 일 음성 입력)

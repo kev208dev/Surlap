@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../i18n/strings.dart';
 import '../../models/user_type.dart';
 import '../../providers/user_type_provider.dart';
@@ -123,13 +124,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           Image.asset('assets/mascot/splash_icon.png',
                               height: 26, fit: BoxFit.contain),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'Surlap',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.025 * 18,
                               color: Colors.white,
+                              height: 1.0,
                             ),
                           ),
                         ],

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// HourSpace 인트로/스플래시 — 절제된 reveal + iOS풍 세그먼트 스피너.
 ///
@@ -133,11 +134,14 @@ class _SplashScreenState extends State<SplashScreen>
                             offset: Offset(0, _wordDrift.value),
                             child: Text(
                               'Surlap',
-                              style: TextStyle(
-                                fontSize: 27,
-                                fontWeight: FontWeight.w700,
+                              // 핸드오프: Space Grotesk w600, letter-spacing 음수.
+                              // 인트로 reveal 애니메이션은 spacing 으로 조절 유지.
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w600,
                                 letterSpacing: _wordSpacing.value,
                                 color: Colors.white,
+                                height: 1.0,
                               ),
                             ),
                           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../supabase/auth_service.dart';
 import '../../i18n/strings.dart';
 import '../../modals/login_modal.dart';
@@ -92,12 +93,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         size: 140,
                         showStars: true),
                     const SizedBox(height: 22),
-                    const Text('Surlap',
-                        style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                            color: Colors.white)),
+                    Text('Surlap',
+                        style: GoogleFonts.spaceGrotesk(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.025 * 30,
+                            color: Colors.white,
+                            height: 1.0)),
                     const SizedBox(height: 12),
                     Text(
                       tr('오늘의 시간을 정리해볼까요?'),

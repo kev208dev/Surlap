@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/design_tokens.dart';
 import '../i18n/strings.dart';
@@ -69,8 +70,12 @@ class _LoginModalState extends ConsumerState<LoginModal> {
                 Image.asset('assets/mascot/splash_icon.png', height: 30),
                 const SizedBox(width: 8),
                 Text('Surlap',
-                    style: AppType.title.copyWith(
-                        fontWeight: FontWeight.w800, color: sh.ink)),
+                    style: GoogleFonts.spaceGrotesk(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.025 * 22,
+                        color: sh.ink,
+                        height: 1.0)),
               ],
             ),
             const SizedBox(height: Gap.sm),

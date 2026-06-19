@@ -2,7 +2,9 @@
 
 > 패키지명: `com.kev208dev.Surlap`
 > Supabase 프로젝트: `https://ngmvddxpoqtbrwpwiogh.supabase.co`
-> GitHub Pages 도메인: `https://kev208dev.github.io/Surlap/`
+> 모든 정책/요청 페이지는 Supabase Edge Functions 로 호스팅(`/functions/v1/...`).
+> 사전 작업: Supabase 프로젝트가 INACTIVE 면 대시보드에서 "Restore" → 활성화 →
+> 아래 §10·§13 절차로 Edge Functions 3개 + 테이블 1개 배포.
 
 각 섹션 옆에 **그대로 입력할 답변·URL** 정리. 끝쪽에 추가로 깔 Supabase 자산
 (계정 삭제 Edge Function + 테이블 + 리뷰용 테스트 계정) SQL/코드.
@@ -13,7 +15,7 @@
 
 | 항목 | 값 |
 |---|---|
-| URL | `https://kev208dev.github.io/Surlap/privacy.html` |
+| URL | `https://ngmvddxpoqtbrwpwiogh.supabase.co/functions/v1/privacy` |
 
 GitHub Pages 의 `docs/` 폴더에 `privacy.html` 호스팅 중. 이미 코드 상 `_openUrl` 도
 이 URL을 가리킴.
@@ -262,7 +264,8 @@ Supabase Auth → URL Configuration → Redirect URLs 에 다음 등록:
 
 | 섹션 | 입력 |
 |---|---|
-| 개인정보처리방침 URL | `https://kev208dev.github.io/Surlap/privacy.html` |
+| 개인정보처리방침 URL | `https://ngmvddxpoqtbrwpwiogh.supabase.co/functions/v1/privacy` |
+| 이용약관 URL (선택) | `https://ngmvddxpoqtbrwpwiogh.supabase.co/functions/v1/terms` |
 | 광고 | 아니요 |
 | 앱 액세스 | 사용자 인증 필요 — `play-review@surlap.app` / `Surlap-Review-2026!` |
 | 콘텐츠 등급 카테고리 | Reference / Educational |
@@ -273,6 +276,32 @@ Supabase Auth → URL Configuration → Redirect URLs 에 다음 등록:
 | 정부 앱 | 아니요 |
 | 금융 기능 | 아니요 |
 | 건강 | 아니요 |
+
+---
+
+## 13. Supabase Edge Function 3종 일괄 배포
+
+저장소에 이미 소스 들어있음 — 프로젝트 깨운 뒤 한 번에 deploy.
+
+```bash
+# Supabase CLI 가 설치돼 있고, 프로젝트 링크돼 있다고 가정.
+supabase functions deploy privacy                 --no-verify-jwt
+supabase functions deploy terms                   --no-verify-jwt
+supabase functions deploy account-delete-request  --no-verify-jwt
+```
+
+확인:
+```bash
+curl -I https://ngmvddxpoqtbrwpwiogh.supabase.co/functions/v1/privacy
+curl -I https://ngmvddxpoqtbrwpwiogh.supabase.co/functions/v1/terms
+curl -I https://ngmvddxpoqtbrwpwiogh.supabase.co/functions/v1/account-delete-request
+```
+세 곳 모두 `200 OK` + `content-type: text/html` 이어야 함.
+
+소스 위치:
+- `supabase/functions/privacy/index.ts` — 개인정보처리방침 HTML
+- `supabase/functions/terms/index.ts` — 이용약관 HTML
+- `supabase/functions/account-delete-request/index.ts` — GET=HTML 폼 + POST=email 큐
 
 ---
 
