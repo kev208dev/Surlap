@@ -20,6 +20,7 @@ import '../../supabase/neis_service.dart'
 import '../timetable_view/timetable_view.dart'
     show timetableSubjectsForDate, getDisplaySubjectName;
 import '../../widgets/view_segment_control.dart';
+import '../../widgets/arrow_pinch.dart';
 import '../../widgets/calendar_filter_strip.dart';
 import '../../widgets/header_collapse.dart';
 import '../month_view/multiday_span.dart' show eventColorFor;
@@ -886,14 +887,9 @@ class _PlannerNav extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── 1행: 세그먼트 풀폭 (일 뷰와 동일 구조로 통일) ──
-          const Padding(
-            padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
-            child: ViewSegmentControl(),
-          ),
-          // ── 2행: 날짜(좌, 탭→오늘) + 컨트롤(우) ──
+          // ── 1행: 디스플레이 타이틀(좌, 탭→오늘) + 화살표 핀치(우) ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.sm),
+            padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xs),
             child: Row(
               children: [
                 Expanded(
@@ -907,9 +903,7 @@ class _PlannerNav extends StatelessWidget {
                     ),
                   ),
                 ),
-                _navBtn(Icons.chevron_left_rounded, onPrev),
-                const SizedBox(width: 6),
-                _navBtn(Icons.chevron_right_rounded, onNext),
+                ArrowPinch(onPrev: onPrev, onNext: onNext),
                 const SizedBox(width: 2),
                 PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert_rounded,
@@ -937,6 +931,11 @@ class _PlannerNav extends StatelessWidget {
               ],
             ),
           ),
+          // ── 2행: 글래스 세그먼트 (연/월/주/일) ──
+          const Padding(
+            padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
+            child: ViewSegmentControl(),
+          ),
         ],
       ),
     );
@@ -953,18 +952,4 @@ class _PlannerNav extends StatelessWidget {
         ]),
       );
 
-  Widget _navBtn(IconData ic, VoidCallback onTap) => GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: sh.card2,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: sh.ink.withValues(alpha: 0.07)),
-          ),
-          child: Icon(ic, size: 22, color: sh.inkSoft),
-        ),
-      );
 }

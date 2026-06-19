@@ -178,14 +178,9 @@ class _DayViewState extends ConsumerState<DayView> {
       child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 세그먼트(항상 표시) — 주/월/연 헤더와 위치·높이 통일(전환 시 버튼 안 튐).
-        const Padding(
-          padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
-          child: ViewSegmentControl(),
-        ),
-        // 날짜 헤더 — 한 줄(날짜 + 스케줄 토글). 줌은 두 손가락 핀치.
+        // ── 1행: 디스플레이 타이틀 + 스케줄 토글 ──
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.sm),
+          padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xs),
           child: Row(
             children: [
               const SizedBox(width: 2),
@@ -237,7 +232,12 @@ class _DayViewState extends ConsumerState<DayView> {
             ],
           ),
         ),
-        // 필터칩만 스크롤 시 접힘(주/월/연 헤더와 동일).
+        // ── 2행: 글래스 세그먼트 (연/월/주/일) ──
+        const Padding(
+          padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
+          child: ViewSegmentControl(),
+        ),
+        // ── 3행: 필터칩(접힘) ──
         CollapsibleHeader(
           collapsed: ref.watch(headerCollapsedProvider),
           child: const CalendarFilterStrip(),

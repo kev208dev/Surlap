@@ -6,8 +6,8 @@ import '../i18n/dates.dart' as i18nd;
 import '../providers/view_provider.dart';
 import '../providers/settings_provider.dart';
 import '../screens/search_view.dart';
+import 'arrow_pinch.dart';
 import 'calendar_filter_strip.dart';
-import 'pressable.dart';
 import 'view_segment_control.dart';
 import 'header_collapse.dart';
 
@@ -35,17 +35,11 @@ class AppHeader extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── 1행: 세그먼트 풀폭 (일 뷰와 동일 구조로 통일) ──
-        const Padding(
-          padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
-          child: ViewSegmentControl(),
-        ),
-        // ── 2행: 날짜(좌, 탭→오늘) + 컨트롤(우) ──
+        // ── 1행: 디스플레이 타이틀 + 화살표 핀치 + 더보기 ──
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.sm),
+          padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.lg, Gap.xs),
           child: Row(
             children: [
-              // 날짜 라벨 — 탭하면 오늘로. 공간 부족 시 자동 축소.
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -56,41 +50,39 @@ class AppHeader extends ConsumerWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(children: [
-                        TextSpan(
-                          text: '${view.viewYear} ',
-                          style: AppType.caption.copyWith(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${view.viewYear}',
+                          style: TextStyle(
+                              fontFamily: 'Pretendard',
                               fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: sh.inkSoft),
+                              fontWeight: FontWeight.w700,
+                              color: sh.inkSoft,
+                              letterSpacing: 0.2),
                         ),
-                        TextSpan(
-                          text: isYear
+                        Text(
+                          isYear
                               ? i18nd.yearWord
                               : i18nd.monthName(view.viewMonth),
-                          style: AppType.title.copyWith(
-                              fontSize: 22,
+                          style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 32,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: -0.4,
+                              letterSpacing: -1.2,
+                              height: 1.05,
                               color: sh.ink),
                         ),
-                      ]),
-                      maxLines: 1,
+                      ],
                     ),
                   ),
                 ),
               ),
-              _NavBtn(
-                icon: Icons.chevron_left_rounded,
-                onTap: isYear ? notifier.prevYear : notifier.prevMonth,
-                sh: sh,
-              ),
-              const SizedBox(width: 6),
-              _NavBtn(
-                icon: Icons.chevron_right_rounded,
-                onTap: isYear ? notifier.nextYear : notifier.nextMonth,
-                sh: sh,
+              ArrowPinch(
+                onPrev: isYear ? notifier.prevYear : notifier.prevMonth,
+                onNext: isYear ? notifier.nextYear : notifier.nextMonth,
               ),
               const SizedBox(width: 2),
               PopupMenuButton<String>(
@@ -127,7 +119,12 @@ class AppHeader extends ConsumerWidget {
             ],
           ),
         ),
-        // 필터칩만 접힘.
+        // ── 2행: 글래스 세그먼트 (연/월/주/일) ──
+        const Padding(
+          padding: EdgeInsets.fromLTRB(Gap.lg, Gap.xs, Gap.lg, Gap.sm),
+          child: ViewSegmentControl(),
+        ),
+        // ── 3행: 필터칩(접힘) ──
         CollapsibleHeader(
           collapsed: collapsed,
           child: const CalendarFilterStrip(),
@@ -137,28 +134,3 @@ class AppHeader extends ConsumerWidget {
   }
 }
 
-// ─── 탐색 화살표 버튼 (또렷한 박스형 + 누름 반응) ────────────────────
-class _NavBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final SpaceHourColors sh;
-  const _NavBtn({required this.icon, required this.onTap, required this.sh});
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      pressedScale: 0.92,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: sh.card2,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: sh.ink.withValues(alpha: 0.07)),
-        ),
-        child: Icon(icon, size: 22, color: sh.inkSoft),
-      ),
-    );
-  }
-}
