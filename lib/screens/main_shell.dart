@@ -275,9 +275,12 @@ class _SpeedDialFabState extends State<_SpeedDialFab>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // 백드롭 블러+딤이 충분히 어둡게 깔리므로 텍스트 그림자는 빼고,
+                    // 부드러운 단일 drop shadow만 살짝 — 검은 외곽선처럼 보이던
+                    // 잔상 제거.
                     Icon(a.icon, size: 24, color: Colors.white,
                         shadows: const [
-                          Shadow(color: Colors.black38, blurRadius: 3),
+                          Shadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 2)),
                         ]),
                     const SizedBox(width: 12),
                     Text(a.label,
@@ -287,7 +290,7 @@ class _SpeedDialFabState extends State<_SpeedDialFab>
                           letterSpacing: -0.2,
                           color: Colors.white,
                           shadows: [
-                            Shadow(color: Colors.black38, blurRadius: 3),
+                            Shadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 2)),
                           ],
                         )),
                   ],
