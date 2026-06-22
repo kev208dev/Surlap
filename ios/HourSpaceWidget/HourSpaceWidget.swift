@@ -1,449 +1,342 @@
 import WidgetKit
 import SwiftUI
 
-// MARK: - Models
+// MARK: - 색·그라데이션 (목업 `HourSpace 위젯.dc.html` 1:1)
+extension Color {
+    init(hexString: String) {
+        let h = hexString.replacingOccurrences(of: "#", with: "")
+        var v: UInt64 = 0
+        Scanner(string: h).scanHexInt64(&v)
+        if h.count == 6 {
+            self = Color(
+                .sRGB,
+                red: Double((v >> 16) & 0xff) / 255,
+                green: Double((v >> 8) & 0xff) / 255,
+                blue: Double(v & 0xff) / 255,
+                opacity: 1
+            )
+        } else {
+            self = Color(red: 0.55, green: 0.5, blue: 0.96)
+        }
+    }
 
-struct EventLine: Identifiable {
-    let id = UUID()
-    let title: String
-    let time: String
-    let end: String
-    let color: Color
-    let emoji: String
-    let sport: Bool
-    var isNext: Bool = false
+    // Backward-compat (구 Color(hex:) 호출 살아있을 가능성).
+    init(hex: String) { self.init(hexString: hex) }
+
+    static let surlapAccent  = Color(hexString: "#A98BFF")
+    static let surlapMuted   = Color(hexString: "#8E8C97")
+    static let surlapCaption = Color(hexString: "#A4A2AD")
 }
 
-struct AllDayLine: Identifiable {
-    let id = UUID()
-    let title: String
-    let color: Color
-    let emoji: String
-}
-
-struct TodoLine: Identifiable {
-    let id = UUID()
-    let title: String
-    let done: Bool
-    let priority: Int
-}
-
-struct HSEntry: TimelineEntry {
-    let date: Date
-    let dateLabel: String
-    let dayNum: Int
-    let weekday: Int
-    let year: Int
-    let month: Int
-    let allDay: [AllDayLine]
-    let timed: [EventLine]
-    let todos: [TodoLine]
-    let todoCount: Int
-    let todoDone: Int
-    let eventCount: Int
-
-    static let placeholder = HSEntry(
-        date: Date(),
-        dateLabel: "6월 8일 (월)",
-        dayNum: 8, weekday: 1, year: 2026, month: 6,
-        allDay: [AllDayLine(title: "엄마 생신", color: Color(hex: "#F05995"), emoji: "🎂")],
-        timed: [
-            EventLine(title: "팀 회의", time: "14:00", end: "15:00", color: Color(hex: "#8B7FF5"), emoji: "", sport: false, isNext: true),
-            EventLine(title: "T1 vs GEN", time: "17:00", end: "", color: Color(hex: "#6C63FF"), emoji: "🎮", sport: true),
-        ],
-        todos: [
-            TodoLine(title: "운동 가기", done: false, priority: 1),
-            TodoLine(title: "장보기", done: true, priority: 0),
-        ],
-        todoCount: 2, todoDone: 1, eventCount: 3
+var surlapSurface: LinearGradient {
+    LinearGradient(
+        colors: [Color(hexString: "#1E1638"), Color(hexString: "#150F29")],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
     )
 }
 
-// MARK: - Color hex
-
-extension Color {
-    init(hex: String) {
-        let s = hex.replacingOccurrences(of: "#", with: "")
-        var v: UInt64 = 0
-        Scanner(string: s).scanHexInt64(&v)
-        let r, g, b: Double
-        if s.count == 6 {
-            r = Double((v >> 16) & 0xFF) / 255
-            g = Double((v >> 8) & 0xFF) / 255
-            b = Double(v & 0xFF) / 255
-        } else {
-            r = 0.55; g = 0.50; b = 0.96
-        }
-        self = Color(red: r, green: g, blue: b)
-    }
+// MARK: - 모델
+struct WPeriod: Identifiable {
+    let id = UUID()
+    let name: String
+    let start: String
+    let end: String
+    let color: Color
 }
 
-let accent = Color(hex: "#8B7FF5")
+struct SurlapEntry: TimelineEntry {
+    let date: Date
+    let today: String
+    let schoolClass: String
+    let periods: [WPeriod]
+    let currentIndex: Int
+    let minutesRemaining: Int
+    let nowName: String
+    let nowStart: String
+    let nowEnd: String
+    let nextName: String
+    let nextStart: String
 
-// MARK: - Shared data read
+    static let placeholder = SurlapEntry(
+        date: Date(),
+        today: "6월 26일 (월)",
+        schoolClass: "3학년 2반",
+        periods: [
+            WPeriod(name: "국어", start: "09:00", end: "09:50", color: Color(hexString: "#3A3A78")),
+            WPeriod(name: "수학", start: "10:00", end: "10:50", color: Color.surlapAccent),
+            WPeriod(name: "영어", start: "11:00", end: "11:50", color: Color(hexString: "#1F5A5A")),
+            WPeriod(name: "과학", start: "12:00", end: "12:50", color: Color(hexString: "#243A6E"))
+        ],
+        currentIndex: 1,
+        minutesRemaining: 28,
+        nowName: "수학",
+        nowStart: "10:00",
+        nowEnd: "10:50",
+        nextName: "영어",
+        nextStart: "11:00"
+    )
+}
 
-enum WidgetStore {
+// MARK: - App Group UserDefaults 에서 데이터 읽기
+enum SurlapStore {
     static let appGroup = "group.com.spacehour.spacehour"
-    static let key = "hs_widget"
 
-    static func empty() -> HSEntry {
-        let now = Date()
-        let c = Calendar.current.dateComponents([.year, .month, .day, .weekday], from: now)
-        return HSEntry(
-            date: now, dateLabel: "", dayNum: c.day ?? 1,
-            weekday: ((c.weekday ?? 1) + 5) % 7 + 1,
-            year: c.year ?? 2026, month: c.month ?? 1,
-            allDay: [], timed: [], todos: [],
-            todoCount: 0, todoDone: 0, eventCount: 0
-        )
-    }
+    static func load() -> SurlapEntry {
+        let d = UserDefaults(suiteName: appGroup)
+        func s(_ k: String) -> String { d?.string(forKey: k) ?? "" }
+        func i(_ k: String) -> Int { d?.integer(forKey: k) ?? 0 }
 
-    static func read() -> HSEntry {
-        guard
-            let defaults = UserDefaults(suiteName: appGroup),
-            let raw = defaults.string(forKey: key),
-            let data = raw.data(using: .utf8),
-            let o = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return empty() }
-
-        let nextIndex = o["nextIndex"] as? Int ?? -1
-
-        let allDay = (o["allDay"] as? [[String: Any]] ?? []).map {
-            AllDayLine(
-                title: $0["title"] as? String ?? "",
-                color: Color(hex: $0["color"] as? String ?? "#8B7FF5"),
-                emoji: $0["emoji"] as? String ?? ""
-            )
-        }
-        let timed = (o["timed"] as? [[String: Any]] ?? []).enumerated().map { (i, e) in
-            EventLine(
-                title: e["title"] as? String ?? "",
-                time: e["time"] as? String ?? "",
-                end: e["end"] as? String ?? "",
-                color: Color(hex: e["color"] as? String ?? "#8B7FF5"),
-                emoji: e["emoji"] as? String ?? "",
-                sport: e["sport"] as? Bool ?? false,
-                isNext: i == nextIndex
-            )
-        }
-        let todos = (o["todos"] as? [[String: Any]] ?? []).map {
-            TodoLine(
-                title: $0["title"] as? String ?? "",
-                done: $0["done"] as? Bool ?? false,
-                priority: $0["priority"] as? Int ?? 0
-            )
-        }
-
-        let dateStr = o["date"] as? String ?? "2026-01-01"
-        let parts = dateStr.split(separator: "-").map { Int($0) ?? 0 }
-
-        return HSEntry(
-            date: Date(),
-            dateLabel: o["dateLabel"] as? String ?? "",
-            dayNum: parts.count > 2 ? parts[2] : 1,
-            weekday: o["weekday"] as? Int ?? 1,
-            year: parts.count > 0 ? parts[0] : 2026,
-            month: parts.count > 1 ? parts[1] : 1,
-            allDay: allDay, timed: timed, todos: todos,
-            todoCount: o["todoCount"] as? Int ?? todos.count,
-            todoDone: o["todoDone"] as? Int ?? 0,
-            eventCount: o["eventCount"] as? Int ?? 0
-        )
-    }
-}
-
-// MARK: - Timeline
-
-struct Provider: TimelineProvider {
-    func placeholder(in context: Context) -> HSEntry { .placeholder }
-    func getSnapshot(in context: Context, completion: @escaping (HSEntry) -> Void) {
-        completion(context.isPreview ? .placeholder : WidgetStore.read())
-    }
-    func getTimeline(in context: Context, completion: @escaping (Timeline<HSEntry>) -> Void) {
-        let entry = WidgetStore.read()
-        let next = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date().addingTimeInterval(1800)
-        completion(Timeline(entries: [entry], policy: .after(next)))
-    }
-}
-
-// MARK: - Mascot
-
-func mascotImage() -> Image? {
-    if let ui = UIImage(named: "mascot") { return Image(uiImage: ui) }
-    return nil
-}
-
-struct Mascot: View {
-    var size: CGFloat = 50
-    var body: some View {
-        if let m = mascotImage() {
-            m.resizable().scaledToFit()
-                .frame(width: size, height: size)
-                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
-        }
-    }
-}
-
-// MARK: - Pieces
-
-struct AllDayPill: View {
-    let item: AllDayLine
-    var body: some View {
-        HStack(spacing: 3) {
-            if !item.emoji.isEmpty {
-                Text(item.emoji).font(.system(size: 9))
-            } else {
-                Circle().fill(item.color).frame(width: 5, height: 5)
+        var periods: [WPeriod] = []
+        if let raw = d?.string(forKey: "periods"),
+           let data = raw.data(using: .utf8),
+           let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+            periods = arr.map {
+                WPeriod(
+                    name: $0["name"] as? String ?? "",
+                    start: $0["start"] as? String ?? "",
+                    end: $0["end"] as? String ?? "",
+                    color: Color(hexString: $0["color"] as? String ?? "#3A3A78")
+                )
             }
-            Text(item.title).font(.system(size: 10, weight: .semibold))
-                .foregroundColor(item.color)
-                .lineLimit(1)
         }
-        .padding(.horizontal, 7).padding(.vertical, 3)
-        .background(item.color.opacity(0.14))
-        .clipShape(Capsule())
-    }
-}
+        // currentIndex 가 저장돼 있지 않으면 -1 로 (위젯이 진행 중 표시 안 함).
+        let current: Int = {
+            guard let v = d?.object(forKey: "currentIndex") as? Int else { return -1 }
+            return v
+        }()
 
-struct EventRowView: View {
-    let e: EventLine
-    var body: some View {
-        HStack(spacing: 7) {
-            Text(e.time.isEmpty ? "—" : e.time)
-                .font(.system(size: 11, weight: e.isNext ? .bold : .semibold))
-                .foregroundColor(e.isNext ? accent : .secondary)
-                .frame(width: 38, alignment: .leading)
-            RoundedRectangle(cornerRadius: 2).fill(e.color).frame(width: 3, height: 14)
-            if !e.emoji.isEmpty { Text(e.emoji).font(.system(size: 11)) }
-            Text(e.title)
-                .font(.system(size: 12.5, weight: e.isNext ? .semibold : .regular))
-                .foregroundColor(.primary).lineLimit(1)
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 1.5)
-        .background(
-            e.isNext ? accent.opacity(0.08) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 6)
+        return SurlapEntry(
+            date: Date(),
+            today: s("today"),
+            schoolClass: s("schoolClass"),
+            periods: periods,
+            currentIndex: current,
+            minutesRemaining: i("minutesRemaining"),
+            nowName: s("nowName"),
+            nowStart: s("nowStart"),
+            nowEnd: s("nowEnd"),
+            nextName: s("nextName"),
+            nextStart: s("nextStart")
         )
     }
 }
 
-struct TodoRowView: View {
-    let t: TodoLine
+// MARK: - 교시 세그먼트 바 (활성 라벤더 + 흰 플레이헤드)
+struct PeriodBar: View {
+    let periods: [WPeriod]
+    let current: Int
+    var height: CGFloat = 18
+
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: t.done ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 12)).foregroundColor(t.done ? accent : .secondary)
-            Text(t.title)
-                .font(.system(size: 12.5))
-                .strikethrough(t.done, color: .secondary)
-                .foregroundColor(t.done ? .secondary : .primary).lineLimit(1)
-            Spacer(minLength: 0)
-        }.padding(.vertical, 1)
+        HStack(spacing: 4) {
+            if periods.isEmpty {
+                ForEach(0..<5, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.white.opacity(0.08))
+                }
+            } else {
+                ForEach(Array(periods.enumerated()), id: \.offset) { i, p in
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(i == current
+                              ? Color.surlapAccent
+                              : p.color.opacity(i < current ? 0.45 : 1))
+                        .layoutPriority(i == current ? 1.7 : 1)
+                        .overlay(
+                            i == current
+                            ? RoundedRectangle(cornerRadius: 1.5).fill(.white).frame(width: 3)
+                            : nil
+                        )
+                }
+            }
+        }
+        .frame(height: height)
     }
 }
 
-struct HeaderRow: View {
-    let entry: HSEntry
+// MARK: - "지금/다음" 카드 (Medium)
+struct NowNextCard: View {
+    let d: SurlapEntry
+
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text("\(entry.dayNum)")
-                .font(.system(size: 22, weight: .heavy)).foregroundColor(accent)
-            Text(entry.dateLabel.replacingOccurrences(of: "\(entry.month)월 \(entry.dayNum)일 ", with: ""))
-                .font(.system(size: 12, weight: .semibold)).foregroundColor(.secondary)
-            Spacer()
-            Text("할 일 \(entry.todoDone)/\(entry.todoCount)")
-                .font(.system(size: 10, weight: .medium)).foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("지금").foregroundColor(.surlapMuted)
+                Spacer()
+                Text("다음").foregroundColor(.surlapMuted)
+            }
+            .font(.system(size: 13.5, weight: .semibold))
+
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(d.nowName.isEmpty ? "수업 없음" : d.nowName)
+                        .font(.system(size: 24, weight: .heavy))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text(d.nowStart.isEmpty ? "—" : d.nowStart)
+                        .font(.system(size: 19, weight: .heavy))
+                        .foregroundColor(.surlapAccent)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(d.nextName.isEmpty ? "—" : d.nextName)
+                        .font(.system(size: 24, weight: .heavy))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text(d.nextStart.isEmpty ? "—" : d.nextStart)
+                        .font(.system(size: 19, weight: .heavy))
+                        .foregroundColor(.surlapAccent)
+                }
+            }
+            .padding(.top, 4)
+
+            PeriodBar(periods: d.periods, current: d.currentIndex)
+                .padding(.top, 14)
+
+            Text("종료까지 \(d.minutesRemaining)분 남음")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.surlapCaption)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 11)
         }
     }
 }
 
 // MARK: - Small
-
 struct SmallView: View {
-    let entry: HSEntry
-    var next: EventLine? { entry.timed.first(where: { $0.isNext }) ?? entry.timed.first }
+    let d: SurlapEntry
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: -2) {
-                    Text("\(entry.dayNum)").font(.system(size: 30, weight: .heavy)).foregroundColor(accent)
-                    Text(weekdayKo(entry.weekday)).font(.system(size: 12, weight: .semibold)).foregroundColor(.secondary)
-                }
-                Spacer()
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "graduationcap.fill").foregroundColor(.surlapAccent).font(.system(size: 12))
+                Text(d.currentIndex >= 0
+                     ? "지금 · \(d.currentIndex + 1)교시"
+                     : "오늘 시간표")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.surlapMuted)
             }
-            Spacer(minLength: 0)
-            if let n = next {
-                HStack(spacing: 4) {
-                    if !n.emoji.isEmpty { Text(n.emoji).font(.system(size: 10)) }
-                    else { Circle().fill(n.color).frame(width: 5, height: 5) }
-                    Text(n.time).font(.system(size: 11, weight: .bold)).foregroundColor(accent)
-                }
-                Text(n.title).font(.system(size: 12, weight: .semibold)).foregroundColor(.primary).lineLimit(2)
-            } else if !entry.allDay.isEmpty {
-                Text(entry.allDay[0].emoji.isEmpty ? entry.allDay[0].title : "\(entry.allDay[0].emoji) \(entry.allDay[0].title)")
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(entry.allDay[0].color).lineLimit(2)
-            } else {
-                Text("할 일 \(entry.todoDone)/\(entry.todoCount)")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(accent)
-                Text("일정 없음").font(.system(size: 11)).foregroundColor(.secondary)
+            Text(d.nowName.isEmpty ? "수업 없음" : d.nowName)
+                .font(.system(size: 22, weight: .heavy))
+                .foregroundColor(.white)
+                .padding(.top, 10)
+                .lineLimit(1)
+            Text(d.nowStart.isEmpty ? "—" : "\(d.nowStart) – \(d.nowEnd)")
+                .font(.system(size: 12.5, weight: .bold))
+                .foregroundColor(.surlapAccent)
+            Spacer()
+            PeriodBar(periods: d.periods, current: d.currentIndex, height: 8)
+            if d.currentIndex >= 0 {
+                Text("\(d.minutesRemaining)분 남음")
+                    .font(.system(size: 11.5, weight: .bold))
+                    .foregroundColor(.surlapCaption)
+                    .padding(.top, 5)
             }
         }
-        .overlay(alignment: .topTrailing) { Mascot(size: 42).offset(x: 6, y: -8) }
     }
 }
 
-// MARK: - Medium
-
-struct MediumView: View {
-    let entry: HSEntry
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HeaderRow(entry: entry)
-            if !entry.allDay.isEmpty {
-                HStack(spacing: 5) {
-                    ForEach(entry.allDay.prefix(3)) { AllDayPill(item: $0) }
-                    Spacer(minLength: 0)
-                }
-            }
-            if entry.timed.isEmpty && entry.allDay.isEmpty {
-                Spacer()
-                EmptyToday()
-                Spacer()
-            } else {
-                ForEach(entry.timed.prefix(3)) { EventRowView(e: $0) }
-                if entry.timed.isEmpty {
-                    ForEach(entry.todos.prefix(2)) { TodoRowView(t: $0) }
-                }
-                Spacer(minLength: 0)
-            }
-        }
-        .overlay(alignment: .topTrailing) { Mascot(size: 46).offset(x: 8, y: -10) }
-    }
-}
-
-// MARK: - Large (calendar + agenda)
-
+// MARK: - Large
 struct LargeView: View {
-    let entry: HSEntry
+    let d: SurlapEntry
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("\(entry.month)월").font(.system(size: 17, weight: .heavy)).foregroundColor(.primary)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: "graduationcap.fill").foregroundColor(.surlapAccent)
+                Text("오늘 시간표")
+                    .font(.system(size: 17, weight: .heavy))
+                    .foregroundColor(.white)
                 Spacer()
-                Text("할 일 \(entry.todoDone)/\(entry.todoCount) · 일정 \(entry.eventCount)")
-                    .font(.system(size: 10, weight: .medium)).foregroundColor(.secondary)
-            }
-            MiniMonth(year: entry.year, month: entry.month, today: entry.dayNum)
-            Divider()
-            // 아젠다
-            if !entry.allDay.isEmpty {
-                HStack(spacing: 5) {
-                    ForEach(entry.allDay.prefix(4)) { AllDayPill(item: $0) }
-                    Spacer(minLength: 0)
+                if !d.schoolClass.isEmpty {
+                    Text(d.schoolClass)
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundColor(.surlapMuted)
                 }
             }
-            if entry.timed.isEmpty && entry.allDay.isEmpty {
-                Spacer(); HStack { Spacer(); EmptyToday(); Spacer() }; Spacer()
+            Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1)
+            if d.periods.isEmpty {
+                Spacer()
+                Text("오늘 등록된 수업이 없어요")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.surlapMuted)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Spacer()
             } else {
-                ForEach(entry.timed.prefix(4)) { EventRowView(e: $0) }
-                ForEach(entry.todos.prefix(2)) { TodoRowView(t: $0) }
-                Spacer(minLength: 0)
-            }
-        }
-        .overlay(alignment: .topTrailing) { Mascot(size: 50).offset(x: 8, y: -12) }
-    }
-}
-
-struct MiniMonth: View {
-    let year: Int
-    let month: Int
-    let today: Int
-
-    var body: some View {
-        let cal = Calendar(identifier: .gregorian)
-        let first = cal.date(from: DateComponents(year: year, month: month, day: 1)) ?? Date()
-        let firstWeekday = cal.component(.weekday, from: first) // 1=Sun
-        let days = cal.range(of: .day, in: .month, for: first)?.count ?? 30
-        let cells = Array(repeating: 0, count: firstWeekday - 1) + Array(1...days)
-        let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
-        let heads = ["일", "월", "화", "수", "목", "금", "토"]
-
-        return LazyVGrid(columns: cols, spacing: 3) {
-            ForEach(0..<7, id: \.self) { i in
-                Text(heads[i])
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(i == 0 ? Color(hex: "#F05995") : (i == 6 ? accent : .secondary))
-            }
-            ForEach(Array(cells.enumerated()), id: \.offset) { (idx, d) in
-                if d == 0 {
-                    Text("").font(.system(size: 11))
-                } else {
-                    let isToday = d == today
-                    let col = idx % 7
-                    Text("\(d)")
-                        .font(.system(size: 11, weight: isToday ? .bold : .regular))
-                        .foregroundColor(isToday ? .white : (col == 0 ? Color(hex: "#F05995") : (col == 6 ? accent : .primary)))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 18)
-                        .background(isToday ? accent : Color.clear, in: Circle())
+                ForEach(Array(d.periods.enumerated()), id: \.offset) { i, p in
+                    HStack(spacing: 12) {
+                        Text(i == d.currentIndex ? "지금" : "\(i + 1)교시")
+                            .font(.system(size: i == d.currentIndex ? 11 : 12,
+                                          weight: i == d.currentIndex ? .heavy : .bold))
+                            .foregroundColor(i == d.currentIndex ? .surlapAccent : .surlapMuted)
+                            .frame(width: 36, alignment: .leading)
+                        Circle()
+                            .fill(i == d.currentIndex ? Color.surlapAccent : p.color)
+                            .frame(width: i == d.currentIndex ? 9 : 8,
+                                   height: i == d.currentIndex ? 9 : 8)
+                        Text(p.name)
+                            .font(.system(size: i == d.currentIndex ? 16 : 15,
+                                          weight: i == d.currentIndex ? .heavy : .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        Spacer()
+                        Text(p.start)
+                            .font(.system(size: 12.5,
+                                          weight: i == d.currentIndex ? .heavy : .semibold))
+                            .foregroundColor(i == d.currentIndex ? .surlapAccent : .surlapMuted)
+                    }
+                    .padding(.vertical, i == d.currentIndex ? 8 : 4)
+                    .padding(.horizontal, i == d.currentIndex ? 12 : 4)
+                    .background(i == d.currentIndex
+                                ? Color.surlapAccent.opacity(0.14)
+                                : .clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             }
         }
     }
 }
 
-struct EmptyToday: View {
-    var body: some View {
-        VStack(spacing: 5) {
-            if let m = mascotImage() { m.resizable().scaledToFit().frame(width: 54, height: 54) }
-            Text("오늘은 여유로운 하루").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
-        }
+// MARK: - Provider (분 단위 timeline)
+struct Provider: TimelineProvider {
+    func placeholder(in context: Context) -> SurlapEntry { .placeholder }
+    func getSnapshot(in context: Context, completion: @escaping (SurlapEntry) -> Void) {
+        completion(context.isPreview ? .placeholder : SurlapStore.load())
     }
-}
-
-func weekdayKo(_ w: Int) -> String {
-    let names = ["월", "화", "수", "목", "금", "토", "일"]
-    let i = max(1, min(7, w)) - 1
-    return names[i] + "요일"
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SurlapEntry>) -> Void) {
+        let entry = SurlapStore.load()
+        let next = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date().addingTimeInterval(60)
+        completion(Timeline(entries: [entry], policy: .after(next)))
+    }
 }
 
 // MARK: - Entry view
-
 struct HourSpaceWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
-    var entry: HSEntry
+    var entry: SurlapEntry
 
     var body: some View {
         Group {
             switch family {
-            case .systemSmall: SmallView(entry: entry)
-            case .systemLarge: LargeView(entry: entry)
-            default: MediumView(entry: entry)
+            case .systemSmall: SmallView(d: entry)
+            case .systemLarge: LargeView(d: entry)
+            default: NowNextCard(d: entry)
             }
         }
+        .padding(family == .systemSmall ? 15 : 18)
+        .containerBackground(for: .widget) { surlapSurface }
+        .widgetURL(URL(string: "spacehour://widget"))
     }
 }
 
 // MARK: - Widget
-
+// pbxproj 에 박혀있는 kind/struct 명을 바꾸면 위젯이 사라지므로 그대로 유지.
 struct HourSpaceWidget: Widget {
     let kind = "HourSpaceWidget"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            if #available(iOS 17.0, *) {
-                HourSpaceWidgetEntryView(entry: entry)
-                    .containerBackground(.background, for: .widget)
-                    .widgetURL(URL(string: "spacehour://widget"))
-            } else {
-                HourSpaceWidgetEntryView(entry: entry)
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .widgetURL(URL(string: "spacehour://widget"))
-            }
+            HourSpaceWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("오늘 일정")
-        .description("오늘의 종일·일정·할 일과 이번 달 달력을 한눈에.")
+        .configurationDisplayName("Surlap")
+        .description("오늘 시간표와 지금 수업을 한눈에.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

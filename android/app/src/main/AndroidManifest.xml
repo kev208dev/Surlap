@@ -69,9 +69,10 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- 홈스크린 위젯 (오늘 할 일·일정) -->
+        <!-- Surlap 시간표 위젯 (Now/Next 카드) -->
         <receiver
             android:name=".HourSpaceWidgetProvider"
+            android:label="Surlap"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

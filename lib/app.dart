@@ -16,6 +16,7 @@ import 'providers/themes_provider.dart';
 import 'providers/todos_provider.dart';
 import 'providers/birthdays_provider.dart';
 import 'providers/filter_provider.dart';
+import 'providers/recurring_provider.dart';
 import 'screens/splash/splash_gate.dart';
 import 'supabase/theme_share_service.dart';
 
@@ -33,6 +34,7 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp>
     with WidgetsBindingObserver {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _sub;
+  Timer? _widgetTick;
 
   @override
   void initState() {
@@ -45,8 +47,11 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp>
     ref.listenManual(themesProvider, (_, _) => _syncWidget());
     ref.listenManual(birthdaysProvider, (_, _) => _syncWidget());
     ref.listenManual(filterProvider, (_, _) => _syncWidget());
+    ref.listenManual(recurringProvider, (_, _) => _syncWidget());
     // 첫 프레임 후 홈 위젯 초기 동기화
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncWidget());
+    // 1분마다 위젯 갱신 — 진행 교시·남은시간이 실시간 반영되도록.
+    _widgetTick = Timer.periodic(const Duration(minutes: 1), (_) => _syncWidget());
     // 일정 알림 notifier를 깨워 events 변경 listen + 초기 재스케줄 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(eventNotifyProvider.notifier).reschedule();
@@ -77,6 +82,7 @@ class _SpaceHourAppState extends ConsumerState<SpaceHourApp>
   @override
   void dispose() {
     _sub?.cancel();
+    _widgetTick?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

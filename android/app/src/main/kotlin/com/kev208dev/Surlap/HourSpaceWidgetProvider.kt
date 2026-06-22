@@ -3,13 +3,31 @@ package com.kev208dev.Surlap
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
+import org.json.JSONArray
 import org.json.JSONObject
 
+// Surlap "지금 / 다음" 위젯. home_widget(Flutter) 가 적은 SharedPreferences 키를 읽음.
+//   nowName, nowStart, nowEnd, nextName, nextStart, minutesRemaining, currentIndex, periods(JSON)
+// pbxproj 의 receiver 이름을 바꾸면 위젯이 사라지므로 클래스명 그대로 유지.
 class HourSpaceWidgetProvider : HomeWidgetProvider() {
+
+    private companion object {
+        const val SEG_COUNT = 7
+        // 미래 교시 기본 주얼톤 (과목 색이 없을 때 폴백).
+        val JEWEL = intArrayOf(
+            0xFF3A3A78.toInt(), 0xFF2F4E7A.toInt(), 0xFF1F5A5A.toInt(),
+            0xFF243A6E.toInt(), 0xFF3E2E72.toInt(), 0xFF5A2E62.toInt(),
+            0xFF5A2E4E.toInt()
+        )
+        const val ACCENT = 0xFFA98BFF.toInt()
+        const val IDLE_BG = 0xFF2F2A4A.toInt()
+    }
 
     override fun onUpdate(
         context: Context,
@@ -20,71 +38,121 @@ class HourSpaceWidgetProvider : HomeWidgetProvider() {
         for (id in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.hourspace_widget)
 
-            // 탭하면 앱 열기
+            // 위젯 탭 → 앱 열기 (시간표 view 로 이동하면 좋음 — 일단 메인).
             val pi = HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java)
             views.setOnClickPendingIntent(R.id.widget_root, pi)
 
-            val raw = widgetData.getString("hs_widget", null)
-            if (raw == null) {
-                render(views, "오늘", "", "", "", true)
-            } else {
-                try {
-                    val o = JSONObject(raw)
-                    val dateLabel = o.optString("dateLabel", "오늘")
-                    val todoCount = o.optInt("todoCount", 0)
-                    val todoDone = o.optInt("todoDone", 0)
-                    val eventCount = o.optInt("eventCount", 0)
+            val nowName = widgetData.getString("nowName", "") ?: ""
+            val nowStart = widgetData.getString("nowStart", "") ?: ""
+            val nowEnd = widgetData.getString("nowEnd", "") ?: ""
+            val nextName = widgetData.getString("nextName", "") ?: ""
+            val nextStart = widgetData.getString("nextStart", "") ?: ""
+            val minutesRemaining = widgetData.getInt("minutesRemaining", 0)
+            val currentIndex = widgetData.getInt("currentIndex", -1)
+            val periodsJson = widgetData.getString("periods", "[]") ?: "[]"
 
-                    val counts = "할 일 $todoDone/$todoCount · 일정 $eventCount"
+            views.setTextViewText(
+                R.id.widget_now_name,
+                if (nowName.isBlank()) "수업 없음" else nowName
+            )
+            val nowTime = if (nowStart.isBlank()) "—" else
+                if (nowEnd.isBlank()) nowStart else "$nowStart – $nowEnd"
+            views.setTextViewText(R.id.widget_now_time, nowTime)
+            views.setTextViewText(
+                R.id.widget_next_name,
+                if (nextName.isBlank()) "—" else nextName
+            )
+            views.setTextViewText(R.id.widget_next_time, if (nextStart.isBlank()) "—" else nextStart)
 
-                    val todoSb = StringBuilder()
-                    val todos = o.optJSONArray("todos")
-                    if (todos != null) {
-                        for (i in 0 until todos.length()) {
-                            val t = todos.getJSONObject(i)
-                            val mark = if (t.optBoolean("done", false)) "☑" else "☐"
-                            if (todoSb.isNotEmpty()) todoSb.append("\n")
-                            todoSb.append("$mark ${t.optString("title", "")}")
-                        }
-                    }
-
-                    val evSb = StringBuilder()
-                    val events = o.optJSONArray("events")
-                    if (events != null) {
-                        for (i in 0 until events.length()) {
-                            val e = events.getJSONObject(i)
-                            val time = e.optString("time", "")
-                            val prefix = if (time.isEmpty()) "•" else time
-                            if (evSb.isNotEmpty()) evSb.append("\n")
-                            evSb.append("$prefix  ${e.optString("title", "")}")
-                        }
-                    }
-
-                    val empty = todoCount == 0 && eventCount == 0
-                    render(views, dateLabel, counts, todoSb.toString(), evSb.toString(), empty)
-                } catch (e: Exception) {
-                    render(views, "오늘", "", "", "", true)
-                }
+            val remainingText = when {
+                currentIndex < 0 -> if (nextName.isNotBlank()) "다음 수업 $nextStart" else "오늘 예정된 수업이 없어요"
+                else -> "종료까지 ${minutesRemaining}분 남음"
             }
+            views.setTextViewText(R.id.widget_remaining, remainingText)
+
+            // 교시 세그먼트 바 — 최대 7칸. 보이는 개수만 표시, 나머지 GONE.
+            val periods = parsePeriods(periodsJson)
+            applyPeriodBar(views, periods, currentIndex)
 
             appWidgetManager.updateAppWidget(id, views)
         }
     }
 
-    private fun render(
+    private fun parsePeriods(raw: String): List<Pair<String, Int>> {
+        return try {
+            val arr = JSONArray(raw)
+            val out = ArrayList<Pair<String, Int>>(arr.length())
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                val name = o.optString("name", "")
+                val colorHex = o.optString("color", "")
+                val color = parseHex(colorHex) ?: JEWEL[i % JEWEL.size]
+                out.add(name to color)
+            }
+            out
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    private fun parseHex(hex: String): Int? {
+        if (hex.isBlank()) return null
+        val s = hex.removePrefix("#")
+        return try {
+            val v = s.toLong(16)
+            when (s.length) {
+                6 -> (0xFF000000 or v).toInt()
+                8 -> v.toInt()
+                else -> null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun applyPeriodBar(
         views: RemoteViews,
-        date: String,
-        counts: String,
-        todos: String,
-        events: String,
-        empty: Boolean
+        periods: List<Pair<String, Int>>,
+        currentIndex: Int
     ) {
-        views.setTextViewText(R.id.widget_date, date)
-        views.setTextViewText(R.id.widget_counts, counts)
-        views.setTextViewText(R.id.widget_todos, todos)
-        views.setTextViewText(R.id.widget_events, events)
-        views.setViewVisibility(R.id.widget_todos, if (todos.isEmpty()) View.GONE else View.VISIBLE)
-        views.setViewVisibility(R.id.widget_events, if (events.isEmpty()) View.GONE else View.VISIBLE)
-        views.setViewVisibility(R.id.widget_empty, if (empty) View.VISIBLE else View.GONE)
+        val segIds = intArrayOf(
+            R.id.widget_seg_0, R.id.widget_seg_1, R.id.widget_seg_2,
+            R.id.widget_seg_3, R.id.widget_seg_4, R.id.widget_seg_5,
+            R.id.widget_seg_6
+        )
+        val tickIds = intArrayOf(
+            R.id.widget_seg_0_tick, R.id.widget_seg_1_tick, R.id.widget_seg_2_tick,
+            R.id.widget_seg_3_tick, R.id.widget_seg_4_tick, R.id.widget_seg_5_tick,
+            R.id.widget_seg_6_tick
+        )
+        for (i in 0 until SEG_COUNT) {
+            if (i >= periods.size) {
+                views.setViewVisibility(segIds[i], View.GONE)
+                views.setViewVisibility(tickIds[i], View.GONE)
+                continue
+            }
+            views.setViewVisibility(segIds[i], View.VISIBLE)
+            val isCurrent = i == currentIndex
+            val baseColor = periods[i].second
+            val color = when {
+                isCurrent -> ACCENT
+                i < currentIndex -> dim(baseColor, 0.5f)
+                else -> baseColor
+            }
+            // RemoteViews 는 GradientDrawable 직접 설정 못 함 → setInt 로 background tint.
+            views.setInt(segIds[i], "setBackgroundColor", color)
+            views.setViewVisibility(
+                tickIds[i],
+                if (isCurrent) View.VISIBLE else View.GONE
+            )
+        }
+    }
+
+    private fun dim(color: Int, factor: Float): Int {
+        val a = Color.alpha(color)
+        val r = (Color.red(color) * factor).toInt().coerceIn(0, 255)
+        val g = (Color.green(color) * factor).toInt().coerceIn(0, 255)
+        val b = (Color.blue(color) * factor).toInt().coerceIn(0, 255)
+        return Color.argb(a, r, g, b)
     }
 }
